@@ -59,7 +59,17 @@ Not allowed in this stage:
 
 ## GitHub Status
 
-This folder is not currently a git repository, and GitHub CLI is not installed on this machine. A private GitHub repo should be created later through the GitHub website or after installing and authenticating `gh`.
+This folder is now a git repository connected to the private GitHub repo:
 
-The repo must start private, use feature branches, and protect `main` once the first clean docs-only commit exists.
+- Remote: `https://github.com/ammar31mawassi/Dalili.git`
+- Default branch: `main`
+- Current stage: docs-only research and planning
+- Initial labels and starter issues: created
+- GitHub CLI: installed and authenticated as `ammar31mawassi`
 
+Remaining GitHub-side limits:
+
+- `main` protection/rulesets cannot be enabled while this private repo is on the current GitHub plan. GitHub returned: `Upgrade to GitHub Pro or make this repository public to enable this feature.`
+- GitHub Projects automation needs the `project` OAuth scope. Run `gh auth refresh --hostname github.com -s project` before creating the project board from the CLI.
+
+Until `main` protection is available, the team rule is still: use feature branches and pull requests, no direct implementation work on `main`.

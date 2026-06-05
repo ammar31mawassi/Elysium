@@ -10,14 +10,20 @@ Workspace:
 
 Current status:
 
-- The folder is not a git repository.
-- GitHub CLI is not installed.
+- The folder is a git repository.
+- Remote is `https://github.com/ammar31mawassi/Dalili.git`.
+- The GitHub repo is private.
+- Default branch is `main`.
+- GitHub CLI is installed at `C:\Program Files\GitHub CLI\gh.exe`.
+- GitHub CLI is authenticated as `ammar31mawassi`.
+- Initial labels and starter issues are created.
 - The folder contains the Visily PDF and planning docs.
 
 Implication:
 
-- Private GitHub repo creation cannot be completed from this environment using `gh`.
-- Create the private repo through GitHub's website, or install and authenticate GitHub CLI first.
+- Repo creation and issue setup are complete.
+- Branch protection/rulesets are blocked by GitHub plan limits for a private repo.
+- Project board automation is blocked until the GitHub CLI token has the `project` scope.
 
 References:
 
@@ -25,33 +31,36 @@ References:
 - [GitHub inviting collaborators](https://docs.github.com/en/account-and-profile/setting-up-and-managing-your-personal-account-on-github/managing-access-to-your-personal-repositories/inviting-collaborators-to-a-personal-repository)
 - [GitHub protected branches](https://docs.github.com/articles/about-required-reviews-for-pull-requests)
 
-## Private Repo Setup Later
+## Private Repo Setup Status
 
-Recommended repo:
+Completed:
 
-- Name: `dalili`
+- Name: `Dalili`
 - Visibility: private.
-- Add README: yes, from this docs foundation.
+- README: created from this docs foundation.
 - License: none for now.
 - Default branch: `main`.
+- Remote: `https://github.com/ammar31mawassi/Dalili.git`.
+- Labels: created.
+- Starter issues: created from `docs/06-backlog/initial-issues.md`.
 
-After creation:
+Still needed:
 
-```bash
-git init
-git add .
-git commit -m "Add Dalili research and planning foundation"
-git branch -M main
-git remote add origin https://github.com/YOUR_USERNAME/dalili.git
-git push -u origin main
+- Invite collaborators:
+  - Marwan.
+  - Abd Allah.
+- Create the project board after refreshing the GitHub CLI project scope:
+
+```powershell
+gh auth refresh --hostname github.com -s project
 ```
 
-Then invite collaborators:
+Branch protection status:
 
-- Marwan.
-- Abd Allah.
+- Attempted GitHub branch protection and repository rulesets for `main`.
+- GitHub blocked both for this private repo with: `Upgrade to GitHub Pro or make this repository public to enable this feature.`
 
-Then protect `main`:
+Target protection once available:
 
 - Require pull request before merging.
 - Require at least 1 approval.
@@ -220,4 +229,3 @@ For Vercel:
 - Deps Doctor: dependency audit.
 - Brooks Lint: architecture/code review.
 - Test Gap: coverage review after code exists.
-

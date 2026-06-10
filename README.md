@@ -1,16 +1,16 @@
-# Dalili / دليلي
+# Dalili / دليلي (Working Title)
 
-Dalili means "my guide." This project is an Arabic-first student support hub for Arab students entering Israeli universities and colleges.
+Dalili means "my guide." It is the current working title for a multilingual student support hub for students in Israeli universities and colleges. A new inclusive name will be selected before implementation.
 
-The product direction is a **Full Student Hub** with a **Campus Compass** design language. The first real MVP should help a new student understand what to do next, who to ask, and where to find trusted Arabic-friendly guidance during the first year.
+The product direction is a **Full Student Hub** with a **Campus Compass** design language. The MVP should help a student understand what to do next, who to ask, and where to find trustworthy guidance in English, Hebrew, or Arabic.
 
 ## Mission
 
-Dalili exists because many Arab students do not only need another planner. They need a trusted guide through unfamiliar academic systems, Hebrew academic language, English course material, financial pressure, campus disorientation, social isolation, course registration, deadlines, rights, scholarships, and first-year uncertainty.
+The product exists because students do not only need another planner. They need a trusted guide through unfamiliar academic systems, multilingual terminology, financial pressure, campus disorientation, social isolation, course registration, deadlines, rights, scholarships, and first-year uncertainty.
 
 The product sentence:
 
-> Dalili is an Arabic-first campus compass that turns confusing university moments into clear steps, trusted people, and relevant resources.
+> The working-title product is a multilingual campus compass that turns confusing university moments into clear steps, trusted people, and relevant resources in English, Hebrew, and Arabic.
 
 ## Current Stage
 
@@ -34,15 +34,18 @@ Not allowed in this stage:
 ## Chosen Defaults
 
 - MVP direction: Full Student Hub.
-- Later stack: Vite, React, TypeScript, Supabase, Tailwind CSS, Vercel.
+- Implementation decision: Base44 is connected for later evaluation; Vite + Supabase remains the custom-build reference. No platform project is initialized yet.
 - Design direction: Campus Compass.
-- Team workflow: Ammar owns product/design/frontend, Marwan owns Supabase/backend/security, Abd Allah owns content/research/QA.
+- Language model: English, Hebrew, and Arabic are first-class product languages.
+- Team workflow: Ammar owns product/design/frontend/content direction; Marwan owns backend/data/security/technical QA. Research and product QA are shared.
 
 ## Documents
 
 - [Arab Student Struggles](docs/01-research/arab-student-struggles.md)
+- [Multilingual Student Needs](docs/01-research/multilingual-student-needs.md)
 - [Prototype Audit](docs/01-research/prototype-audit.md)
 - [Dalili Idea](docs/02-product/dalili-idea.md)
+- [Naming Directions](docs/02-product/naming-directions.md)
 - [MVP Scope](docs/02-product/mvp-scope.md)
 - [Campus Compass Design](docs/03-design/campus-compass.md)
 - [Team Workflow](docs/04-team/workflow.md)
@@ -66,6 +69,7 @@ This folder is now a git repository connected to the private GitHub repo:
 - Current stage: docs-only research and planning
 - Initial labels and starter issues: created
 - GitHub CLI: installed and authenticated as `ammar31mawassi`
+- Base44 plugin/CLI: installed and authenticated, intentionally unused until product definition is approved.
 
 Remaining GitHub-side limits:
 

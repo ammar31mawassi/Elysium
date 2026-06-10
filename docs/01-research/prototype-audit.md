@@ -23,7 +23,7 @@ Observed screens:
 
 What to keep:
 
-- Arabic-first mobile interface.
+- Strong Arabic/RTL mobile interface as proof that non-English experiences must be native.
 - The idea that Dalili lives in the student's day, not only in a resource library.
 - Schedule context connected to help actions.
 - Quick access to groups, mentors, and tools.
@@ -103,7 +103,7 @@ Features observed:
 
 What to keep:
 
-- Vite + React + TypeScript + Supabase is the chosen future stack.
+- Vite + React + TypeScript + Supabase remains the strongest custom-build reference.
 - Protected route pattern.
 - Mobile shell.
 - Bottom navigation.
@@ -116,7 +116,7 @@ What to avoid:
 - The product reads as a general academic planner.
 - Too much emphasis on GPA/courses/goals for Dalili's first identity.
 - Tutor profiles are static and marketplace-like.
-- It lacks the research-backed Arab-student transition model.
+- It lacks a research-backed multilingual transition and hidden-curriculum model.
 
 Product lesson:
 
@@ -157,13 +157,13 @@ What to keep:
 
 What to avoid:
 
-- Flask is not the chosen future stack.
+- Flask is not a preferred implementation direction for the new product.
 - The product model remains course/GPA-heavy.
 - Server-rendered templates are less aligned with a modern mobile web app MVP.
 
 Product lesson:
 
-It proves the product can be made mobile-friendly and Arabic-first, but the next version should be a clean Vite + Supabase app later.
+It proves the product can be made mobile-friendly and RTL-native, but the next version must give English, Hebrew, and Arabic equal product depth.
 
 ## Cross-Prototype Decision
 
@@ -176,7 +176,7 @@ Dalili should not become:
 
 Dalili should become:
 
-- A campus compass for Arab students.
+- A multilingual campus compass for students.
 - A human-written guide through first-year confusion.
 - A trusted mentor and group network.
 - A university-specific survival layer.
@@ -196,4 +196,3 @@ Later implementation may:
 - Rebuild from scratch with clean architecture.
 - Use Supabase as the backend.
 - Use the old Vite version as a reference for patterns, not as a direct base unless the team explicitly decides to import it.
-

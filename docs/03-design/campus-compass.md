@@ -1,17 +1,17 @@
 # Campus Compass Design Direction
 
-The chosen design direction is **Campus Compass**: calm, trustworthy, Arabic-first, mobile-first, and practical. The app should feel like a guide through campus life, not a generic productivity dashboard.
+The chosen design direction is **Campus Compass**: calm, trustworthy, multilingual, mobile-first, and practical. The app should feel like a guide through campus life, not a generic productivity dashboard.
 
 ## Design Goal
 
-Dalili should feel:
+The product should feel:
 
 - Human.
 - Clear.
 - Warm.
 - Trustworthy.
 - Student-centered.
-- Arabic-first.
+- Native in English, Hebrew, and Arabic.
 - Specific to campus survival.
 
 It should not feel:
@@ -59,32 +59,35 @@ Avoid:
 
 ## Typography
 
-Arabic-first font stack:
+Recommended language-aware font system:
 
-- Tajawal.
-- Noto Sans Arabic.
-- System UI fallback.
+- Arabic: Tajawal or Noto Sans Arabic.
+- Hebrew: Noto Sans Hebrew or a compatible modern system sans.
+- English: Inter or system UI.
+- Shared fallback: Noto Sans family where visual consistency is needed.
 
 Rules:
 
 - Body text must be highly readable on mobile.
 - Guide content should use comfortable line height.
 - Labels should be short and clear.
-- Use Arabic copy as the primary visual rhythm.
-- Hebrew and English terms should be visually secondary but easy to scan.
+- Give each language native line height, weight, and punctuation behavior.
+- Do not shrink Hebrew or Arabic text to force it into an English-sized component.
+- Official terms may appear secondarily in another language, but the student's selected language remains the explanatory layer.
 
 ## RTL Rules
 
-RTL is foundational.
+RTL and LTR parity are foundational.
 
 Implementation rules for later:
 
-- Set `dir="rtl"` at the document/root level for Arabic views.
+- Set document direction from the active language: `rtl` for Arabic and Hebrew, `ltr` for English.
 - Use CSS logical properties when possible: `padding-inline-start`, `margin-inline-end`, etc.
 - Use Tailwind logical utilities where available.
 - Mirror directional icons such as arrows.
-- Keep numbers, course codes, Hebrew terms, and English acronyms readable in mixed-direction text.
-- Test long Arabic labels on small screens.
+- Keep numbers, course codes, URLs, and mixed-language terminology readable with explicit bidi handling where needed.
+- Test long Arabic, Hebrew, and English labels on small screens.
+- Switching language must not change the information architecture or hide features.
 
 References:
 
@@ -95,13 +98,15 @@ References:
 
 The app should open directly into the product experience.
 
-Recommended bottom navigation:
+Recommended bottom-navigation concepts in every language:
 
-- الرئيسية
-- الأدلة
-- الموجّهون
-- المجموعات
-- حسابي
+- Home.
+- Guides.
+- Mentors.
+- Groups.
+- Profile.
+
+Labels are localized; icon meaning and order remain stable unless directional conventions require mirroring.
 
 The center action can be contextual later, but avoid making a generic plus button the main identity.
 
@@ -117,13 +122,14 @@ Desktop:
 
 Purpose:
 
-- Explain Dalili quickly.
+- Explain the product quickly.
 - Let students sign in or browse public guides if allowed.
 
 Must show:
 
-- Dalili / دليلي.
-- Arabic-first promise.
+- Working product name in the active script treatment.
+- English / עברית / العربية language control.
+- Multilingual campus-guidance promise.
 - Sign in / create account.
 - Example help topics.
 
@@ -202,14 +208,14 @@ Layout:
 
 ## Tone Of Voice
 
-Arabic copy should be practical and direct.
+Copy in every language should be practical, calm, and direct.
 
-Preferred:
+Core concepts to localize naturally rather than literally:
 
-- "ماذا تحتاج اليوم؟"
-- "خطوتك القادمة"
-- "اسأل طالبا مر بنفس التجربة"
-- "مصطلحات ستسمعها في الجامعة"
+- "What do you need today?"
+- "Your next step"
+- "Ask a student who has been through this"
+- "Terms you will hear at university"
 
 Avoid:
 
@@ -222,10 +228,10 @@ Avoid:
 
 The design is successful if:
 
-- A student immediately understands that Dalili is for Arab students in Israeli academia.
+- A student immediately understands that the product helps students navigate Israeli higher education in English, Hebrew, and Arabic.
 - The app feels useful before it feels impressive.
-- Arabic content looks native, not translated.
+- English, Hebrew, and Arabic each look native rather than machine-translated or visually secondary.
 - The first viewport points to one clear next action.
 - Mobile screens do not overflow or rely on tiny labels.
 - Mentors and resources feel trustworthy.
-
+- Language switching preserves context and feature parity.

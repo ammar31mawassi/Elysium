@@ -1,6 +1,6 @@
-# Arab Student Struggles: Research Base
+# Arab Student Experience: Priority-Segment Research
 
-This file records the evidence behind Dalili. The purpose is not to prove that Arab students are weak. The point is to show where the system creates friction, and where a focused product can make the first year less confusing.
+This file preserves the evidence that shaped the original Dalili idea. The product now serves all students, but this research remains important because an inclusive product should not flatten unequal experiences. Arab students are a priority segment whose language and transition barriers require deliberate support.
 
 ## Research Snapshot
 
@@ -22,7 +22,7 @@ Key evidence:
 
 Arab students often move from Arabic-speaking school environments into Hebrew-dominant campuses, while many course readings and technical materials are in English.
 
-Dalili implication:
+Product implication:
 
 - Guides must explain Hebrew academic terms in Arabic.
 - Content should include templates for emails, office-hour questions, course registration terms, grade appeals, scholarship language, Moodle terms, and exam rules.
@@ -32,7 +32,7 @@ Dalili implication:
 
 Students may not know the unwritten rules: how to talk to lecturers, when to ask for help, what a syllabus means, how office hours work, how to choose courses, when to appeal, what counts as normal academic struggle, and where deadlines are hidden.
 
-Dalili implication:
+Product implication:
 
 - Every guide should include "what nobody tells you" notes.
 - Mentors should be organized around situations, not only fields.
@@ -42,7 +42,7 @@ Dalili implication:
 
 The first semester combines new geography, new systems, new academic expectations, new social environments, and often the first time living away from home.
 
-Dalili implication:
+Product implication:
 
 - The dashboard should prioritize "what matters now" instead of showing a generic app home.
 - University pages should include practical campus orientation: offices, contacts, student union, transport, dorms, libraries, calendars, scholarship links, and common mistakes.
@@ -52,7 +52,7 @@ Dalili implication:
 
 Research points to stronger financial pressure among Arab students. Students may work while studying, commute long distances, or avoid helpful prep programs because they need income.
 
-Dalili implication:
+Product implication:
 
 - Scholarship and rights guidance should be first-class.
 - The planner should understand work shifts and commute constraints.
@@ -62,7 +62,7 @@ Dalili implication:
 
 Many Arab students begin higher education younger than Jewish peers who often enter after military service. This can affect confidence, independence, campus familiarity, and social belonging.
 
-Dalili implication:
+Product implication:
 
 - Mentors should normalize confusion and help students understand campus culture.
 - The product tone should avoid shame, panic, or over-motivation.
@@ -72,15 +72,15 @@ Dalili implication:
 
 Academic research shows Arabic has little presence in much of Israeli academia, and that Arabic alongside Hebrew can support belonging. Source: [ERIC record on Arabic in Israeli higher education](https://eric.ed.gov/?id=EJ1315220).
 
-Dalili implication:
+Product implication:
 
-- Arabic is not just a translation setting. Arabic is the default trust layer.
-- Hebrew and English appear as tools to navigate university, not as the emotional voice of the app.
-- Design should feel like it was made from inside the student experience.
+- Arabic must be a complete first-class experience, not a translated subset.
+- Students must be able to understand Hebrew and English institutional terminology without abandoning their preferred interface language.
+- Design and content should reflect lived Arab-student experience without assuming that every Arab student has the same needs.
 
-## What Dalili Should Help With
+## What The Product Should Help With
 
-Dalili should reduce:
+The product should reduce:
 
 - Time spent searching scattered information.
 - Fear of asking "basic" questions.
@@ -90,7 +90,7 @@ Dalili should reduce:
 - Uncertainty about whom to contact.
 - Dependence on random WhatsApp groups with unclear reliability.
 
-Dalili should increase:
+The product should increase:
 
 - Fast access to trustworthy Arabic explanations.
 - Student-to-student support.
@@ -111,6 +111,6 @@ Dalili should increase:
 - Which three universities should be supported first?
 - Which first-year problems are most painful for students in computer science, nursing, medicine, law, and education?
 - What information do Arab students currently get from WhatsApp groups, and what is missing?
+- Which needs are shared by all students, and which require segment-specific content or workflows?
 - Would students trust mentor profiles with WhatsApp contact, or prefer in-app requests?
 - What content should be public without login, and what should require an account?
-

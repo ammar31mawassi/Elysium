@@ -1,284 +1,259 @@
 # Initial GitHub Issues
 
-These are starter issues to create after the private GitHub repo exists. They are written for a beginner team and should be kept small.
+This backlog reflects the expanded multilingual product and the two-person team. No implementation issue should start until the repositioning, name, first launch cohort, and core workflows are approved.
 
-## Phase 0: Docs And Repo
+## Phase 0: Repositioning And Research
 
-### Issue: Add research foundation docs
-
-Owner: Abd Allah
-
-Goal:
-
-- Keep all research claims source-backed.
-
-Acceptance criteria:
-
-- Arab student participation stats have source links.
-- First-year dropout/transition risks have source links.
-- At least five guide topics are derived from research.
-
-### Issue: Create private GitHub repo and protect main
+### Issue: Validate the all-student product direction
 
 Owner: Ammar
-
-Goal:
-
-- Make a private collaboration repo.
+Reviewer: Marwan
 
 Acceptance criteria:
 
-- Repo is private.
-- Marwan and Abd Allah are invited.
-- `main` exists.
-- Direct pushes to `main` are blocked.
-- Pull request approval is required.
+- Interview plan includes Arabic-, Hebrew-, and English-using students.
+- Universal needs and segment-specific needs are separated.
+- First launch cohort is proposed.
+- Findings are recorded with source or interview context.
+
+### Issue: Select the new product name
+
+Owner: Ammar
+Reviewer: Marwan
+
+Acceptance criteria:
+
+- MAQOM, DARGA, and SAHA are tested with native speakers.
+- At least five speakers from each language group review pronunciation and associations.
+- Final two candidates receive trademark, company, domain, social-handle, and app-store checks.
+- Final name works in Latin, Hebrew, and Arabic scripts.
+- GitHub repo is not renamed until the decision is approved.
+
+### Issue: Expand the research foundation
+
+Owner: Ammar
+Reviewer: Marwan
+
+Acceptance criteria:
+
+- Shared student problems have source links or explicit research hypotheses.
+- Arab-student evidence remains documented as priority-segment research.
+- New immigrant, international, working, commuting, and first-generation contexts are included.
+- At least ten guide topics are derived from the combined research.
+
+### Issue: Define the multilingual content model
+
+Owner: Marwan
+Reviewer: Ammar
+
+Acceptance criteria:
+
+- Content can link English, Hebrew, and Arabic versions of one concept.
+- Official terminology can remain in its source language.
+- Search aliases and transliterations are supported in the model.
+- Locale does not control authorization.
+- Missing or outdated translations can be identified by admins.
 
 ### Issue: Create project board
 
 Owner: Ammar
-
-Goal:
-
-- Track work clearly.
+Reviewer: Marwan
 
 Acceptance criteria:
 
 - Columns: Backlog, Ready, In Progress, Review, Done.
 - Initial issues are added.
-- Each issue has one owner.
+- Every issue has an owner and reviewer.
 
-## Phase 1: Design And Static Product Shape
+## Phase 1: Product And Design
 
-### Issue: Design first mobile dashboard concept
-
-Owner: Ammar
-
-Goal:
-
-- Make the Campus Compass direction concrete.
-
-Acceptance criteria:
-
-- Includes Arabic-first dashboard.
-- Shows "what matters now."
-- Includes recommended guides, mentor CTA, group suggestion, university shortcut.
-- Avoids generic GPA-first layout.
-
-### Issue: Define guide content template
-
-Owner: Abd Allah
-
-Goal:
-
-- Make every guide useful and consistent.
-
-Acceptance criteria:
-
-- Template includes situation, why it matters, Arabic explanation, Hebrew terms, steps, source, common mistake, ask-a-mentor prompt.
-- Three sample guide drafts exist.
-
-### Issue: Draft first university page content
-
-Owner: Abd Allah
-
-Goal:
-
-- Build the first university-specific survival page.
-
-Acceptance criteria:
-
-- One university selected.
-- Official links collected.
-- Important offices listed.
-- First-year tips drafted.
-- Relevant guide ideas listed.
-
-## Phase 2: App Foundation Later
-
-### Issue: Create Vite React TypeScript app
+### Issue: Design first multilingual mobile dashboard concept
 
 Owner: Ammar
-
-Goal:
-
-- Start the app only after docs/design approval.
+Reviewer: Marwan
 
 Acceptance criteria:
 
-- Vite React TypeScript project created.
-- Tailwind configured.
-- Arabic font loaded.
-- Root supports RTL.
-- No Supabase logic yet.
+- English, Hebrew, and Arabic versions use the same information architecture.
+- Dashboard shows "what matters now."
+- Includes recommended guides, mentor CTA, group suggestion, and university shortcut.
+- Language switching preserves context.
+- Avoids a generic GPA-first layout.
 
-### Issue: Add mobile app shell
+### Issue: Define the guide content template
 
 Owner: Ammar
-
-Goal:
-
-- Create the first navigable structure.
+Reviewer: Marwan
 
 Acceptance criteria:
 
-- Bottom navigation exists.
-- Routes for dashboard, guides, mentors, groups, profile exist.
-- Layout works on mobile and desktop.
-- No overflow in Arabic labels.
+- Template includes situation, why it matters, explanation, official terms, steps, source, common mistake, and ask-a-mentor prompt.
+- Translation and source-freshness metadata are defined.
+- Three sample guide concepts exist in English, Hebrew, and Arabic.
 
-### Issue: Set up Supabase project
+### Issue: Draft the first university page
+
+Owner: Ammar
+Reviewer: Marwan
+
+Acceptance criteria:
+
+- One university and launch cohort are selected.
+- Official links and important offices are collected.
+- Language, accessibility, new-immigrant, international, Arab-student, reserve-duty, and general support services are listed where available.
+- First-year tips and related guide ideas are drafted.
+
+### Issue: Approve core workflows before implementation
+
+Owner: Ammar
+Reviewer: Marwan
+
+Acceptance criteria:
+
+- Onboarding flow is approved.
+- Dashboard flow is approved.
+- Guide discovery/detail flow is approved.
+- Mentor and group discovery flows are approved.
+- Admin review flow is approved.
+- Every workflow has English, Hebrew, and Arabic content examples.
+
+## Phase 2: Platform Decision And Foundation Later
+
+### Issue: Decide Base44 versus custom Vite/Supabase implementation
 
 Owner: Marwan
-
-Goal:
-
-- Prepare auth and database foundation.
+Reviewer: Ammar
 
 Acceptance criteria:
 
-- Supabase project exists.
-- Auth enabled.
-- `.env.example` documents required variables.
-- No secrets committed.
+- Compare multilingual content, RTL/LTR, auth, permissions, search, moderation, portability, cost, deployment, and team learning curve.
+- Build no production feature during the comparison.
+- Record the selected platform and rejected tradeoffs.
+- Do not initialize or link the production project before product approval.
 
-### Issue: Draft initial schema and RLS
+### Issue: Create the application foundation
+
+Owner: Ammar
+Reviewer: Marwan
+
+Acceptance criteria:
+
+- Starts only after naming, workflows, and platform decision are approved.
+- English, Hebrew, and Arabic routing/localization is configured.
+- RTL and LTR root direction works.
+- No secrets are committed.
+- Basic mobile shell renders consistently in all three languages.
+
+### Issue: Create auth, schema, and access policies
 
 Owner: Marwan
-
-Goal:
-
-- Model profiles, guides, mentors, groups, universities, bookmarks, and reports.
+Reviewer: Ammar
 
 Acceptance criteria:
 
-- SQL migration drafted.
-- RLS enabled on public tables.
-- Owner-only policies for private user data.
-- Approved-only public policies for mentors/groups.
+- Profiles, guides, translations, mentors, groups, universities, bookmarks, and reports are modeled.
+- Private user data is owner-only.
+- Public mentors/groups require approval.
+- Admin permissions are explicit.
+- Language choice does not alter access control.
 
 ## Phase 3: Core Hub Features Later
 
-### Issue: Build onboarding flow
+### Issue: Build onboarding
 
 Owner: Ammar
-
-Goal:
-
-- Personalize the student's first experience.
+Reviewer: Marwan
 
 Acceptance criteria:
 
-- Captures university, field, year, language comfort, commute/housing, help needs.
-- Saves to profile.
+- Captures institution, field, year, preferred language, language comfort, commute/housing, and help needs.
+- Optional identity/context fields explain why they are asked.
 - Dashboard recommendations use onboarding data.
+- Flow is tested in English, Hebrew, and Arabic.
 
-### Issue: Build guide library
+### Issue: Build the guide library
 
 Owner: Ammar
-
-Goal:
-
-- Let students find practical Arabic guidance.
+Reviewer: Marwan
 
 Acceptance criteria:
 
-- Search works.
-- Category filters work.
-- Guide detail page uses the approved template.
+- Search works across English, Hebrew, Arabic, aliases, and transliterations.
+- Category and university filters work.
+- Guide detail uses the approved template.
+- Sources and update dates are visible.
 - Guides can be saved.
 
 ### Issue: Add mentor profiles
 
 Owner: Marwan
-
-Goal:
-
-- Let approved older students appear as mentors.
+Reviewer: Ammar
 
 Acceptance criteria:
 
-- Mentor profile form exists.
 - Profiles require admin approval.
-- Students can filter mentors by university, field, and help topic.
-- WhatsApp contact or contact request is available.
+- Students can filter by institution, field, help topic, and language.
+- Contact path is available without exposing unnecessary personal data.
+- Reports and removal workflow exist.
 
 ### Issue: Add groups
 
 Owner: Marwan
-
-Goal:
-
-- Let students find study/social/first-year groups.
+Reviewer: Ammar
 
 Acceptance criteria:
 
-- Group list exists.
-- Group creation exists.
+- Study, course, exam-prep, transition, and social groups are supported.
 - Public groups require admin approval.
+- Language and institution are filterable.
 - Groups can be reported.
 
 ### Issue: Add admin review dashboard
 
 Owner: Marwan
-
-Goal:
-
-- Protect trust in the app.
+Reviewer: Ammar
 
 Acceptance criteria:
 
-- Admin can approve mentors.
-- Admin can approve groups.
-- Admin can manage resources.
-- Admin can review reports.
+- Admin can approve mentors and groups.
+- Admin can manage resources and translations.
+- Admin can see missing/stale language versions.
+- Admin can review reports and source freshness.
 
-## Phase 4: QA And Launch Later
+## Phase 4: QA And Pilot Later
 
-### Issue: Manual first-year student QA
-
-Owner: Abd Allah
-
-Goal:
-
-- Test the product as a new student.
-
-Acceptance criteria:
-
-- Account creation tested.
-- Onboarding tested.
-- Dashboard tested.
-- Guide search tested.
-- Mentor/group discovery tested.
-- Arabic/RTL issues logged.
-
-### Issue: Vercel preview deployment
-
-Owner: Ammar
-
-Goal:
-
-- Share a live preview.
-
-Acceptance criteria:
-
-- Vercel project created.
-- Environment variables configured.
-- Preview URL works.
-- No secrets exposed.
-
-### Issue: Secret and dependency checks
+### Issue: Run multilingual manual QA
 
 Owner: Marwan
-
-Goal:
-
-- Keep the repo safe before sharing.
+Reviewer: Ammar
 
 Acceptance criteria:
 
-- Secret scan passes.
-- Dependency audit reviewed.
-- `.env` is ignored.
-- `.env.example` is complete.
+- Account creation, onboarding, dashboard, guide search, mentors, and groups are tested.
+- Tests are repeated in English, Hebrew, and Arabic.
+- RTL/LTR, mixed-direction text, accessibility, and mobile overflow issues are logged.
+- Permission and moderation paths are tested.
 
+### Issue: Pilot with one university cohort
+
+Owner: Ammar
+Reviewer: Marwan
+
+Acceptance criteria:
+
+- Pilot cohort and recruitment method are documented.
+- Students from more than one language context participate.
+- Time-to-answer, failed searches, trust, and usefulness are measured.
+- Findings produce prioritized changes before expansion.
+
+### Issue: Deployment, secret, and dependency checks
+
+Owner: Marwan
+Reviewer: Ammar
+
+Acceptance criteria:
+
+- Preview deployment works.
+- Environment variables are configured without exposing secrets.
+- Secret and dependency scans pass.
+- Rollback and production ownership are documented.

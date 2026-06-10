@@ -4,80 +4,86 @@ Team:
 
 - Ammar.
 - Marwan.
-- Abd Allah.
 
-Chosen workflow: **Balanced Defaults**.
+The team is intentionally small. Ownership must be explicit, but neither person should become a single point of failure. Every major decision and implementation must be reviewable by the other person.
 
 ## Roles
 
-### Ammar: Product, Design, Frontend
+### Ammar: Product, Design, Frontend, Content Direction
 
 Owns:
 
-- Product direction.
-- User journeys.
+- Product direction and prioritization.
+- User research planning and synthesis.
+- User journeys and information architecture.
+- Naming and brand direction.
 - Visual design direction.
-- Frontend app shell later.
-- Arabic UI copy quality.
-- LinkedIn/story presentation.
+- English, Hebrew, and Arabic UX consistency.
+- Frontend implementation later.
+- Guide format and editorial quality.
+- Public story, demos, and LinkedIn presentation.
 
 First responsibilities:
 
-- Keep Dalili specific and non-generic.
-- Approve screen flows before code.
-- Lead Campus Compass design.
-- Review every user-facing page.
+- Keep the product specific and non-generic while expanding the audience.
+- Lead native-speaker name testing.
+- Approve flows before implementation.
+- Define the first university and launch cohort.
+- Draft sample guides with source links in all three languages.
 
-### Marwan: Supabase, Backend, Security
+### Marwan: Backend, Data, Security, Technical QA
 
 Owns:
 
-- Supabase project setup later.
-- Database schema.
-- Auth.
-- Row Level Security policies.
-- Admin permissions.
-- Environment variables.
-- Data integrity.
+- Backend platform decision and setup later.
+- Data model and content localization structure.
+- Authentication and authorization.
+- Row Level Security or equivalent access policies.
+- Admin permissions and moderation workflows.
+- Environment variables and secrets.
+- Data integrity, logging, and technical QA.
+- Deployment safety and production troubleshooting.
 
 First responsibilities:
 
-- Read Supabase Auth and RLS docs.
-- Draft safe schema before implementation.
+- Review how multilingual content, search terms, and translations should be stored.
+- Draft a safe schema before implementation.
 - Make sure users can only edit their own private data.
-- Make sure public content has an approval model.
+- Make sure public content has approval, source, locale, and freshness metadata.
+- Define test cases for language switching, permissions, and moderation.
 
-### Abd Allah: Content, Research, QA
+## Shared Ownership
 
-Owns:
+Both Ammar and Marwan own:
 
-- Research sources.
-- University pages.
-- Guide content.
-- Mentor/group approval checklist.
-- Manual testing.
-- Documentation quality.
+- Student interviews.
+- Scope decisions.
+- Research quality.
+- Manual product QA.
+- Reviewing claims and source links.
+- Deciding when the planning stage is complete.
+- Deciding whether Base44, Vite/Supabase, or another implementation route best fits the approved product.
 
-First responsibilities:
+When ownership is unclear:
 
-- Turn research into useful guide topics.
-- Gather official university links.
-- Create sample guides.
-- Test every flow as a first-year student.
+- Ammar decides product behavior and user-facing priority.
+- Marwan decides security, data integrity, and operational safety.
+- A decision affecting both requires agreement and a written note in GitHub or the docs.
 
 ## Beginner Git Rules
 
-No one works directly on `main`.
+No one works directly on `main`, even if GitHub plan limits prevent enforced branch protection.
 
-Branches:
+Branch examples:
 
-- `docs/research-foundation`
+- `docs/multilingual-positioning`
+- `docs/name-research`
 - `feature/onboarding`
 - `feature/guide-library`
 - `feature/mentor-profiles`
 - `feature/groups`
 - `feature/admin-review`
-- `fix/mobile-rtl`
+- `fix/rtl-ltr-layout`
 
 Daily start:
 
@@ -91,7 +97,7 @@ Save work:
 
 ```bash
 git add .
-git commit -m "Add guide library research notes"
+git commit -m "Add multilingual guide research"
 git push origin feature/name-of-task
 ```
 
@@ -103,64 +109,62 @@ Every PR needs:
 
 - Clear title.
 - Short description.
+- Linked issue.
 - Screenshots for UI changes later.
 - Tests or manual test notes.
-- One reviewer.
+- Review by the other team member.
 
 No merge if:
 
-- It breaks Arabic/RTL layout.
+- It breaks English, Hebrew, or Arabic behavior.
+- It breaks RTL or LTR layout.
 - It adds secrets.
 - It changes unrelated files.
 - It copies code from old prototypes without discussion.
-- It adds a feature without docs or acceptance criteria.
+- It adds a feature without acceptance criteria.
 
 ## Review Ownership
 
-- Ammar reviews UI, copy, product behavior.
-- Marwan reviews data, auth, Supabase, security.
-- Abd Allah reviews content, source links, test cases.
+- Ammar reviews product behavior, UX, visual consistency, and content.
+- Marwan reviews data, auth, permissions, security, deployment, and technical tests.
+- Ammar's PRs require Marwan's review.
+- Marwan's PRs require Ammar's review.
+- Cross-cutting changes need both product and technical acceptance notes.
 
-If the author is Ammar, Marwan or Abd Allah must review.
-If the author is Marwan, Ammar must review product impact.
-If the author is Abd Allah, Ammar reviews copy/product and Marwan reviews data changes if any.
+## Planning Rhythm
 
-## Weekly Rhythm
+### Stage 0: Repositioning And Name
 
-### Week 0: Research And Docs
+- Validate the all-student, three-language direction.
+- Interview students from different language and transition contexts.
+- Test MAQOM, DARGA, SAHA, and any new candidate.
+- Choose the product name before public branding or implementation.
 
-- Finish docs-only foundation.
-- Create private GitHub repo.
-- Add issues.
-- Agree on MVP screens.
+### Stage 1: Product Definition
 
-### Week 1: Visual And Skeleton
+- Select the first university and launch cohort.
+- Approve onboarding, dashboard, guide, mentor, group, and admin workflows.
+- Draft representative content in English, Hebrew, and Arabic.
+- Decide implementation platform only after flows are stable.
 
-- Design first screens.
-- Create Vite app only after docs are approved.
-- Build static app shell with sample data.
-- No Supabase dependency until UI direction is clear.
+### Stage 2: Visual Prototype
 
-### Week 2: Auth And Data
+- Design the first mobile screens.
+- Test RTL and LTR with real content.
+- Validate with students before building backend behavior.
 
-- Add Supabase Auth.
-- Add profiles and onboarding.
-- Add guide and university data model.
-- Add RLS.
+### Stage 3: Implementation
 
-### Week 3: Hub Features
+- Create the application foundation.
+- Add auth, profiles, content, localization, and permissions.
+- Build thin vertical slices instead of all modules in parallel.
 
-- Guide library.
-- University pages.
-- Mentor profiles.
-- Groups.
+### Stage 4: Pilot And QA
 
-### Week 4: Admin And Polish
-
-- Admin review queues.
-- Reports.
-- Mobile QA.
-- Vercel preview.
+- Run one-university pilot.
+- Test all three languages.
+- Review content freshness and source accuracy.
+- Fix trust, accessibility, and onboarding problems before expansion.
 
 ## Communication Rules
 
@@ -172,19 +176,20 @@ Issue template:
 - User story.
 - Acceptance criteria.
 - Owner.
-- Notes/source links.
+- Reviewer.
+- Notes and source links.
 
-Use WhatsApp/Discord for quick discussion, but decisions must be written in GitHub or docs.
+Use WhatsApp or Discord for quick discussion, but decisions must be written in GitHub or the docs.
 
 ## Definition Of Done
 
 A task is done when:
 
 - Code or docs are committed on a branch.
-- PR is opened.
-- Reviewer approved.
+- A PR is opened and linked to an issue.
+- The other team member reviewed it.
 - Acceptance criteria are checked.
 - No secrets are committed.
-- Arabic/RTL is checked for UI tasks.
+- Relevant English, Hebrew, and Arabic behavior is checked.
+- Relevant RTL and LTR behavior is checked.
 - The PR is merged into `main`.
-

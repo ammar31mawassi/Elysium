@@ -48,7 +48,6 @@ Still needed:
 
 - Invite collaborators:
   - Marwan.
-  - Abd Allah.
 - Create the project board after refreshing the GitHub CLI project scope:
 
 ```powershell
@@ -67,7 +66,7 @@ Target protection once available:
 - Do not allow direct pushes.
 - Require conversation resolution.
 
-## Chosen Later Stack
+## Custom-Build Reference Stack
 
 - Vite.
 - React.
@@ -88,7 +87,7 @@ References:
 - [Vercel Vite docs](https://vercel.com/docs/frameworks/frontend/vite)
 - [Vercel environment variables](https://vercel.com/docs/projects/environment-variables)
 
-## Why Vite + Supabase
+## Why Vite + Supabase Remains A Reference
 
 Reasons:
 
@@ -97,6 +96,8 @@ Reasons:
 - Supabase Auth and RLS fit the student/mentor/admin model.
 - Vite is fast for local development.
 - Vercel can deploy Vite apps simply.
+
+This is no longer an automatic implementation decision. Base44 will be evaluated after product approval because it may reduce backend and deployment work for a two-person team. The comparison must verify multilingual content modeling, cross-language search, RTL/LTR quality, moderation, permissions, portability, pricing, and production debugging before selection.
 
 Tradeoff:
 
@@ -153,6 +154,7 @@ Profile fields:
 - Field.
 - Academic year.
 - Language comfort.
+- Preferred interface language.
 - Help needs.
 
 Guide fields:
@@ -160,8 +162,9 @@ Guide fields:
 - Title.
 - Category.
 - Situation.
-- Arabic explanation.
-- Hebrew terms.
+- Locale and translation-group id.
+- English, Hebrew, or Arabic explanation.
+- Official terms and cross-language equivalents.
 - Steps.
 - Official source URL.
 - University relevance.
@@ -202,6 +205,11 @@ Group fields:
 - Admin actions require admin role.
 - Never commit Supabase service role keys.
 - Use only publishable/anon key in the browser.
+- Treat language preference as personalization, not authorization; changing language must never expose or hide protected records.
+
+## Platform Decision Status
+
+Base44 is connected and authenticated for future use, but no Base44 project should be created or linked during this planning stage. The final implementation route will be compared after the product name, workflows, content model, and multilingual requirements are approved.
 
 ## Environment Variables Later
 

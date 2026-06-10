@@ -4,7 +4,7 @@ The chosen MVP direction is **Full Student Hub**, but the implementation should 
 
 ## MVP Product Sentence
 
-Dalili is an Arabic-first campus compass that turns confusing university moments into clear steps, trusted people, and relevant resources.
+The working-title product is a multilingual campus compass that turns confusing university moments into clear steps, trusted people, and relevant resources in English, Hebrew, and Arabic.
 
 ## Core User Roles
 
@@ -50,7 +50,8 @@ Ask only what helps personalize the first experience:
 - University or college.
 - Study field.
 - Academic year: preparatory, first year, second year, etc.
-- Language comfort: Hebrew academic reading, Hebrew speaking, English reading.
+- Preferred interface language: English, Hebrew, or Arabic.
+- Language comfort: Hebrew academic reading/speaking, Arabic reading/speaking, English academic reading.
 - Living/commute context: dorms, commuting, near campus, unknown.
 - Help needs: registration, scholarships, Hebrew terms, exams, social belonging, study groups, rights, Moodle/systems.
 
@@ -60,6 +61,7 @@ Output:
 - Recommended starting guides.
 - Suggested mentor filters.
 - Suggested groups.
+- The same workflow and resources in the selected interface language.
 
 ## Dashboard
 
@@ -90,7 +92,7 @@ Guide categories:
 - Course registration.
 - Exams and grades.
 - Scholarships and money.
-- Hebrew academic terms.
+- Hebrew, Arabic, and English academic terms.
 - Emails and communication.
 - Moodle and university systems.
 - Student rights.
@@ -102,20 +104,22 @@ Fixed guide format:
 
 - Situation: what problem this guide answers.
 - Why it matters.
-- Arabic explanation.
-- Hebrew terms.
+- Explanation in the student's selected language.
+- Official terminology in Hebrew, Arabic, or English as relevant.
+- Equivalent terms in the other supported languages when useful.
 - Step-by-step action.
 - Official link or source.
 - Common mistake.
 - Ask a mentor prompt.
 
-Example guide titles:
+Example guide situations:
 
-- "كيف أكتب إيميل لمحاضر؟"
-- "ماذا يعني סילבוס؟"
-- "كيف أسجل لمساق بدون أن أخرب البرنامج؟"
-- "ماذا أفعل إذا لم أفهم المحاضرة الأولى؟"
-- "كيف أبحث عن منحة؟"
+- How to write an email to a lecturer.
+- What a syllabus is and where to find it.
+- How to register for a course without creating a timetable conflict.
+- What to do after not understanding the first lecture.
+- How to search for a scholarship.
+- Which office handles an appeal, accessibility request, or registration problem.
 
 ## University Pages
 
@@ -135,7 +139,7 @@ Each page:
 - Student union link.
 - Academic calendar link.
 - Important offices.
-- Arab student support if available.
+- Language, accessibility, new-immigrant, international, Arab-student, reserve-duty, and other support services where available.
 - Scholarships.
 - Campus tips from older students.
 - Common first-year confusion.
@@ -153,6 +157,7 @@ Profile fields:
 - Field.
 - Year.
 - Languages.
+- Preferred contact language.
 - Help topics.
 - Bio.
 - WhatsApp contact or request-contact button.
@@ -163,6 +168,8 @@ Help topics:
 - First-year advice.
 - Course registration.
 - Hebrew academic language.
+- English academic reading.
+- Arabic/Hebrew campus navigation.
 - Scholarships.
 - Exams.
 - Housing.
@@ -214,7 +221,7 @@ MVP tools:
 - Deadline/reminder list.
 - GPA calculator or grade planning.
 - Email templates.
-- Hebrew academic term glossary.
+- Three-language academic term glossary.
 - First-week checklist.
 
 Do not start with:
@@ -265,3 +272,4 @@ A new student should be able to:
 5. Find a mentor or group related to their context.
 6. Save the guide or contact path.
 
+The acceptance test must be completed separately in English, Hebrew, and Arabic. Switching language must preserve the current screen and user data.

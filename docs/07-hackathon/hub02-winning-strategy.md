@@ -4,13 +4,13 @@ Last researched: June 12, 2026.
 
 ## Executive Decision
 
-Elysium should not enter the hackathon as a broad collection of calendars, GPA tools, social events, tutors, flashcards, and guides. That is difficult to explain, difficult to finish, and easy to mistake for a generic student dashboard.
+Elysium should enter the hackathon as the connected one-stop student hub it was designed to be. The risk is not that it has several modules; the risk is presenting those modules as unrelated menu items.
 
 The competition version should be:
 
-> Elysium is a trilingual campus copilot that turns a confusing student question into a verified BGU answer, a clear action checklist, and the right person or office to contact.
+> Elysium is a personalized, trilingual student hub where university students plan their week, meet people, study together, find tutors and peer help, use practical tools, and ask AI what to do next.
 
-The long-term Full Student Hub remains valid. The hackathon build is the strongest vertical slice of that vision: **BGU-first guidance in English, Hebrew, and Arabic**.
+The hackathon build should prove that these modules share one student context: joining an activity or study session updates the calendar and home screen; tutor and peer-helper discovery use the student's courses and language; tools and guides are available from the same hub; AI coordinates the experience.
 
 ## What The Competition Actually Rewards
 
@@ -32,18 +32,17 @@ Source: [Hub02 x BGU Hackathon](https://hub02.com/bgu-hackathon).
 
 ## The Winning Thesis
 
-### 1. Value: Solve A Repeated, Expensive Moment Of Confusion
+### 1. Value: Connect Fragmented Student Life
 
-Students do not need another screen containing links. They need to know:
+Students currently coordinate different parts of university life through separate systems: calendar apps, WhatsApp groups, social posts, tutor contacts, course groups, calculators, university pages, and memory.
 
-- What does this message or university term mean?
-- What should I do next?
-- What is the deadline?
-- Which source can I trust?
-- Who owns this problem?
-- Can someone who has experienced it explain it in my language?
+Elysium should demonstrate the value of connection:
 
-Elysium should demonstrate that complete path in one interaction.
+- Discover a football activity and add it to the same calendar that holds assignment deadlines.
+- Join a CS study session and see it in the personalized home screen.
+- Find a private tutor for instruction or an opted-in peer helper for a student question.
+- Use a grade calculator or flashcards without leaving the student context.
+- Ask AI what is next and receive a recommendation grounded in the student's actual Elysium data.
 
 ### 2. Users: Launch Early Enough To Learn
 
@@ -52,7 +51,7 @@ Because the official criteria explicitly mention users and iteration, publishing
 Target by the June 22 closing event:
 
 - 75 registered or identifiable pilot users.
-- 40 activated users who complete one useful answer or guide.
+- 40 activated users who complete one meaningful action: join, create, save, calculate, request, or receive a useful AI answer.
 - 20 pieces of structured feedback.
 - 10 shares or referrals.
 - 3 documented product changes made because of user feedback.
@@ -64,11 +63,12 @@ These are internal targets, not claims to publish before they are achieved.
 
 The Base44 implementation must be more than a generated interface. The strongest sponsor-prize story is:
 
-- Base44 entities hold verified university guides, offices, deadlines, mentors, feedback, and user context.
-- A Base44 AI agent searches only approved information and produces a short answer with sources and next actions.
-- Per-user context remembers institution, year, language, and help needs.
-- Admin workflows publish, review, and expire content.
-- Analytics show questions, successful answers, feedback, and unmet needs.
+- Base44 entities hold profiles, interests, activities, participants, study sessions, personal deadlines, tutors, peer helpers, guides, tools data, feedback, and user context.
+- Entity relationships make one action update the wider hub: a join becomes a calendar item and a home-screen next action.
+- A Base44 AI agent reads the student's permitted context and routes them to existing Elysium actions, people, tools, and approved information.
+- Per-user context remembers institution, faculty, courses, interests, language, and help needs.
+- Admin workflows moderate public listings, reports, and sourced content.
+- Analytics show joins, created sessions, tutor requests, tool usage, AI usefulness, and unmet needs.
 
 Base44 officially supports agents with entity tools and scoped operations. Its app agents can also connect to WhatsApp, although WhatsApp should be attempted only after the in-app flow is reliable and credits are understood.
 
@@ -110,14 +110,16 @@ Source: [OECD Education at a Glance 2025: Israel](https://www.oecd.org/en/public
 
 ### Existing Campus Platforms
 
-Products such as campusM, Ready Education, and Navigate360 already aggregate resources, events, communications, and campus services. Competing as "one app for everything" would place Elysium against mature institutional platforms.
+Products such as campusM, Ready Education, and Navigate360 already aggregate institutional resources, events, communications, and campus services. Elysium should not pretend that aggregation alone is unique.
 
 Elysium's defensible wedge is different:
 
-- Student-language explanations rather than institutional navigation alone.
-- Source-backed answers rather than a link directory.
-- Cross-language terminology and search.
-- The action after the answer: checklist, office, mentor, or group.
+- Student-created social and study coordination rather than institution-only broadcasting.
+- A single personalized calendar across personal, social, study, and tutor activity.
+- Two explicit human-help models: private tutors and opt-in peer helpers.
+- Practical student tools and source-backed guides in the same context.
+- English, Hebrew, and Arabic across the core workflow.
+- AI that coordinates real hub actions rather than acting as a disconnected chatbot.
 - BGU-specific usefulness on the first day.
 
 Sources: [campusM](https://campusm.exlibrisgroup.com/), [Ready Education Campus App](https://resources.readyeducation.com/landing/campusapp), [Navigate360 Student](https://play.google.com/store/apps/details?id=com.eab.se).
@@ -148,68 +150,70 @@ Sources: [Devpost project planning](https://help.devpost.com/article/125-tips-fo
    - Hebrew and Arabic use true RTL at the document and component level.
    - Switching language preserves the current task.
 
-2. **Ask Elysium**
-   - A student asks a real campus question in any supported language.
-   - The answer uses only approved Elysium content.
-   - It shows a source, reviewed date, BGU context, and uncertainty when applicable.
-   - It returns three to five concrete actions, not an essay.
+2. **Personalized home and calendar**
+   - Personal deadlines, joined activities, study sessions, and tutor requests share one timeline.
+   - The home screen always offers a useful next action when the calendar is empty.
 
-3. **Verified guide detail**
-   - Situation.
-   - Plain-language explanation.
-   - Official Hebrew term and useful equivalents.
-   - Steps, deadline or timing, office/contact, source, and last-reviewed date.
-   - "Report outdated information" action.
+3. **Social and study participation**
+   - A student can create and join a social activity.
+   - A student can create and join a separate academic study session.
+   - Joining updates participants, calendar, and home context reliably.
 
-4. **What Matters Now dashboard**
-   - One primary next step.
-   - Recommended guide or answer based on onboarding.
-   - Relevant deadline or support notice.
-   - A human-help route.
+4. **Two human-help paths**
+   - Private tutors list subjects, languages, availability, and a booking/contact request.
+   - Peer Helpers are opted-in students listing topics, languages, and consented contact options.
+   - The interface never confuses the two roles.
 
-5. **Trust and admin flow**
-   - Only approved guides are public.
-   - Admin is role-protected.
-   - Content has source and freshness fields.
-   - Feedback and stale-content reports are reviewable.
+5. **Tools, links, and guides**
+   - GPA and required-grade calculators work correctly.
+   - At least one flashcard flow is usable.
+   - Helpful links and policy guides show source and freshness metadata.
 
-6. **Traction instrumentation**
-   - Track onboarding completion, question submitted, answer opened, source clicked, guide saved/shared, feedback submitted, and language.
-   - Do not expose private user questions in public analytics.
+6. **Ask Elysium**
+   - AI can summarize what is next from the student's permitted hub data.
+   - It can recommend a relevant activity, study session, tutor, peer helper, tool, or approved guide.
+   - It asks for confirmation before creating or changing anything.
+   - It never invents university policy.
+
+7. **Trust, safety, and traction**
+   - Admin is role-protected and public listings can be reported.
+   - Contact details follow explicit consent and visibility rules.
+   - Track onboarding, joins, creations, calendar actions, tutor requests, tool use, AI usefulness, feedback, and language.
+   - Do not expose private questions or personal calendar data in public analytics.
 
 ### Should Be Present, But Thin
 
-- Three approved peer-mentor profiles with language and topic filters.
-- Four useful BGU groups or support routes.
-- Public guide browsing before login.
-- Save/share after login.
-- A small BGU university page with official services.
+- Three private tutor profiles covering real subjects.
+- Three clearly separate Peer Helper profiles.
+- Three social activities and three study sessions with realistic future dates.
+- Six source-backed BGU links or guides.
+- One working GPA flow and one flashcard deck.
 
-### Remove Or Demote For The Competition
+### Preserve The Core, Limit The Depth
 
-- Private tutor marketplace and star ratings.
-- Flashcards.
-- GPA and grade-needed calculators.
-- Empty social-event feeds.
-- Empty calendar as the dashboard centerpiece.
-- Multi-university browsing with no useful content.
-- A second CV/LinkedIn product.
-- Advanced planner or calendar synchronization.
+- Keep social activities, study sessions, tutors, Peer Helpers, calendar, GPA, flashcards, links, guides, and AI visible and usable.
+- Do not build payments; use a booking/contact request for tutors.
+- Do not build real-time group chat; use participant lists and approved contact routes.
+- Do not build external calendar synchronization; use Elysium's internal calendar.
+- Do not build advanced flashcard algorithms; prove create, review, and progress.
+- Do not expand beyond BGU-specific seeded content before the BGU experience works.
+- Do not build a second CV/LinkedIn product.
 
-These features are not necessarily bad. They are bad uses of the remaining competition time because they weaken the product sentence and demo.
+The scope decision is **thin connected modules**, not removal of the one-stop-shop core.
 
 ## The Demonstration Story
 
-Use one prepared, real BGU scenario. Example:
+Use one prepared student day that connects the hub:
 
-1. A first-year student opens Elysium in Arabic.
-2. The student asks: "I missed an exam because of reserve duty. What should I do?"
-3. Elysium explains the relevant official Hebrew terms in Arabic, shows the BGU source and review date, and produces a short checklist.
-4. The student changes the interface to Hebrew; the same answer and context remain.
-5. The student saves or shares the guide and sees the correct office or approved peer mentor.
-6. The admin view shows that the guide is approved, sourced, and can be updated without rebuilding the app.
+1. A BGU computer-science student opens Elysium in Arabic and sees an assignment deadline plus a personalized next step.
+2. The student joins a CS library study session; it immediately appears in their calendar.
+3. They join an evening football activity, which appears in the same timeline.
+4. They open Tools, calculate the grade needed in the course, and view a matching flashcard deck.
+5. They compare a private tutor for the course with a separate Peer Helper who can answer first-year questions.
+6. They ask Elysium AI, "What should I focus on next?" The answer references the deadline, joined study session, relevant tool, and available help.
+7. The interface changes to Hebrew or English without losing the student's context.
 
-Prepare a second non-reserve scenario, such as an exam appeal or scholarship deadline, in case the judges prefer a more universal example.
+Prepare a shorter fallback demo containing home, one join action, calendar update, and AI summary in case judging time is limited.
 
 ## User Acquisition Plan
 
@@ -224,22 +228,22 @@ Prepare a second non-reserve scenario, such as an exam appeal or scholarship dea
 
 ### Reduce Adoption Friction
 
-- Let visitors browse guides and try one example answer without creating an account if Base44 permissions allow it safely.
+- Let visitors browse public activities, study sessions, tutors, Peer Helpers, tools previews, and guides without creating an account where Base44 permissions allow it safely.
 - Ask for login only to save, join, or personalize.
-- Use a one-question feedback prompt after an answer: "Did this tell you what to do next?"
-- Provide a shareable deep link to each guide.
+- Use contextual one-question feedback: "Was this useful?" after a join, request, tool, guide, or AI recommendation.
+- Provide shareable deep links to activities, study sessions, tutor profiles, and guides.
 - Seed the app so no judge or user reaches an empty primary screen.
 
 ## Pitch Structure
 
 Keep the pitch to roughly 90 seconds unless organizers publish another format.
 
-1. **Problem, 15 seconds:** students face a hidden university operating system spread across portals, PDFs, emails, and three languages.
+1. **Problem, 15 seconds:** student life is fragmented across calendars, WhatsApp groups, tutor contacts, university systems, disconnected tools, and three languages.
 2. **Evidence, 10 seconds:** cite the NUIS pressure figures without overstating causality.
 3. **Product, 10 seconds:** give the one-sentence Elysium promise.
-4. **Live demo, 35 seconds:** one question, verified answer, language switch, source, and next human/contact.
+4. **Live demo, 35 seconds:** personalized home, one join, automatic calendar update, tool/human-help option, and AI next-step summary.
 5. **Traction, 10 seconds:** users, activation, feedback, and changes made during the week.
-6. **Why Base44 and why this team, 10 seconds:** Base44 agent plus entities/admin workflow; Ammar's lived product insight and the team's ability to execute.
+6. **Why Base44 and why this team, 10 seconds:** Base44 entities, relationships, permissions, agent, and feedback loop; Ammar's lived product insight and the team's ability to execute.
 
 Do not give a tour of every page.
 
@@ -254,8 +258,8 @@ The team should not add another feature unless all are true:
 
 ## Strategic Risks
 
-- **Generic AI wrapper:** prevented by approved source data, citations, and action workflows.
-- **Too broad:** prevented by BGU-first content and one core interaction.
+- **Generic AI wrapper:** prevented by making AI coordinate real social, study, calendar, tutor, Peer Helper, tools, and guide data.
+- **Too broad:** prevented by thin connected workflows, one BGU demo account, and one prepared student-day story.
 - **Empty network features:** prevented by seeding real or clearly labeled demo content.
 - **False policy answers:** prevented by source restrictions, review dates, and refusal when no approved answer exists.
 - **Language promise not delivered:** prevented by requiring all three languages in the demo path.

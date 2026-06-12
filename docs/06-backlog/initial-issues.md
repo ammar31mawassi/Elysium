@@ -76,9 +76,9 @@ Acceptance criteria:
 
 - English, Hebrew, and Arabic versions use the same information architecture.
 - Dashboard shows "what matters now."
-- Includes recommended guides, mentor CTA, group suggestion, and university shortcut.
+- Includes upcoming deadlines/joined items, social and study recommendations, tutor/Peer Helper access, a relevant tool/guide, and Ask Elysium.
 - Language switching preserves context.
-- Avoids a generic GPA-first layout.
+- Preserves the calendar and tools without making an empty grid or GPA score the entire first experience.
 
 ### Issue: Define the guide content template
 
@@ -87,7 +87,7 @@ Reviewer: Marwan
 
 Acceptance criteria:
 
-- Template includes situation, why it matters, explanation, official terms, steps, source, common mistake, and ask-a-mentor prompt.
+- Template includes situation, why it matters, explanation, official terms, steps, source, common mistake, and related tutor/Peer Helper/tool/contact prompt.
 - Translation and source-freshness metadata are defined.
 - Three sample guide concepts exist in English, Hebrew, and Arabic.
 
@@ -112,8 +112,11 @@ Acceptance criteria:
 
 - Onboarding flow is approved.
 - Dashboard flow is approved.
-- Guide discovery/detail flow is approved.
-- Mentor and group discovery flows are approved.
+- Social activity create/join/leave flow is approved.
+- Study session create/join/leave flow is approved.
+- Calendar and personal deadline flow is approved.
+- Private Tutor request and Peer Helper opt-in/discovery flows are approved separately.
+- Tools, guide discovery/detail, and Ask Elysium flows are approved.
 - Admin review flow is approved.
 - Every workflow has English, Hebrew, and Arabic content examples.
 
@@ -151,9 +154,10 @@ Reviewer: Ammar
 
 Acceptance criteria:
 
-- Profiles, guides, translations, mentors, groups, universities, bookmarks, and reports are modeled.
+- Profiles, activities/participants, study sessions/participants, calendar items, tutors/requests, Peer Helpers, tools, guides/translations, groups, universities, bookmarks, and reports are modeled.
 - Private user data is owner-only.
-- Public mentors/groups require approval.
+- Public tutor, Peer Helper, activity, session, and group visibility rules are explicit.
+- Contact sharing requires consent.
 - Admin permissions are explicit.
 - Language choice does not alter access control.
 
@@ -167,6 +171,7 @@ Reviewer: Marwan
 Acceptance criteria:
 
 - Captures institution, field, year, preferred language, language comfort, commute/housing, and help needs.
+- Captures courses/subjects and interests needed for study, tutor, and social recommendations.
 - Optional identity/context fields explain why they are asked.
 - Dashboard recommendations use onboarding data.
 - Flow is tested in English, Hebrew, and Arabic.
@@ -184,17 +189,77 @@ Acceptance criteria:
 - Sources and update dates are visible.
 - Guides can be saved.
 
-### Issue: Add mentor profiles
+### Issue: Build social activities
+
+Owner: Ammar
+Reviewer: Marwan
+
+Acceptance criteria:
+
+- Students can create, join, and leave activities.
+- Host, time, place, capacity, visibility, and participant count are clear.
+- Joined activities update home and calendar.
+- Ownership, capacity, reports, and permissions are tested.
+
+### Issue: Build study sessions
+
+Owner: Ammar
+Reviewer: Marwan
+
+Acceptance criteria:
+
+- Students can create, join, and leave study sessions.
+- Course/subject, session type, language, expectations, time, place, and capacity are clear.
+- Joined sessions update home and calendar.
+- Social activities and study sessions remain separate in data and UI.
+
+### Issue: Build personal calendar
+
+Owner: Ammar
+Reviewer: Marwan
+
+Acceptance criteria:
+
+- Students can add, edit, complete, and delete personal deadlines.
+- Joined activities, study sessions, and tutor requests/bookings appear automatically.
+- Leaving/canceling updates linked calendar items correctly.
+- Calendar data is owner-only.
+
+### Issue: Add Private Tutor profiles and requests
 
 Owner: Marwan
 Reviewer: Ammar
 
 Acceptance criteria:
 
-- Profiles require admin approval.
-- Students can filter by institution, field, help topic, and language.
-- Contact path is available without exposing unnecessary personal data.
-- Reports and removal workflow exist.
+- Tutors define subjects/courses, languages, availability, mode, experience, and price/contact state.
+- Students can search and send a booking/contact request.
+- Public contact data follows consent rules.
+- Reports, moderation, and tutor opt-out exist.
+
+### Issue: Add Peer Helper opt-in profiles
+
+Owner: Marwan
+Reviewer: Ammar
+
+Acceptance criteria:
+
+- Students explicitly opt in from their profile.
+- University, field, year, languages, help topics, availability, and consented contact method are shown.
+- Students can disable visibility immediately.
+- Peer Helpers are not presented as tutors or official university staff.
+
+### Issue: Complete core student tools
+
+Owner: Ammar
+Reviewer: Marwan
+
+Acceptance criteria:
+
+- GPA and required-grade calculations have known test cases.
+- Flashcards support deck creation, review, and progress.
+- Helpful links and source-backed guides are organized and searchable.
+- Tool state is private to its owner where applicable.
 
 ### Issue: Add groups
 
@@ -215,7 +280,7 @@ Reviewer: Ammar
 
 Acceptance criteria:
 
-- Admin can approve mentors and groups.
+- Admin can moderate tutors, Peer Helpers, activities, sessions, and groups.
 - Admin can manage resources and translations.
 - Admin can see missing/stale language versions.
 - Admin can review reports and source freshness.
@@ -229,7 +294,7 @@ Reviewer: Ammar
 
 Acceptance criteria:
 
-- Account creation, onboarding, dashboard, guide search, mentors, and groups are tested.
+- Account creation, onboarding, dashboard, social/study joins, calendar, tutors, Peer Helpers, tools, guides, and AI routing are tested.
 - Tests are repeated in English, Hebrew, and Arabic.
 - RTL/LTR, mixed-direction text, accessibility, and mobile overflow issues are logged.
 - Permission and moderation paths are tested.

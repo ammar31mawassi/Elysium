@@ -40,7 +40,7 @@ The Base44 project is titled **Elysium Hub**, but its description says it is a p
 
 Required correction:
 
-> Elysium is a trilingual campus copilot that gives Israeli university students verified answers, clear next steps, and trusted human support.
+> Elysium is a personalized, trilingual student hub for planning university life, meeting people, studying together, finding tutors and peer help, using practical tools, and knowing what to do next.
 
 ### 2. Localization Is Structurally Broken
 
@@ -82,31 +82,35 @@ The first impression is that Elysium has no users, content, or current purpose.
 
 Required correction:
 
-- Replace the calendar-first dashboard with "What matters now."
-- Seed verified guides, timely notices, mentors, and groups.
+- Replace the empty calendar-first state with a personalized "What matters now" summary that still gives the calendar a core role.
+- Seed realistic future social activities, study sessions, private tutors, Peer Helpers, personal deadlines, tools data, and sourced guides.
 - Use current hackathon-week content.
 - Clearly mark fictional records as demo data; do not imply fake users are real.
 
-### 4. The Product Thesis Is Buried
+### 4. The Modules Are Not Connected Yet
 
 Observed behavior:
 
-- Guides are inside a "Useful info" section on the Tools page.
-- The home shortcuts prioritize Study Groups, Social, Teachers, and Tools.
-- GPA, grade-needed, semester progress, and flashcards occupy substantial space.
-- There is no source-grounded campus copilot.
+- The home shortcuts correctly expose Study Groups, Social, Teachers, and Tools.
+- Joining or using one module does not visibly create a coherent personalized journey across home and calendar.
+- Social activities and study sessions are presented as destinations rather than parts of the same student week.
+- Tutors exist, but a separate opt-in Peer Helper role does not.
+- Tools and guides share one page but lack prioritization and contextual recommendations.
+- There is no AI layer coordinating the existing hub.
 
 Impact:
 
-The current app looks like a collection of common student utilities. It does not communicate why Elysium should exist.
+The current app contains much of Elysium's intended feature surface, but it looks like disconnected utilities. The one-stop-shop value only becomes visible when actions affect the same profile, calendar, recommendations, and AI context.
 
 Required correction:
 
-- Promote Guides and Ask Elysium to primary navigation.
-- Make the verified answer-to-action journey the first screen and live demo.
-- Demote calculators and remove flashcards for the competition build.
+- Preserve Social, Study, Tutors, Calendar, and Tools as core modules.
+- Make join/create actions update the personalized home and calendar.
+- Add Peer Helpers as a separate role and discovery path.
+- Keep calculators and flashcards, but make one flow in each reliable instead of expanding their feature depth.
+- Add Ask Elysium as the coordinating action across the hub.
 
-### 5. Mentors Became A Private-Tutor Marketplace
+### 5. Private Tutors Are Valid, But Peer Helpers Are Missing
 
 Observed behavior:
 
@@ -117,14 +121,16 @@ Observed behavior:
 
 Impact:
 
-This changes the trust model and introduces marketplace moderation, reputation, safety, and possibly payment expectations. It also abandons Elysium's approved older-student mentor concept.
+The private-tutor implementation matches one part of the intended product, but it currently lacks booking/availability depth and is being asked to cover a second, different role: students willing to answer peer questions.
 
 Required correction:
 
-- Rename the role to Peer Mentor.
-- Show approval, university, field, year, languages, and help topics.
-- Remove star ratings from the MVP.
-- Use request-contact or WhatsApp only after approval and privacy review.
+- Keep Private Tutors as subject-teaching profiles.
+- Add subjects/courses, languages, availability, online/in-person mode, price or contact-for-price, and a booking/contact request.
+- Treat ratings as real user-generated data only; never seed fake reviews as traction.
+- Create a separate Peer Helper profile controlled from the student's profile.
+- Peer Helper fields should include university, field, year, languages, help topics, availability, and explicit contact-sharing consent.
+- Allow either role to disable public visibility immediately.
 
 ### 6. Guide Trust Is Not Visible
 
@@ -156,7 +162,7 @@ Required correction:
 
 - Hide and guard the route by role.
 - Enforce authorization in Base44 entity/backend permissions, not only in the interface.
-- Test read, create, update, delete, approve, and publish operations as student, mentor, admin, and anonymous visitor.
+- Test read, create, update, delete, approve, and publish operations as student, tutor, Peer Helper, admin, and anonymous visitor.
 
 ## P1: Strongly Recommended Before Judging
 
@@ -176,29 +182,31 @@ Competition target:
 
 The current app requires authentication before the product experience. For user acquisition, public approved guides and one sample question should be accessible without an account if Base44 permissions can support that safely.
 
-### The Dashboard Uses The Wrong Mental Model
+### The Dashboard Needs To Connect Calendar And Discovery
 
-The calendar organizes the app around dates. Elysium should organize it around uncertainty and next actions.
+The calendar belongs in Elysium, but a large empty week view is not a useful first experience. The home screen should summarize the student's own week and provide discovery when there is little scheduled.
 
 Recommended hierarchy:
 
-1. Ask Elysium.
-2. Your next action.
-3. Recommended verified guides.
-4. Current BGU notice or deadline.
-5. Human help.
+1. Your next action.
+2. Upcoming deadline, joined activity, study session, or tutor request.
+3. Ask Elysium.
+4. Recommended social/study opportunity.
+5. Relevant tool, tutor, Peer Helper, guide, or BGU notice.
 
 ### The Information Architecture Is Feature-Led
 
 Current bottom navigation: Home, Social, Groups, Teachers, Tools.
 
-Competition navigation:
+Recommended competition navigation:
 
 - Home.
-- Guides.
-- Ask, as the visually prominent center action.
-- Community, containing mentors and groups.
-- Profile.
+- Social.
+- Create/Ask as a context-aware center action.
+- Study.
+- More, opening Tutors, Peer Helpers, Calendar, Tools, Guides, and Profile.
+
+An alternative is Home, Community, Ask, Calendar, Tools if Social and Study remain clearly separated inside Community. The final choice should minimize navigation churn in the existing Base44 build.
 
 Use the compact, stable five-item mobile shell from the Lovable prototype as inspiration, without copying its feature priorities.
 
@@ -258,10 +266,11 @@ The design should feel like a polished campus operating system: calm, immediate,
 ### First View
 
 - Small contextual greeting, not a large hero.
-- Prominent Ask Elysium field.
-- One "Next step" band.
-- Two recommended guide rows.
-- One timely campus notice.
+- One "Next step" band combining calendar and personalized context.
+- Compact Ask Elysium entry.
+- Upcoming deadline or joined item.
+- Recommended social activity and study session.
+- Quick access to tutor, Peer Helper, and relevant tool.
 - No empty primary module.
 
 ### Visual System
@@ -276,7 +285,7 @@ The design should feel like a polished campus operating system: calm, immediate,
 
 ### Cards And Content
 
-- Use cards only for repeated guides, mentors, and groups.
+- Use cards only for repeated activities, study sessions, tutors, Peer Helpers, guides, and tool summaries.
 - Use full-width bands for dashboard priorities.
 - Display source and review metadata without hiding it in an accordion.
 - Keep action buttons stable across language lengths.
@@ -288,38 +297,40 @@ Keep:
 - Compact mobile shell.
 - Five-item bottom navigation.
 - Clear active navigation state.
-- Raised central action pattern, repurposed for Ask Elysium.
+- Raised central action pattern, repurposed for context-aware Create/Ask behavior.
 - Warm-neutral plus teal palette rhythm.
 
 Avoid:
 
-- Event-first and generic planner emphasis.
-- Raised plus button whose meaning changes by page.
+- An empty event-first home screen.
+- A raised plus button whose result is unpredictable.
 - Too many rounded cards.
-- Treating GPA, courses, goals, and events as the product's central identity.
+- Showing modules without demonstrating how they update one student context.
 
 ## Base44-Native Opportunity
 
-The current app uses Base44 entities and authentication, but the sponsor-visible differentiator is weak. Add one clearly explainable native workflow:
+The current app uses Base44 entities and authentication, but the sponsor-visible differentiator is weak. Add one clearly explainable connected workflow:
 
-1. Admin publishes a sourced BGU guide.
-2. The Elysium agent can read published guides and offices but cannot publish or edit them.
-3. A student asks in English, Hebrew, or Arabic.
-4. The agent returns an answer with source references and actions.
-5. The conversation records topic, language, and whether the answer helped.
-6. Admin sees unanswered topics and improves content.
+1. A student joins a Base44-backed study session and social activity.
+2. Participant records update and both items appear in the student's calendar and personalized home.
+3. The Elysium agent reads only permitted profile, calendar, activity, study, tutor, Peer Helper, tool, and approved-guide context.
+4. The student asks what to do next in English, Hebrew, or Arabic.
+5. The agent recommends concrete existing Elysium actions and requests confirmation before any write.
+6. Feedback and usage events show whether the recommendation led to a join, booking request, tool, or guide.
 
-This creates a closed improvement loop and gives Base44 a central technical role.
+This demonstrates that Base44 is the shared data and action layer behind the one-stop hub.
 
 ## Release Acceptance Criteria
 
 - Base44 metadata describes Elysium accurately.
-- The core question-to-action flow works in all three languages.
+- The connected home-to-join-to-calendar-to-AI flow works in all three languages.
 - Arabic and Hebrew have correct RTL document direction.
 - No primary screen is empty during the demo.
 - Every policy guide has an official source and review date.
 - The assistant never invents unsupported university policy.
 - Student accounts cannot access admin data or operations.
-- Peer mentors replace private tutors in the competition flow.
+- Private Tutors and Peer Helpers are separate, functional, and consent-aware.
+- Social activities and study sessions are separate, functional, and connected to the calendar.
+- GPA and flashcard tools have at least one reliable end-to-end flow.
 - The app records activation and feedback events.
 - The complete demo can be reset and repeated in under 60 seconds.

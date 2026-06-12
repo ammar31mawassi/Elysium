@@ -13,7 +13,7 @@ Owns:
 - Product decisions and Base44 prompting/build direction.
 - Information architecture and UI quality.
 - English, Hebrew, and Arabic experience review.
-- Guide format and content quality.
+- Social, study, tutor, Peer Helper, tools, guide, and AI experience quality.
 - User recruitment, interviews, pitch, and live demo.
 
 ### Marwan
@@ -22,7 +22,7 @@ Owns:
 
 - Base44 entities and data integrity.
 - Authentication, roles, admin permissions, and privacy.
-- AI agent permissions and source restrictions.
+- Cross-entity relationships, AI permissions, and source restrictions.
 - Analytics, feedback records, technical QA, and release reliability.
 
 ### Shared
@@ -37,11 +37,11 @@ Use one Base44 workspace. Redeem the hackathon credit code and add Marwan only a
 
 ## Non-Negotiable Scope
 
-The team builds and demonstrates one complete path:
+The team builds and demonstrates one connected student day:
 
-> Choose a language -> ask a campus question -> receive a verified BGU answer -> understand the next actions -> open the official source -> reach the correct human route -> give feedback.
+> Choose a language -> see a personalized week -> join a study session and social activity -> see both in the calendar -> find a tutor or Peer Helper -> use a student tool -> ask AI what to do next.
 
-No optional feature may delay this path.
+Every core module remains part of Elysium, but implementation depth is limited to what supports this reliable connected path.
 
 ## Preparation: June 12-16
 
@@ -50,8 +50,8 @@ No optional feature may delay this path.
 Ammar:
 
 - Approve the competition product sentence.
-- Select two demo questions: one high-impact and one universal fallback.
-- Select the target user: BGU first-year or disrupted student.
+- Select one connected student-day demo and one shorter fallback demo.
+- Select the target user: a BGU student balancing courses, deadlines, study needs, and social belonging.
 - Correct the Base44 title, description, and visible product language.
 - Freeze the competition navigation.
 
@@ -59,54 +59,57 @@ Marwan:
 
 - Audit Base44 entity permissions and `/admin` access with a normal student account.
 - Inventory entities to keep, rename, archive, or ignore.
-- Define minimum fields for Guide, Office, Mentor, Feedback, and StudentProfile.
+- Define minimum fields and relationships for StudentProfile, SocialActivity, ActivityParticipant, StudySession, SessionParticipant, CalendarItem, PrivateTutor, TutorRequest, PeerHelper, ToolData, Guide, and Feedback.
 - Confirm analytics options and credit costs.
 
 Exit criteria:
 
-- One sentence, one target user, one demo, one navigation model.
-- No open argument about tutors versus mentors or guides versus tools.
+- One sentence, one target user, one connected demo, one navigation model.
+- Private Tutor and Peer Helper terminology is fixed and reflected in the data model.
 
-### Saturday, June 13: Trustworthy Content Foundation
+### Saturday, June 13: Connected Data And Demo Foundation
 
 Ammar:
 
-- Draft the first six BGU guides in the fixed format.
-- Produce English, Hebrew, and Arabic versions of the two demo guides.
-- Verify every official link and contact.
-- Write empty, error, and unsupported-answer copy.
+- Create realistic demo content: three social activities, three study sessions, three tutors, three Peer Helpers, personal deadlines, one flashcard deck, and six BGU links/guides.
+- Write the complete demo content in English, Hebrew, and Arabic.
+- Verify official links and label demo people/content honestly.
+- Write useful empty, error, and no-recommendation states.
 
 Marwan:
 
-- Implement or configure source, review date, locale, status, university, and owner fields.
+- Implement or configure cross-entity relationships and user ownership.
+- Add source, review date, locale, status, university, and owner fields where content requires trust metadata.
 - Protect admin operations.
-- Configure public versus authenticated access.
-- Add stale-content and answer-feedback records.
+- Configure public, authenticated, owner, tutor/helper, and admin access.
+- Add reports, booking requests, and feedback records.
 
 Exit criteria:
 
-- Six sourced guides; two fully trilingual.
+- The seeded student can join one social activity and one study session and see both in the calendar.
+- Tutors and Peer Helpers are separate entities and screens.
 - Student account cannot perform admin actions.
 
-### Sunday, June 14: Core Product Flow
+### Sunday, June 14: Core Connected Experience
 
 Ammar:
 
-- Rebuild the first-use flow around language and immediate value.
-- Replace the calendar-first dashboard.
-- Promote Guides and Ask Elysium.
-- Apply the Lovable-inspired five-item mobile navigation.
+- Rebuild first use around language, university, courses, interests, and immediate value.
+- Turn the empty calendar-first dashboard into a personalized week and next-action home.
+- Polish Social, Study, Private Tutor, Peer Helper, Calendar, and Tools navigation.
+- Apply the Lovable-inspired compact mobile shell without hiding the hub's core modules.
 
 Marwan:
 
-- Configure the Elysium Base44 agent with read-only access to published guides and relevant user context.
-- Add source-grounded instructions and unsupported-answer behavior.
-- Record question topic, language, answer status, and feedback without exposing private content publicly.
+- Make join/leave and create flows update participants, calendar, and home context.
+- Configure the Elysium Base44 agent with least-privilege access to the current user's permitted hub context and published guides.
+- Require confirmation before the agent creates or changes records.
+- Record recommendation type, language, outcome, and feedback without exposing private content publicly.
 
 Exit criteria:
 
-- The prepared demo question returns a correct, sourced answer.
-- The same path works from a clean user session.
+- The complete connected student-day path works from a clean user session.
+- The AI correctly summarizes existing context and routes to at least one useful action.
 
 ### Monday, June 15: Trilingual And RTL Completion
 
@@ -141,7 +144,7 @@ Marwan:
 
 - Seed non-empty, honest demo content.
 - Add event instrumentation and an admin metrics summary.
-- Test app reset, account creation, broken links, agent failure, and slow responses.
+- Test app reset, account creation, join/leave, calendar updates, tutor requests, Peer Helper visibility, tool calculations, broken links, agent failure, and slow responses.
 - Export or document critical data so accidental Base44 changes can be recovered.
 
 Exit criteria:
@@ -164,21 +167,21 @@ Target: 15 users, 8 activated, 5 feedback responses.
 
 ### Thursday, June 18: Improve Comprehension
 
-- Analyze failed or unclear questions.
-- Rewrite weak answers and guide headings.
-- Improve onboarding exits and unsupported-answer behavior.
-- Add two guides from actual user demand.
+- Analyze failed joins, confusing creation flows, missed recommendations, and tool errors.
+- Improve home priorities and navigation labels.
+- Improve onboarding exits and AI no-result behavior.
+- Add the content or filter most requested by real users.
 - Start the dated feedback-to-change log.
 
 Target cumulative: 30 users, 18 activated, 10 feedback responses.
 
 ### Friday, June 19: Improve Trust And Sharing
 
-- Verify every source again.
-- Make source, review date, and BGU scope impossible to miss.
+- Verify guide sources, public contact consent, tutor data, and activity details.
+- Make host, time, location, source, review date, and BGU scope clear where applicable.
 - Add or improve deep-link sharing.
 - Recruit through additional permitted student groups.
-- Test mentor/contact handoff.
+- Test tutor booking/contact and Peer Helper contact separately.
 
 Target cumulative: 45 users, 27 activated, 5 shares.
 
@@ -186,7 +189,7 @@ Target cumulative: 45 users, 27 activated, 5 shares.
 
 - Make the Base44 architecture easy to explain: entities, permissions, agent, admin loop, analytics.
 - Validate that the agent has the minimum permissions it needs.
-- Capture one example of a missing question becoming a new approved guide.
+- Capture one example of AI turning student context into a useful existing action and one feedback item improving the hub.
 - Remove broken or nonessential screens from navigation.
 
 Target cumulative: 60 users, 34 activated, 15 feedback responses.
@@ -211,22 +214,28 @@ Target cumulative: 75 users, 40 activated, 20 feedback responses.
 - Lead with the student problem and traction, not the feature list.
 - Ask organizers to confirm whether main and Base44 prizes can be combined.
 
-## First Content Set
+## First Demo Dataset
 
-Create 10-12 BGU guides, but make six excellent before adding more:
+Create a small but believable BGU experience:
 
-1. Missed exam or coursework due to reserve duty/disruption.
-2. Exam or grade appeal.
-3. First-week systems and where to find course information.
-4. Writing a clear email to a lecturer or department.
-5. Finding scholarships and financial support.
-6. Mental-health or urgent support route, with crisis boundaries.
-7. Accessibility accommodations.
-8. Course registration problem.
-9. Dorms, transportation, or campus arrival.
-10. Academic Hebrew terminology.
-11. English syllabus terminology.
-12. Finding an approved peer mentor or student support group.
+1. Three future social activities, including football and a non-sports interest.
+2. Three study sessions, including library study and collaborative homework.
+3. Three private tutors with distinct subjects, languages, and availability.
+4. Three Peer Helpers with distinct topics and explicit contact preferences.
+5. Three personal or course deadlines for the demo account.
+6. One GPA/required-grade scenario with known expected results.
+7. One flashcard deck with enough cards to demonstrate review progress.
+8. Six source-backed BGU links or guides covering common student needs.
+9. One AI prompt that connects the student's deadline, joined session, tool, and human-help options.
+
+Additional guides can cover:
+
+- Reserve-duty or disruption support.
+- Exam/grade appeals.
+- First-week systems.
+- Lecturer email templates.
+- Scholarships.
+- Accessibility and wellbeing routes.
 
 For health, legal, rights, or crisis content, show official contacts and avoid personalized professional advice.
 
@@ -234,11 +243,11 @@ For health, legal, rights, or crisis content, show official contacts and avoid p
 
 Do not begin by explaining the product.
 
-1. "Think of the last university task that confused you. What was it?"
-2. "Use Elysium to find what you would do next."
-3. "Did you trust the answer? What made you trust or distrust it?"
-4. "What would you do after reading it?"
-5. "Which language would you actually use for this task?"
+1. "How do you currently organize deadlines, study with others, social activities, and academic help?"
+2. "Use Elysium to join something useful and find what you should do next."
+3. "What did you expect to happen after joining it?"
+4. "Which part would make you return next week?"
+5. "Which language would you actually use for each part?"
 
 Record behavior and exact confusion points, not only opinions.
 
@@ -255,6 +264,14 @@ Run every core scenario on:
 - New anonymous visitor if public access exists.
 - New student account.
 - Existing student account.
+- Social activity create/join/leave.
+- Study session create/join/leave.
+- Personal deadline create/edit/complete/delete.
+- Joined item appears and disappears correctly in calendar.
+- Tutor discovery and booking/contact request.
+- Peer Helper opt-in, discovery, consent, and opt-out.
+- GPA calculation against known results.
+- Flashcard create/review/progress.
 - Admin account.
 - Slow agent response.
 - No approved answer.
@@ -264,7 +281,9 @@ Security checks:
 
 - Student cannot open or call admin operations.
 - Student cannot edit another user's profile, saved content, or feedback.
-- Mentor cannot approve themselves.
+- Tutor or Peer Helper cannot approve or moderate themselves.
+- Users cannot reveal contact information that another user did not consent to publish.
+- Users cannot edit or remove activities, sessions, deadlines, bookings, or profiles they do not own.
 - Unpublished guides do not appear publicly or to the agent.
 - Private questions are not exposed in public metrics.
 
@@ -277,9 +296,9 @@ Prepare before June 21:
 - Correct title and tagline.
 - 3:2 project thumbnail.
 - Light and dark logo assets.
-- Three screenshots: question, verified answer, admin trust loop.
+- Three screenshots: personalized home, connected social/study/calendar flow, and AI coordinating tools/people/next actions.
 - 45-60 second backup demo video.
-- Architecture diagram showing Base44 entities, agent, permissions, and feedback loop.
+- Architecture diagram showing Base44 entities, relationships, agent, permissions, and feedback loop.
 - Short product story and problem evidence.
 - Built-with list naming Base44 accurately.
 - User/activation/feedback metrics with date and definition.
@@ -290,11 +309,11 @@ Prepare before June 21:
 Immediately stop or postpone work when it involves:
 
 - A second product.
-- Another generic student calculator.
-- Payments or tutor monetization.
+- Additional calculators beyond the working core tools.
+- Tutor payments; use booking/contact requests for the hackathon.
 - Broad multi-university content before BGU works.
-- Full chat or social networking.
-- Complex calendar integration.
+- Real-time group chat or direct messaging.
+- External calendar synchronization; keep the internal calendar reliable.
 - Visual polish on a screen outside the demo path while a core-flow defect remains.
 - AI answers that cannot cite approved content.
 
@@ -303,10 +322,11 @@ Immediately stop or postpone work when it involves:
 Elysium is ready when:
 
 - A new user understands the purpose in five seconds.
-- The complete demo path works in all three languages.
+- The complete connected hub demo works in all three languages.
 - A real user can reach a trustworthy next action in under two minutes.
 - No primary screen shown to judges is empty.
 - All policy content is sourced and dated.
+- Social, Study, Private Tutor, Peer Helper, Calendar, Tools, and AI have a working role in the demo.
 - Roles and data permissions pass the test matrix.
 - User and feedback metrics are real and defined.
 - Ammar and Marwan can each deliver the demo if the other is interrupted.

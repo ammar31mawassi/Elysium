@@ -2,17 +2,17 @@
 
 Elysium is a multilingual student support hub for students in Israeli universities and colleges. The project began as Dalili, an Arabic-first idea, and now serves students in English, Hebrew, and Arabic while preserving the depth of the original research.
 
-The product direction is a **Full Student Hub** with a **Campus Compass** design language. The MVP should help a student understand what to do next, who to ask, and where to find trustworthy guidance in English, Hebrew, or Arabic.
+The product direction is a **Personalized Student Hub** with a **Campus Compass** design language. The MVP combines student social life, collaborative study, tutors, peer help, a personal calendar, practical tools, and trusted guidance in English, Hebrew, and Arabic.
 
 ## Mission
 
-The product exists because students do not only need another planner. They need a trusted guide through unfamiliar academic systems, multilingual terminology, financial pressure, campus disorientation, social isolation, course registration, deadlines, rights, scholarships, and first-year uncertainty.
+The product exists because student life is fragmented across calendars, WhatsApp groups, tutoring contacts, university pages, social posts, study groups, and disconnected tools. Elysium brings those needs into one personalized place and helps each student decide what to do next.
 
 The long-term product sentence:
 
-> Elysium is a multilingual campus compass that turns confusing university moments into clear steps, trusted people, and relevant resources in English, Hebrew, and Arabic.
+> Elysium is a personalized, trilingual student hub for planning university life, meeting people, studying together, finding academic help, and knowing what to do next.
 
-For the June 17-22, 2026 Hub02 x BGU hackathon, the product is narrowed to a BGU-first, source-backed campus copilot. See the hackathon documents below.
+For the June 17-22, 2026 Hub02 x BGU hackathon, Elysium demonstrates this connected hub through a polished BGU-first experience. AI is the coordinating assistant across the hub, not the product's replacement. See the hackathon documents below.
 
 ## Current Stage
 
@@ -47,6 +47,7 @@ Not allowed in this stage:
 - [Multilingual Student Needs](docs/01-research/multilingual-student-needs.md)
 - [Prototype Audit](docs/01-research/prototype-audit.md)
 - [Dalili Idea](docs/02-product/dalili-idea.md)
+- [Elysium Product Definition](docs/02-product/elysium-product-definition.md)
 - [Naming Directions](docs/02-product/naming-directions.md)
 - [MVP Scope](docs/02-product/mvp-scope.md)
 - [Campus Compass Design](docs/03-design/campus-compass.md)

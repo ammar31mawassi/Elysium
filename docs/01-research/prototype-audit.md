@@ -26,14 +26,14 @@ What to keep:
 - Strong Arabic/RTL mobile interface as proof that non-English experiences must be native.
 - The idea that Dalili lives in the student's day, not only in a resource library.
 - Schedule context connected to help actions.
-- Quick access to groups, mentors, and tools.
+- Quick access to social/study groups, tutors, peer help, and tools.
 - Simple bottom navigation.
 - A practical notification model: exam reminders, suggested groups, useful events.
 
 What to avoid:
 
-- Over-centering the product on calendars and GPA tools.
-- Rating mentors like a marketplace. For Dalili, trust should come from approval, profile quality, and lived experience, not stars.
+- Showing an empty calendar or GPA summary as the whole product instead of connecting them to the student hub.
+- Confusing Private Tutors with Peer Helpers. Tutor reviews may support teaching decisions; Peer Helper trust should come from opt-in, profile context, consent, and moderation rather than a marketplace rating.
 - Generic placeholder people and generic app copy.
 - Making "study tools" the main identity.
 
@@ -115,12 +115,13 @@ What to avoid:
 
 - The product reads as a general academic planner.
 - Too much emphasis on GPA/courses/goals for Dalili's first identity.
-- Tutor profiles are static and marketplace-like.
+- Tutor profiles lack availability and a clear booking/contact-request workflow.
+- No separate opt-in Peer Helper role exists.
 - It lacks a research-backed multilingual transition and hidden-curriculum model.
 
 Product lesson:
 
-Use this as the closest technical inspiration, but redesign the product model around guidance, mentors, resources, and first-year survival.
+Use this as the closest technical inspiration, but connect social activities, study sessions, calendar, Private Tutors, Peer Helpers, tools, guides, and personalization around one student context.
 
 ## 4. Cursor/Python + Supabase Prototype
 
@@ -171,14 +172,14 @@ Dalili should not become:
 
 - A generic student planner.
 - A GPA calculator with Arabic labels.
-- A tutor marketplace.
+- A disconnected tutor marketplace with no student-hub integration.
 - A collection of cards without a human product point of view.
 
 Dalili should become:
 
 - A multilingual campus compass for students.
 - A human-written guide through first-year confusion.
-- A trusted mentor and group network.
+- Separate trusted Private Tutor and Peer Helper networks connected to social/study discovery.
 - A university-specific survival layer.
 - A planner only where planning supports real student struggle.
 

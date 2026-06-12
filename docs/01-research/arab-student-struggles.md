@@ -112,5 +112,5 @@ The product should increase:
 - Which first-year problems are most painful for students in computer science, nursing, medicine, law, and education?
 - What information do Arab students currently get from WhatsApp groups, and what is missing?
 - Which needs are shared by all students, and which require segment-specific content or workflows?
-- Would students trust mentor profiles with WhatsApp contact, or prefer in-app requests?
+- Would students trust opt-in Peer Helper profiles with WhatsApp contact, or prefer in-app requests?
 - What content should be public without login, and what should require an account?

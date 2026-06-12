@@ -1,6 +1,6 @@
-# Dalili / دليلي (Working Title)
+# Elysium (formerly Dalili / دليلي)
 
-Dalili means "my guide." It is the current working title for a multilingual student support hub for students in Israeli universities and colleges. A new inclusive name will be selected before implementation.
+Elysium is a multilingual student support hub for students in Israeli universities and colleges. The project began as Dalili, an Arabic-first idea, and now serves students in English, Hebrew, and Arabic while preserving the depth of the original research.
 
 The product direction is a **Full Student Hub** with a **Campus Compass** design language. The MVP should help a student understand what to do next, who to ask, and where to find trustworthy guidance in English, Hebrew, or Arabic.
 
@@ -8,9 +8,11 @@ The product direction is a **Full Student Hub** with a **Campus Compass** design
 
 The product exists because students do not only need another planner. They need a trusted guide through unfamiliar academic systems, multilingual terminology, financial pressure, campus disorientation, social isolation, course registration, deadlines, rights, scholarships, and first-year uncertainty.
 
-The product sentence:
+The long-term product sentence:
 
-> The working-title product is a multilingual campus compass that turns confusing university moments into clear steps, trusted people, and relevant resources in English, Hebrew, and Arabic.
+> Elysium is a multilingual campus compass that turns confusing university moments into clear steps, trusted people, and relevant resources in English, Hebrew, and Arabic.
+
+For the June 17-22, 2026 Hub02 x BGU hackathon, the product is narrowed to a BGU-first, source-backed campus copilot. See the hackathon documents below.
 
 ## Current Stage
 
@@ -51,6 +53,9 @@ Not allowed in this stage:
 - [Team Workflow](docs/04-team/workflow.md)
 - [Repo And Stack Plan](docs/05-tech/repo-stack-plan.md)
 - [Initial Issues](docs/06-backlog/initial-issues.md)
+- [Hub02 Winning Strategy](docs/07-hackathon/hub02-winning-strategy.md)
+- [Current Elysium Audit](docs/07-hackathon/current-elysium-audit.md)
+- [Hackathon Execution Plan](docs/07-hackathon/execution-plan.md)
 
 ## Source Material Read
 

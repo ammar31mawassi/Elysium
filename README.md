@@ -57,6 +57,7 @@ Not allowed in this stage:
 - [Hub02 Winning Strategy](docs/07-hackathon/hub02-winning-strategy.md)
 - [Current Elysium Audit](docs/07-hackathon/current-elysium-audit.md)
 - [Hackathon Execution Plan](docs/07-hackathon/execution-plan.md)
+- [Base44 Master Build Prompt](docs/07-hackathon/base44-master-build-prompt.md)
 
 ## Source Material Read
 

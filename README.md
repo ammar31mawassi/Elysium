@@ -195,6 +195,7 @@ Development uses feature branches and pull requests. Do not commit directly to `
 - [Team workflow](docs/04-team/workflow.md)
 - [Hackathon strategy](docs/07-hackathon/hub02-winning-strategy.md)
 - [Execution plan](docs/07-hackathon/execution-plan.md)
+- [Base44 Master Build Prompt](docs/07-hackathon/base44-master-build-prompt.md)
 
 ## License
 

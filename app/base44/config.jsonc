@@ -1,5 +1,5 @@
 {
-  "name": "Elysium Hub",
+  "name": "Elysium",
   "site": {
     "installCommand": "npm install",
     "buildCommand": "npm run build",

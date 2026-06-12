@@ -1,0 +1,37 @@
+{
+  "name": "Deadline",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string"
+    },
+    "title": {
+      "type": "string"
+    },
+    "due_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "Exam",
+        "Scholarship",
+        "Admin",
+        "Personal"
+      ]
+    },
+    "source": {
+      "type": "string"
+    },
+    "university_id": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "user_id",
+    "title",
+    "due_date",
+    "category"
+  ]
+}

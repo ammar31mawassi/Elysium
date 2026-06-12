@@ -1,0 +1,37 @@
+{
+  "name": "Flashcard",
+  "type": "object",
+  "properties": {
+    "deck_id": {
+      "type": "string"
+    },
+    "owner_user_id": {
+      "type": "string"
+    },
+    "front": {
+      "type": "string"
+    },
+    "back": {
+      "type": "string"
+    },
+    "card_order": {
+      "type": "number",
+      "default": 0
+    },
+    "review_status": {
+      "type": "string",
+      "enum": [
+        "new",
+        "known",
+        "review"
+      ],
+      "default": "new"
+    }
+  },
+  "required": [
+    "deck_id",
+    "owner_user_id",
+    "front",
+    "back"
+  ]
+}

@@ -1,0 +1,40 @@
+{
+  "name": "TutorRequest",
+  "type": "object",
+  "properties": {
+    "student_user_id": {
+      "type": "string"
+    },
+    "tutor_id": {
+      "type": "string"
+    },
+    "subject": {
+      "type": "string"
+    },
+    "preferred_datetime": {
+      "type": "string"
+    },
+    "message": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "accepted",
+        "declined",
+        "canceled",
+        "completed"
+      ],
+      "default": "pending"
+    },
+    "agreed_datetime": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "student_user_id",
+    "tutor_id",
+    "subject"
+  ]
+}

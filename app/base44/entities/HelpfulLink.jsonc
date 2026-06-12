@@ -1,0 +1,59 @@
+{
+  "name": "HelpfulLink",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string"
+    },
+    "title_he": {
+      "type": "string"
+    },
+    "title_ar": {
+      "type": "string"
+    },
+    "university_id": {
+      "type": "string"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "academic_calendar",
+        "student_portal",
+        "course_system",
+        "scholarships",
+        "student_union",
+        "accessibility",
+        "wellbeing",
+        "reserve_duty",
+        "international",
+        "language_support",
+        "housing",
+        "other"
+      ]
+    },
+    "official_url": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "locale_relevance": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "last_reviewed_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "is_published": {
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "required": [
+    "title",
+    "category"
+  ]
+}

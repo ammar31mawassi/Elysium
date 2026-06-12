@@ -1,0 +1,25 @@
+{
+  "name": "TeacherRating",
+  "type": "object",
+  "properties": {
+    "teacher_id": {
+      "type": "string"
+    },
+    "student_id": {
+      "type": "string"
+    },
+    "rating": {
+      "type": "number",
+      "minimum": 1,
+      "maximum": 5
+    },
+    "comment": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "teacher_id",
+    "student_id",
+    "rating"
+  ]
+}

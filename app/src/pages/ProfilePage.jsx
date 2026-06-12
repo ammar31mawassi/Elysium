@@ -1,0 +1,252 @@
+import React, { useState, useEffect } from "react";
+import { base44 } from "@/api/base44Client";
+import { useProfile } from "@/lib/useProfile";
+import { useLanguage } from "@/lib/LanguageContext";
+import { useTheme } from "@/lib/ThemeContext";
+import { LOCALE_NAMES, SUPPORTED_LOCALES } from "@/lib/i18n";
+import { LogOut, Edit2, GraduationCap, HelpCircle, Sun, Moon, Monitor } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import PageLayout from "@/components/layout/PageLayout";
+import ElysiumLogo from "@/components/elysium/ElysiumLogo";
+import { cn } from "@/lib/utils";
+import { productText } from "@/lib/productCopy";
+
+function getInitials(name = '') {
+  return name.split(' ').filter(Boolean).map(n => n[0]).join('').toUpperCase().slice(0, 2) || 'S';
+}
+
+export default function ProfilePage() {
+  const { user, profile, university, setProfile } = useProfile();
+  const { locale, setLocale, t } = useLanguage();
+  const p = (key) => productText(locale, key);
+  const { preference, setTheme, isDark } = useTheme();
+  const [myGroups, setMyGroups] = useState([]);
+  const [teacherProfile, setTeacherProfile] = useState(null);
+  const [peerHelper, setPeerHelper] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [showTutorForm, setShowTutorForm] = useState(false);
+  const [showHelperForm, setShowHelperForm] = useState(false);
+  const [tutorForm, setTutorForm] = useState({ subjects_raw: '', phone_number: '', bio: '', teaching_mode: 'both', contact_consent: false });
+  const [helperForm, setHelperForm] = useState({ topics_raw: '', bio: '', availability: '', contact_method: 'in_app', contact_value: '', contact_consent: false });
+  const [saving, setSaving] = useState(false);
+  const [savingHelper, setSavingHelper] = useState(false);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    Promise.all([
+      base44.entities.StudyGroupMember.filter({ user_id: user.id }),
+      base44.entities.PrivateTeacher.filter({ user_id: user.id }),
+      base44.entities.PeerHelper.filter({ owner_user_id: user.id }),
+    ]).then(async ([mems, teachers, helpers]) => {
+      if (mems?.length) {
+        const groups = await base44.entities.StudyGroup.list();
+        const ids = new Set(mems.map(m => m.group_id));
+        setMyGroups(groups.filter(g => ids.has(g.id)));
+      }
+      if (teachers?.length) {
+        const t = teachers[0];
+        setTeacherProfile(t);
+        setTutorForm({ subjects_raw: (t.subjects || []).join(', '), phone_number: t.phone_number || '', bio: t.bio || '', teaching_mode: t.teaching_mode || 'both', contact_consent: t.contact_consent || false });
+      }
+      if (helpers?.length) {
+        const h = helpers[0];
+        setPeerHelper(h);
+        setHelperForm({ topics_raw: (h.help_topics || []).join(', '), bio: h.bio || '', availability: h.availability || '', contact_method: h.contact_method || 'in_app', contact_value: h.contact_value || '', contact_consent: h.contact_consent || false });
+      }
+      setLoading(false);
+    });
+  }, [user?.id]);
+
+  const handleLocaleChange = async (l) => {
+    setLocale(l);
+    if (profile?.id) await base44.entities.StudentProfile.update(profile.id, { preferred_locale: l });
+  };
+
+  const handleThemeChange = async (pref) => {
+    setTheme(pref);
+    if (profile?.id) await base44.entities.StudentProfile.update(profile.id, { theme_preference: pref });
+  };
+
+  const handleTutorSubmit = async () => {
+    setSaving(true);
+    const subjects = tutorForm.subjects_raw.split(',').map(s => s.trim()).filter(Boolean);
+    const data = { user_id: user.id, university_id: profile.university_id, display_name: user.full_name, subjects, phone_number: tutorForm.phone_number, bio: tutorForm.bio, teaching_mode: tutorForm.teaching_mode, contact_consent: tutorForm.contact_consent, is_active: false };
+    if (teacherProfile) {
+      await base44.entities.PrivateTeacher.update(teacherProfile.id, data);
+    } else {
+      const t = await base44.entities.PrivateTeacher.create(data);
+      setTeacherProfile(t);
+    }
+    setSaving(false);
+    setShowTutorForm(false);
+  };
+
+  const handleHelperSubmit = async () => {
+    setSavingHelper(true);
+    const topics = helperForm.topics_raw.split(',').map(s => s.trim()).filter(Boolean);
+    const data = { owner_user_id: user.id, university_id: profile.university_id, display_name: user.full_name || 'Student', help_topics: topics, bio: helperForm.bio, availability: helperForm.availability, contact_method: helperForm.contact_method, contact_value: helperForm.contact_consent ? helperForm.contact_value : '', contact_consent: helperForm.contact_consent, is_visible: true };
+    if (peerHelper) {
+      await base44.entities.PeerHelper.update(peerHelper.id, data);
+    } else {
+      const h = await base44.entities.PeerHelper.create(data);
+      setPeerHelper(h);
+    }
+    setSavingHelper(false);
+    setShowHelperForm(false);
+  };
+
+  const toggleHelperVisibility = async () => {
+    if (!peerHelper) return;
+    await base44.entities.PeerHelper.update(peerHelper.id, { is_visible: !peerHelper.is_visible });
+    setPeerHelper(p => ({ ...p, is_visible: !p.is_visible }));
+  };
+
+  return (
+    <PageLayout title={t('profile_title')}>
+      {/* Hero */}
+      <div className="bg-card rounded-lg border border-border p-5 mb-4">
+        <div className="flex items-center gap-4">
+          <div className="w-14 h-14 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-bold text-lg shrink-0">
+            {getInitials(user?.full_name)}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-bold text-foreground text-base">{user?.full_name || 'Student'}</p>
+            {university && <p className="text-sm text-muted-foreground">{university.name}</p>}
+            <p className="text-xs text-muted-foreground">{profile?.academic_year} {profile?.field_of_study ? `· ${profile.field_of_study}` : ''}</p>
+          </div>
+        </div>
+        {/* Tagline + logo small */}
+        <div className="flex items-center justify-between mt-4 pt-4 border-t border-border">
+          <p className="text-xs text-muted-foreground italic">{t('tagline')}</p>
+          <ElysiumLogo size={28} />
+        </div>
+      </div>
+
+      {/* Language */}
+      <SettingsCard title={t('profile_language')}>
+        <div className="flex gap-2">
+          {SUPPORTED_LOCALES.map(l => (
+            <button key={l} onClick={() => handleLocaleChange(l)}
+              className={cn("flex-1 py-2 rounded-md border text-xs font-semibold transition-all", locale === l ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:border-primary/40")}>
+              {LOCALE_NAMES[l]}
+            </button>
+          ))}
+        </div>
+      </SettingsCard>
+
+      {/* Theme */}
+      <SettingsCard title={t('profile_theme')}>
+        <div className="flex gap-2">
+          {[['light', t('profile_theme_light') || 'Light', Sun], ['dark', t('profile_theme_dark') || 'Dark', Moon], ['system', t('profile_theme_system') || 'System', Monitor]].map(([key, label, ThemeIcon]) => (
+            <button key={key} onClick={() => handleThemeChange(key)}
+              className={cn("flex-1 flex items-center justify-center gap-1.5 py-2 rounded-md border text-xs font-medium transition-all", preference === key ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:border-primary/40")}>
+                <ThemeIcon className="w-3.5 h-3.5" />{label}
+            </button>
+          ))}
+        </div>
+      </SettingsCard>
+
+      {/* Offer tutoring */}
+      <SettingsCard title={t('profile_offer_tutoring')} icon={<GraduationCap className="w-4 h-4 text-purple-600" />}>
+        {teacherProfile && (
+          <div className="mb-3">
+            <div className="flex items-center gap-2 mb-2">
+              <span className={cn("text-xs font-semibold px-2 py-0.5 rounded", teacherProfile.is_active ? "bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400" : "bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400")}>
+                {teacherProfile.is_active ? p('profile_active') : p('profile_pending')}
+              </span>
+            </div>
+            <div className="flex flex-wrap gap-1">
+              {(teacherProfile.subjects || []).map(s => <span key={s} className="text-xs bg-muted px-2 py-0.5 rounded">{s}</span>)}
+            </div>
+          </div>
+        )}
+        <p className="text-xs text-muted-foreground mb-2">{p('profile_public_note')}</p>
+        <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setShowTutorForm(f => !f)}>
+          <Edit2 className="w-3.5 h-3.5" />{teacherProfile ? t('profile_edit') : t('profile_offer_tutoring')}
+        </Button>
+        {showTutorForm && (
+          <div className="mt-3 pt-3 border-t border-border space-y-2 animate-fade-in">
+            <Input className="text-sm" placeholder={p('profile_subjects')} value={tutorForm.subjects_raw} onChange={e => setTutorForm(f => ({ ...f, subjects_raw: e.target.value }))} />
+            <Input className="text-sm" placeholder={p('profile_phone')} value={tutorForm.phone_number} onChange={e => setTutorForm(f => ({ ...f, phone_number: e.target.value }))} />
+            <Textarea className="text-sm resize-none" rows={2} placeholder={p('profile_tutor_bio')} value={tutorForm.bio} onChange={e => setTutorForm(f => ({ ...f, bio: e.target.value }))} />
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" checked={tutorForm.contact_consent} onChange={e => setTutorForm(f => ({ ...f, contact_consent: e.target.checked }))} className="w-4 h-4" />
+              <span className="text-xs text-muted-foreground">{p('profile_contact_consent')}</span>
+            </label>
+            <div className="flex gap-2">
+              <Button size="sm" className="flex-1" disabled={!tutorForm.subjects_raw || saving} onClick={handleTutorSubmit}>{saving ? t('profile_saving') : t('profile_save')}</Button>
+              <Button size="sm" variant="outline" onClick={() => setShowTutorForm(false)}>{t('common_cancel')}</Button>
+            </div>
+          </div>
+        )}
+      </SettingsCard>
+
+      {/* Peer Helper */}
+      <SettingsCard title={t('profile_peer_helper')} icon={<HelpCircle className="w-4 h-4 text-primary" />}>
+        {peerHelper && (
+          <div className="mb-3 flex items-center gap-2">
+            <span className={cn("text-xs font-semibold px-2 py-0.5 rounded", peerHelper.is_visible ? "bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400" : "bg-muted text-muted-foreground")}>
+              {peerHelper.is_visible ? p('profile_visible') : p('profile_hidden')}
+            </span>
+            <button onClick={toggleHelperVisibility} className="text-xs text-primary hover:underline">{peerHelper.is_visible ? p('profile_hide') : p('profile_show')}</button>
+          </div>
+        )}
+        <p className="text-xs text-muted-foreground mb-2">{p('profile_helper_note')}</p>
+        <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setShowHelperForm(f => !f)}>
+          <Edit2 className="w-3.5 h-3.5" />{peerHelper ? t('profile_edit') : p('profile_setup_helper')}
+        </Button>
+        {showHelperForm && (
+          <div className="mt-3 pt-3 border-t border-border space-y-2 animate-fade-in">
+            <Input className="text-sm" placeholder={p('profile_help_topics')} value={helperForm.topics_raw} onChange={e => setHelperForm(f => ({ ...f, topics_raw: e.target.value }))} />
+            <Textarea className="text-sm resize-none" rows={2} placeholder={p('profile_helper_bio')} value={helperForm.bio} onChange={e => setHelperForm(f => ({ ...f, bio: e.target.value }))} />
+            <Input className="text-sm" placeholder={p('profile_availability')} value={helperForm.availability} onChange={e => setHelperForm(f => ({ ...f, availability: e.target.value }))} />
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" checked={helperForm.contact_consent} onChange={e => setHelperForm(f => ({ ...f, contact_consent: e.target.checked }))} className="w-4 h-4" />
+              <span className="text-xs text-muted-foreground">{p('profile_public_contact')}</span>
+            </label>
+            {helperForm.contact_consent && (
+              <Input className="text-sm" placeholder={p('profile_contact')} value={helperForm.contact_value} onChange={e => setHelperForm(f => ({ ...f, contact_value: e.target.value }))} />
+            )}
+            <div className="flex gap-2">
+              <Button size="sm" className="flex-1" disabled={!helperForm.topics_raw || savingHelper} onClick={handleHelperSubmit}>{savingHelper ? t('profile_saving') : t('profile_save')}</Button>
+              <Button size="sm" variant="outline" onClick={() => setShowHelperForm(false)}>{t('common_cancel')}</Button>
+            </div>
+          </div>
+        )}
+      </SettingsCard>
+
+      {/* Study Groups */}
+      {myGroups.length > 0 && (
+        <SettingsCard title={p('profile_my_groups')}>
+          <div className="space-y-1.5">
+            {myGroups.map(g => (
+              <div key={g.id} className="flex items-center gap-2 py-1">
+                <div className="w-2 h-2 rounded-full bg-primary shrink-0" />
+                <p className="text-sm text-foreground">{g.name}</p>
+              </div>
+            ))}
+          </div>
+        </SettingsCard>
+      )}
+
+      {/* Sign out */}
+      <button onClick={() => base44.auth.logout('/')} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-destructive transition-colors mt-2 pb-4">
+        <LogOut className="w-4 h-4" /> {t('profile_signout')}
+      </button>
+    </PageLayout>
+  );
+}
+
+function SettingsCard({ title, icon, children }) {
+  return (
+    <div className="bg-card rounded-lg border border-border p-4 mb-3">
+      <div className="flex items-center gap-2 mb-3">
+        {icon}
+        <p className="text-sm font-semibold text-foreground">{title}</p>
+      </div>
+      {children}
+    </div>
+  );
+}

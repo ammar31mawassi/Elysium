@@ -1,0 +1,51 @@
+{
+  "name": "Report",
+  "type": "object",
+  "properties": {
+    "reporter_user_id": {
+      "type": "string"
+    },
+    "target_type": {
+      "type": "string",
+      "enum": [
+        "social_activity",
+        "study_session",
+        "tutor_profile",
+        "peer_helper",
+        "guide",
+        "message"
+      ]
+    },
+    "target_id": {
+      "type": "string"
+    },
+    "reason": {
+      "type": "string",
+      "enum": [
+        "inappropriate",
+        "spam",
+        "harassment",
+        "wrong_info",
+        "other"
+      ]
+    },
+    "details": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "open",
+        "reviewed",
+        "resolved"
+      ],
+      "default": "open"
+    }
+  },
+  "required": [
+    "reporter_user_id",
+    "target_type",
+    "target_id",
+    "reason"
+  ]
+}

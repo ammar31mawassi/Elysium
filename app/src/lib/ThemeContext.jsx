@@ -1,0 +1,32 @@
+import { createContext, useContext, useState, useEffect } from "react";
+
+const ThemeContext = createContext(null);
+
+export function ThemeProvider({ children }) {
+  const [preference, setPreference] = useState(() => {
+    return localStorage.getItem("elysium-theme") || "system";
+  });
+
+  const isDark =
+    preference === "dark" ||
+    (preference === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+
+  useEffect(() => {
+    document.documentElement.classList.toggle("dark", isDark);
+    localStorage.setItem("elysium-theme", preference);
+  }, [preference, isDark]);
+
+  const setTheme = (pref) => setPreference(pref);
+
+  return (
+    <ThemeContext.Provider value={{ preference, setTheme, isDark }}>
+      {children}
+    </ThemeContext.Provider>
+  );
+}
+
+export function useTheme() {
+  const ctx = useContext(ThemeContext);
+  if (!ctx) throw new Error('useTheme must be used within ThemeProvider');
+  return ctx;
+}

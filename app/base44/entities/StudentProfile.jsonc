@@ -1,0 +1,52 @@
+{
+  "name": "StudentProfile",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string"
+    },
+    "university_id": {
+      "type": "string"
+    },
+    "faculty_id": {
+      "type": "string"
+    },
+    "academic_year": {
+      "type": "string",
+      "enum": [
+        "Preparatory",
+        "1st Year",
+        "2nd Year",
+        "3rd Year",
+        "4th Year+"
+      ]
+    },
+    "preferred_language": {
+      "type": "string",
+      "enum": [
+        "Hebrew",
+        "Arabic",
+        "English"
+      ],
+      "default": "English"
+    },
+    "help_needs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "living_context": {
+      "type": "string",
+      "enum": [
+        "Dorms",
+        "Commuting",
+        "Near Campus",
+        "Other"
+      ]
+    }
+  },
+  "required": [
+    "user_id"
+  ]
+}

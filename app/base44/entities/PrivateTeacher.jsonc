@@ -1,0 +1,44 @@
+{
+  "name": "PrivateTeacher",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string"
+    },
+    "university_id": {
+      "type": "string"
+    },
+    "display_name": {
+      "type": "string"
+    },
+    "subjects": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "phone_number": {
+      "type": "string"
+    },
+    "bio": {
+      "type": "string"
+    },
+    "rating_avg": {
+      "type": "number",
+      "default": 0
+    },
+    "rating_count": {
+      "type": "number",
+      "default": 0
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": false
+    }
+  },
+  "required": [
+    "user_id",
+    "university_id",
+    "display_name"
+  ]
+}

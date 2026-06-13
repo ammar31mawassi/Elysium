@@ -1,0 +1,16 @@
+{
+  "name": "Faculty",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string"
+    },
+    "university_id": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "name",
+    "university_id"
+  ]
+}

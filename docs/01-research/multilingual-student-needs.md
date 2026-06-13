@@ -58,7 +58,7 @@ Students need people as well as information. Existing institutional programs use
 
 Product response:
 
-- Approved peer mentors.
+- Opt-in Peer Helpers for student-life questions, kept separate from Private Tutors who teach subjects.
 - Study, social, course, and transition groups.
 - Filters by institution, field, language, and help topic.
 - Clear reporting and moderation.
@@ -118,5 +118,5 @@ The broad audience does not remove prioritization. Early interviews and content 
 - Which university provides the best pilot environment?
 - Should the default interface follow device language or an explicit first-screen choice?
 - Which guides must be fully human-written in all three languages before launch?
-- How should mentors declare language comfort and availability?
+- How should Private Tutors and Peer Helpers separately declare language comfort and availability?
 - Which official terms need a three-language glossary first?

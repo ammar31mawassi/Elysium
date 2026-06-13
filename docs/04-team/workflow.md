@@ -80,7 +80,11 @@ Branch examples:
 - `docs/name-research`
 - `feature/onboarding`
 - `feature/guide-library`
-- `feature/mentor-profiles`
+- `feature/private-tutors`
+- `feature/peer-helpers`
+- `feature/social-activities`
+- `feature/study-sessions`
+- `feature/personal-calendar`
 - `feature/groups`
 - `feature/admin-review`
 - `fix/rtl-ltr-layout`
@@ -143,7 +147,7 @@ No merge if:
 ### Stage 1: Product Definition
 
 - Select the first university and launch cohort.
-- Approve onboarding, dashboard, guide, mentor, group, and admin workflows.
+- Approve onboarding, dashboard, social activity, study session, calendar, Private Tutor, Peer Helper, tools/guides, AI, and admin workflows.
 - Draft representative content in English, Hebrew, and Arabic.
 - Decide implementation platform only after flows are stable.
 

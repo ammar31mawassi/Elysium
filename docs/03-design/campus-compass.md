@@ -18,8 +18,8 @@ It should not feel:
 
 - Corporate.
 - Overly playful.
-- Like a tutor marketplace.
-- Like a generic calendar app.
+- Like only a tutor marketplace.
+- Like only a generic calendar app.
 - Like a government portal.
 - Like a ChatGPT wrapper.
 
@@ -101,10 +101,12 @@ The app should open directly into the product experience.
 Recommended bottom-navigation concepts in every language:
 
 - Home.
-- Guides.
-- Mentors.
-- Groups.
-- Profile.
+- Social.
+- Contextual create/ask action.
+- Study.
+- More.
+
+`More` gives stable access to Calendar, Private Tutors, Peer Helpers, Tools, Guides, and Profile. If user testing shows that this hides core tasks, use Home, Community, Ask, Calendar, and Tools, with clear Social and Study tabs inside Community.
 
 Labels are localized; icon meaning and order remain stable unless directional conventions require mirroring.
 
@@ -157,10 +159,11 @@ Layout:
 
 - Greeting.
 - "Your next step" card or strip.
-- Recommended guides.
-- Mentor CTA.
-- Group suggestions.
-- University shortcut.
+- Upcoming personal deadline or joined item.
+- Recommended social activity and study session.
+- Tutor or Peer Helper suggestion.
+- Relevant tool, guide, or university shortcut.
+- Compact Ask Elysium entry.
 
 Avoid:
 
@@ -181,19 +184,31 @@ Layout:
 - Steps.
 - Hebrew terms.
 - Official link.
-- Ask a mentor.
+- Find a tutor, Peer Helper, or official contact.
 
-### Mentor Listing
+### Private Tutor Listing
 
 Purpose:
 
-- Find someone relevant and trustworthy.
+- Find subject instruction and request a session.
 
 Layout:
 
-- Filters by university, field, help topic.
-- Mentor cards with approved status.
-- No star ratings in MVP.
+- Filters by university, subject/course, language, availability, and online/in-person mode.
+- Tutor cards with subjects, experience, price/contact state, and report action.
+- Reviews must come from real interactions and must never be represented by fake seeded ratings.
+
+### Peer Helper Listing
+
+Purpose:
+
+- Find an opted-in student willing to answer questions.
+
+Layout:
+
+- Filters by university, field, year, language, and help topic.
+- Clear Peer Helper label, availability, and consented contact method.
+- No implication that Peer Helpers are official university authorities or paid tutors.
 
 ## Component Principles
 
@@ -203,7 +218,7 @@ Layout:
 - Buttons should contain clear commands.
 - Use segmented controls for filters.
 - Use chips for help topics.
-- Use search prominently in guides and mentors.
+- Use search prominently in tutors, Peer Helpers, tools, and guides.
 - Use empty states that point to a next action.
 
 ## Tone Of Voice
@@ -233,5 +248,5 @@ The design is successful if:
 - English, Hebrew, and Arabic each look native rather than machine-translated or visually secondary.
 - The first viewport points to one clear next action.
 - Mobile screens do not overflow or rely on tiny labels.
-- Mentors and resources feel trustworthy.
+- Tutors, Peer Helpers, activities, sessions, and resources feel trustworthy.
 - Language switching preserves context and feature parity.

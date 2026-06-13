@@ -1,0 +1,40 @@
+{
+  "name": "StudySession",
+  "type": "object",
+  "properties": {
+    "group_id": {
+      "type": "string"
+    },
+    "title": {
+      "type": "string"
+    },
+    "location": {
+      "type": "string"
+    },
+    "session_date": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "end_time": {
+      "type": "string"
+    },
+    "notes": {
+      "type": "string"
+    },
+    "max_spots": {
+      "type": "number",
+      "default": 10
+    },
+    "host_id": {
+      "type": "string"
+    },
+    "is_marathon": {
+      "type": "boolean",
+      "default": false
+    }
+  },
+  "required": [
+    "group_id",
+    "session_date"
+  ]
+}

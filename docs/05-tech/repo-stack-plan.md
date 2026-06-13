@@ -93,7 +93,7 @@ Reasons:
 
 - The strongest existing prototype already uses Vite, React, TypeScript, Tailwind, and Supabase.
 - It is easier for a beginner team than a custom backend.
-- Supabase Auth and RLS fit the student/mentor/admin model.
+- Supabase Auth and RLS fit the student/tutor/Peer Helper/admin model.
 - Vite is fast for local development.
 - Vercel can deploy Vite apps simply.
 
@@ -114,8 +114,13 @@ src/
   components/
     layout/
     ui/
+    social/
+    study/
+    calendar/
+    tutors/
+    peer-helpers/
+    tools/
     guides/
-    mentors/
     groups/
     admin/
   data/
@@ -137,10 +142,20 @@ Core tables:
 
 - `profiles`
 - `universities`
+- `social_activities`
+- `social_activity_participants`
+- `study_sessions`
+- `study_session_participants`
+- `calendar_items`
+- `private_tutors`
+- `tutor_requests`
+- `peer_helpers`
 - `guides`
 - `guide_categories`
-- `mentors`
 - `groups`
+- `flashcard_decks`
+- `flashcards`
+- `tool_state`
 - `bookmarks`
 - `reports`
 - `admin_actions`
@@ -149,13 +164,38 @@ Profile fields:
 
 - User id.
 - Full name.
-- Role: student, mentor, admin.
+- Roles/capabilities: student, private tutor, Peer Helper, admin. A user may have multiple capabilities.
 - University.
 - Field.
 - Academic year.
 - Language comfort.
 - Preferred interface language.
 - Help needs.
+- Interests/hobbies.
+- Current courses/subjects.
+
+Social activity fields:
+
+- Host user id.
+- Title, category, description.
+- University/campus.
+- Starts/ends at, location, capacity, visibility.
+- Status and moderation fields.
+
+Study session fields:
+
+- Host user id.
+- Course/subject and session type.
+- Starts/ends at, location/online link, capacity.
+- Preferred languages and collaboration expectations.
+- Status and moderation fields.
+
+Calendar item fields:
+
+- Owner user id.
+- Type: personal, social activity, study session, tutor request, or university deadline.
+- Source record id where applicable.
+- Title, starts/ends at, completion status, reminder settings.
 
 Guide fields:
 
@@ -172,17 +212,27 @@ Guide fields:
 - Created by.
 - Updated at.
 
-Mentor fields:
+Private Tutor fields:
 
 - User id.
 - University.
-- Field.
-- Year.
+- Subjects/courses.
+- Experience.
 - Languages.
-- Help topics.
+- Availability and online/in-person mode.
+- Price/contact-for-price.
 - Bio.
-- WhatsApp contact.
-- Approved status.
+- Contact/booking preference.
+- Visibility and moderation status.
+
+Peer Helper fields:
+
+- User id.
+- University, field, and year.
+- Languages and help topics.
+- Bio and availability.
+- Contact preference and explicit consent state.
+- Visible status and moderation state.
 
 Group fields:
 
@@ -200,7 +250,11 @@ Group fields:
 - Enable RLS for all public schema tables.
 - Public approved guides and universities can be readable by everyone.
 - User profile private fields editable only by owner.
-- Mentor profiles public only after approval.
+- Tutor profiles expose only consented public fields and follow moderation rules.
+- Peer Helper profiles are visible only after explicit opt-in and can be hidden immediately by the owner.
+- Activity/session records are editable only by their host; participant records are controlled by the participant and validated against capacity.
+- Calendar items are owner-only unless a deliberately public university deadline is referenced.
+- Tutor requests are visible only to the requesting student, the selected tutor, and authorized admins where operationally necessary.
 - Group listings public only after approval.
 - Admin actions require admin role.
 - Never commit Supabase service role keys.
@@ -209,7 +263,7 @@ Group fields:
 
 ## Platform Decision Status
 
-Base44 is connected and authenticated for future use, but no Base44 project should be created or linked during this planning stage. The final implementation route will be compared after the product name, workflows, content model, and multilingual requirements are approved.
+Base44 app `6a2ae3a92ace0dad0f92f1a6` is the active hackathon implementation. Vite + Supabase remains the custom-build reference for post-hackathon evaluation. The Base44 app must be audited for multilingual behavior, entity relationships, authorization, consent, portability, pricing, and production debugging before it is treated as the long-term platform.
 
 ## Environment Variables Later
 

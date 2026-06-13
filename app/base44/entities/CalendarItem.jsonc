@@ -1,0 +1,66 @@
+{
+  "name": "CalendarItem",
+  "type": "object",
+  "properties": {
+    "owner_user_id": {
+      "type": "string"
+    },
+    "source_type": {
+      "type": "string",
+      "enum": [
+        "personal",
+        "social_activity",
+        "study_session",
+        "tutor_request",
+        "university_deadline"
+      ]
+    },
+    "source_id": {
+      "type": "string"
+    },
+    "title": {
+      "type": "string"
+    },
+    "starts_at": {
+      "type": "string"
+    },
+    "ends_at": {
+      "type": "string"
+    },
+    "all_day": {
+      "type": "boolean",
+      "default": false
+    },
+    "notes": {
+      "type": "string"
+    },
+    "priority": {
+      "type": "string",
+      "enum": [
+        "normal",
+        "important",
+        "urgent"
+      ],
+      "default": "normal"
+    },
+    "completed": {
+      "type": "boolean",
+      "default": false
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "canceled",
+        "completed"
+      ],
+      "default": "active"
+    }
+  },
+  "required": [
+    "owner_user_id",
+    "source_type",
+    "title",
+    "starts_at"
+  ]
+}

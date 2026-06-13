@@ -1,20 +1,22 @@
-# Product Idea (Working Title: Dalili)
+# Original Product Idea (Dalili, Now Elysium)
+
+The current canonical definition is [Elysium Product Definition](elysium-product-definition.md). This document preserves the campus-guidance and multilingual reasoning that remains one part of the broader hub.
 
 ## One-Sentence Product
 
-The product is a multilingual campus compass that turns confusing university moments into clear steps, trusted people, and relevant resources in English, Hebrew, and Arabic.
+Elysium is a personalized, trilingual student hub for planning university life, meeting people, studying together, finding academic help, and knowing what to do next.
 
 ## Product Narrative
 
-A student enters university and discovers a hidden operating system: unfamiliar portals, course registration rules, academic vocabulary, office responsibilities, deadlines, appeals, scholarships, lecturers, social groups, and expectations nobody clearly explains.
+A student enters university and discovers that student life is fragmented: unfamiliar portals, course rules, deadlines, calendars, WhatsApp groups, social activities, study sessions, tutors, tools, scholarships, and expectations nobody clearly explains.
 
 The exact difficulty differs by student. An Arab student may cross from Arabic-language schooling into Hebrew instruction and English readings. A new immigrant may understand the course but not campus bureaucracy. An international student may study in English and still need Hebrew for daily life. A Hebrew-speaking student may struggle with English academic sources, finances, commuting, or being the first person in the family to attend university.
 
-The product should feel like an experienced student walking beside you and saying:
+The product should feel like a student-life home base saying:
 
-> "I know this moment. Here is what it means in your language, what to do next, and who can help."
+> "Here is your week, the people and tools that can help, and the next useful action."
 
-That is the difference between this product and a generic AI-built planner. It is not organized around features. It is organized around moments of confusion.
+That is the difference between this product and a generic AI-built planner. Its modules are organized around connected student-life moments rather than an unrelated feature checklist.
 
 ## Who It Serves
 
@@ -34,14 +36,15 @@ Priority research and launch segments:
 
 Supporting users:
 
-- Older students willing to mentor.
+- Students hosting social activities or study sessions.
+- Private tutors offering subject instruction.
+- Students opting into Peer Helper profiles.
 - Student associations and informal campus leaders.
-- Admins who maintain trusted resources and approve mentors and groups.
+- Admins who maintain trusted resources and moderate public listings.
 
 Not the first audience:
 
 - School pupils.
-- Paid tutoring marketplaces.
 - University staff workflow systems.
 - General productivity app users with no campus context.
 
@@ -84,23 +87,30 @@ mindmap
         International student
         First generation
         Working student
-      Mentor
-        Older student
-        Same field
-        Same university
-        Relevant language
+      Private Tutor
+        Subjects
+        Availability
+        Languages
+        Booking request
+      Peer Helper
+        Opt-in student
+        Help topics
+        Contact consent
       Admin
         Approves resources
-        Approves mentors
-        Reviews groups
+        Moderates tutors and helpers
+        Reviews reports
     MVP
       Onboarding
       Dashboard
-      Guide library
-      University pages
-      Mentors
-      Groups
-      Planner tools
+      Personalized home
+      Social activities
+      Study sessions
+      Private tutors
+      Peer helpers
+      Personal calendar
+      Tools and guides
+      AI coordinator
       Admin review
     Differentiators
       Three first-class languages
@@ -110,7 +120,6 @@ mindmap
       Trusted peer network
       Human-reviewed sources
     Later
-      AI explanation layer
       In-app messaging
       Notifications
       Analytics
@@ -119,7 +128,7 @@ mindmap
 
 ## North Star
 
-Within two minutes, a student should find one practical answer that reduces confusion about university life in the language they understand best.
+Within two minutes, a student should complete one useful action that improves their academic or social week in the language they understand best.
 
 Examples:
 
@@ -130,6 +139,9 @@ Examples:
 - "Which office handles this problem?"
 - "Who from my university and field can explain this?"
 - "Is there a first-year or course support group?"
+- "Who is studying this course today?"
+- "Is anyone playing football on campus this evening?"
+- "What deadline or session should I focus on next?"
 
 ## What Makes It Non-Generic
 
@@ -141,7 +153,10 @@ Non-generic decisions:
 - Search understands equivalent terms across the three languages.
 - Guides are written around real situations, not SEO article categories.
 - Official terms remain visible while explanations follow the student's preferred language.
-- Mentors are experienced students with relevant context, not anonymous rated tutors.
+- Private Tutors and Peer Helpers are separate roles with different expectations and consent models.
+- Social activities, study sessions, deadlines, tutor requests, and recommendations share one student context.
+- GPA tools, flashcards, helpful links, and guides remain part of the one-stop-shop promise.
+- AI coordinates the hub instead of replacing it with chat.
 - University pages explain practical navigation, not brochure content.
 - The dashboard answers "what matters now?" instead of showing generic metrics.
 - Groups are moderated because trust matters.
@@ -169,7 +184,7 @@ Make basic questions feel normal. Never imply that confusion means a student is 
 
 ### Connect Information To People
 
-A resource is stronger when it ends with a relevant mentor, group, office, or contact path.
+A resource is stronger when it connects to a relevant activity, study session, tutor, Peer Helper, tool, office, or contact path.
 
 ### Treat Language As Context
 
@@ -177,22 +192,27 @@ Language affects comprehension and access, but it is not a proxy for identity or
 
 ### Keep The MVP Human
 
-Start with human-reviewed guides, mentor profiles, and real workflows. AI can later help retrieve and explain approved content; it should not invent university policy.
+Start with working social, study, calendar, tutor, Peer Helper, tools, and guide workflows. AI can connect and explain those workflows; it should not invent university policy or take actions without confirmation.
 
 ## Brand Direction
 
 The product should feel primarily like a **Sage**: precise, calm, and knowledgeable. It should also carry a **Caregiver** quality: supportive and human without becoming sentimental.
 
-The working title `Dalili` will remain in repository history until a new name is tested and selected. See [Naming Directions](naming-directions.md).
+The current product name is `Elysium`; `Dalili` remains in repository history as the original concept. See [Naming Directions](naming-directions.md) for the earlier naming work.
 
 ## Success Criteria
 
 The MVP is working if:
 
 - A student can complete onboarding in any supported language.
-- The dashboard recommends useful guidance based on institution, field, year, language comfort, and help needs.
+- The dashboard summarizes deadlines, joined items, and useful recommendations based on institution, field, year, courses, interests, languages, and help needs.
+- A student can create or join social and study sessions and see them in the calendar.
+- A student can add and manage personal deadlines.
+- A student can distinguish Private Tutors from opted-in Peer Helpers and use each appropriately.
+- GPA and flashcard tools complete their core workflows correctly.
+- Elysium AI can coordinate the student's current context without inventing data or acting without confirmation.
 - A student can find a guide through English, Hebrew, or Arabic search terms.
 - A guide explains the official terminology and provides a concrete next action.
-- A student can find at least one relevant mentor, group, or official contact.
+- A student can find at least one relevant activity, study session, tutor, Peer Helper, tool, guide, or official contact.
 - Admins can keep public content sourced, current, and consistent across languages.
 - Arab students and other high-friction segments report that the broader product still reflects their needs rather than erasing them.

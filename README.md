@@ -1,79 +1,49 @@
-# Dalili / دليلي (Working Title)
+# Elysium (formerly Dalili / دليلي)
 
-Dalili means "my guide." It is the current working title for a multilingual student support hub for students in Israeli universities and colleges. A new inclusive name will be selected before implementation.
+Elysium is a personalized, trilingual student hub for planning university life, meeting people, studying together, finding academic help, and knowing what to do next.
 
-The product direction is a **Full Student Hub** with a **Campus Compass** design language. The MVP should help a student understand what to do next, who to ask, and where to find trustworthy guidance in English, Hebrew, or Arabic.
-
-## Mission
-
-The product exists because students do not only need another planner. They need a trusted guide through unfamiliar academic systems, multilingual terminology, financial pressure, campus disorientation, social isolation, course registration, deadlines, rights, scholarships, and first-year uncertainty.
-
-The product sentence:
-
-> The working-title product is a multilingual campus compass that turns confusing university moments into clear steps, trusted people, and relevant resources in English, Hebrew, and Arabic.
+The product brings together social activities, study sessions, private tutors, peer helpers, personal deadlines, student tools, trusted university resources, and contextual AI assistance. English, Hebrew, and Arabic are first-class languages, including RTL layouts.
 
 ## Current Stage
 
-This repository is in the research and planning stage.
+Elysium is in active MVP development for the June 17-22, 2026 Hub02 x BGU hackathon.
 
-Allowed in this stage:
+- Live app: <https://elysium-nexus-flow.base44.app>
+- Base44 app ID: `6a2ae3a92ace0dad0f92f1a6`
+- Application source: [`app/`](app/)
+- Product and research documentation: [`docs/`](docs/)
 
-- Markdown documentation.
-- Research notes with source links.
-- Product planning, design direction, team workflow, and backlog.
-- Private GitHub workflow planning.
+The current Base44 build includes authenticated accounts, onboarding, a personalized home, social and study discovery, tutors, peer helpers, a personal calendar, GPA and grade tools, flashcards, guides, university links, AI assistance, light/dark themes, and trilingual RTL support.
 
-Not allowed in this stage:
+## Product Direction
 
-- App code.
-- Package setup.
-- Database migrations.
-- Generated components.
-- Copying implementation from older prototypes.
+The core promise is a one-stop student hub, not a generic planner:
 
-## Chosen Defaults
+> Elysium turns the fragmented parts of campus life into one personalized place for the next task, the right people, and useful support.
 
-- MVP direction: Full Student Hub.
-- Implementation decision: Base44 is connected for later evaluation; Vite + Supabase remains the custom-build reference. No platform project is initialized yet.
-- Design direction: Campus Compass.
-- Language model: English, Hebrew, and Arabic are first-class product languages.
-- Team workflow: Ammar owns product/design/frontend/content direction; Marwan owns backend/data/security/technical QA. Research and product QA are shared.
+AI coordinates the hub and helps answer “what is next?” It does not replace the social, study, tutoring, calendar, and resource workflows.
 
-## Documents
+## Team
 
-- [Arab Student Struggles](docs/01-research/arab-student-struggles.md)
-- [Multilingual Student Needs](docs/01-research/multilingual-student-needs.md)
-- [Prototype Audit](docs/01-research/prototype-audit.md)
-- [Dalili Idea](docs/02-product/dalili-idea.md)
-- [Naming Directions](docs/02-product/naming-directions.md)
+- Ammar: product, design, frontend, content direction, and demo narrative.
+- Marwan: backend, data, security, integrations, and technical QA.
+
+## Key Documents
+
+- [Elysium Product Definition](docs/02-product/elysium-product-definition.md)
 - [MVP Scope](docs/02-product/mvp-scope.md)
 - [Campus Compass Design](docs/03-design/campus-compass.md)
 - [Team Workflow](docs/04-team/workflow.md)
-- [Repo And Stack Plan](docs/05-tech/repo-stack-plan.md)
-- [Initial Issues](docs/06-backlog/initial-issues.md)
+- [Hub02 Winning Strategy](docs/07-hackathon/hub02-winning-strategy.md)
+- [Current Elysium Audit](docs/07-hackathon/current-elysium-audit.md)
+- [Hackathon Execution Plan](docs/07-hackathon/execution-plan.md)
+- [Base44 Master Build Prompt](docs/07-hackathon/base44-master-build-prompt.md)
 
-## Source Material Read
-
-- `Visily-Export_10-06-2025_07-54.pdf` in this folder.
-- Previous Spring Boot + React prototype at `C:\Users\ammar\IdeaProjects\DaliliApp` as read-only.
-- Previous Lovable Vite + React + Supabase prototype at `C:\Users\ammar\OneDrive\Desktop\myprojects\vibecoding\dalili_with_lovable` as read-only.
-- Previous Cursor/Python + Supabase prototype at `C:\Users\ammar\OneDrive\Desktop\myprojects\vibecoding\trying_with_cursor` as read-only.
-- Pasted ChatGPT plan attachment from Codex.
-
-## GitHub Status
-
-This folder is now a git repository connected to the private GitHub repo:
+## Repository
 
 - Remote: `https://github.com/ammar31mawassi/Dalili.git`
-- Default branch: `main`
-- Current stage: docs-only research and planning
-- Initial labels and starter issues: created
-- GitHub CLI: installed and authenticated as `ammar31mawassi`
-- Base44 plugin/CLI: installed and authenticated, intentionally unused until product definition is approved.
+- Workflow: feature branches and pull requests; no direct implementation work on `main`.
+- Base44 CLI and plugin are installed and authenticated.
+- Main branch protection is unavailable for this private repository on the current GitHub plan.
 
-Remaining GitHub-side limits:
-
-- `main` protection/rulesets cannot be enabled while this private repo is on the current GitHub plan. GitHub returned: `Upgrade to GitHub Pro or make this repository public to enable this feature.`
-- GitHub Projects automation needs the `project` OAuth scope. Run `gh auth refresh --hostname github.com -s project` before creating the project board from the CLI.
-
-Until `main` protection is available, the team rule is still: use feature branches and pull requests, no direct implementation work on `main`.
+The logo files and hackathon roadmap PDF in the repository root are original project assets and source material.

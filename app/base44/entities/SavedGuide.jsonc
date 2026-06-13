@@ -1,0 +1,16 @@
+{
+  "name": "SavedGuide",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string"
+    },
+    "guide_id": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "user_id",
+    "guide_id"
+  ]
+}

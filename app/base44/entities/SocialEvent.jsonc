@@ -1,0 +1,57 @@
+{
+  "name": "SocialEvent",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string"
+    },
+    "organizer_id": {
+      "type": "string"
+    },
+    "university_id": {
+      "type": "string"
+    },
+    "date": {
+      "type": "string",
+      "format": "date"
+    },
+    "start_time": {
+      "type": "string"
+    },
+    "end_time": {
+      "type": "string"
+    },
+    "location": {
+      "type": "string"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "gaming",
+        "sports",
+        "music",
+        "study_marathon",
+        "social",
+        "other"
+      ]
+    },
+    "max_spots": {
+      "type": "number",
+      "default": 10
+    },
+    "is_open": {
+      "type": "boolean",
+      "default": true
+    },
+    "description": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "title",
+    "organizer_id",
+    "university_id",
+    "date",
+    "category"
+  ]
+}

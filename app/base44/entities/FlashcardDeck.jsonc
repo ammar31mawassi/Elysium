@@ -1,0 +1,23 @@
+{
+  "name": "FlashcardDeck",
+  "type": "object",
+  "properties": {
+    "owner_user_id": {
+      "type": "string"
+    },
+    "name": {
+      "type": "string"
+    },
+    "subject": {
+      "type": "string"
+    },
+    "language": {
+      "type": "string",
+      "default": "en"
+    }
+  },
+  "required": [
+    "owner_user_id",
+    "name"
+  ]
+}

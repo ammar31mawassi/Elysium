@@ -1,0 +1,50 @@
+{
+  "name": "Guide",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "First Week",
+        "Course Registration",
+        "Exams & Appeals",
+        "Scholarships",
+        "Student Rights",
+        "Housing",
+        "University Systems",
+        "Email Templates",
+        "Mental Health",
+        "Study Skills"
+      ]
+    },
+    "situation": {
+      "type": "string"
+    },
+    "content": {
+      "type": "string"
+    },
+    "what_to_do": {
+      "type": "string"
+    },
+    "who_to_contact": {
+      "type": "string"
+    },
+    "university_id": {
+      "type": "string"
+    },
+    "source_url": {
+      "type": "string"
+    },
+    "is_published": {
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "required": [
+    "title",
+    "category"
+  ]
+}

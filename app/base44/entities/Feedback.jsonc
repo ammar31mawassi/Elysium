@@ -1,0 +1,29 @@
+{
+  "name": "Feedback",
+  "type": "object",
+  "properties": {
+    "guide_id": {
+      "type": "string"
+    },
+    "feedback_type": {
+      "type": "string",
+      "enum": [
+        "Guide",
+        "App",
+        "General"
+      ]
+    },
+    "message": {
+      "type": "string"
+    },
+    "rating": {
+      "type": "number",
+      "minimum": 1,
+      "maximum": 5
+    }
+  },
+  "required": [
+    "feedback_type",
+    "message"
+  ]
+}

@@ -2,39 +2,25 @@
   "name": "StudySession",
   "type": "object",
   "properties": {
-    "group_id": {
-      "type": "string"
-    },
-    "title": {
-      "type": "string"
-    },
-    "location": {
-      "type": "string"
-    },
-    "session_date": {
-      "type": "string",
-      "format": "date-time"
-    },
-    "end_time": {
-      "type": "string"
-    },
-    "notes": {
-      "type": "string"
-    },
-    "max_spots": {
-      "type": "number",
-      "default": 10
-    },
-    "host_id": {
-      "type": "string"
-    },
-    "is_marathon": {
-      "type": "boolean",
-      "default": false
-    }
+    "group_id": { "type": "string" },
+    "university_id": { "type": "string" },
+    "course_name": { "type": "string" },
+    "preferred_language": { "type": "string" },
+    "title": { "type": "string" },
+    "location": { "type": "string" },
+    "session_date": { "type": "string", "format": "date-time" },
+    "end_time": { "type": "string", "format": "date-time" },
+    "notes": { "type": "string" },
+    "max_spots": { "type": "number", "default": 10 },
+    "host_id": { "type": "string" },
+    "is_marathon": { "type": "boolean", "default": false },
+    "status": { "type": "string", "enum": ["open", "canceled", "completed"], "default": "open" }
   },
-  "required": [
-    "group_id",
-    "session_date"
-  ]
+  "required": ["university_id", "session_date", "host_id"],
+  "rls": {
+    "create": { "data.host_id": "{{user.id}}" },
+    "read": { "user_condition": { "id": "{{user.id}}" } },
+    "update": { "$or": [{ "data.host_id": "{{user.id}}" }, { "user_condition": { "role": "admin" } }] },
+    "delete": { "$or": [{ "data.host_id": "{{user.id}}" }, { "user_condition": { "role": "admin" } }] }
+  }
 }

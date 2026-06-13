@@ -2,24 +2,15 @@
   "name": "SocialEventMember",
   "type": "object",
   "properties": {
-    "event_id": {
-      "type": "string"
-    },
-    "user_id": {
-      "type": "string"
-    },
-    "status": {
-      "type": "string",
-      "enum": [
-        "pending",
-        "approved",
-        "rejected"
-      ],
-      "default": "pending"
-    }
+    "event_id": { "type": "string" },
+    "user_id": { "type": "string" },
+    "status": { "type": "string", "enum": ["pending", "approved", "rejected"], "default": "approved" }
   },
-  "required": [
-    "event_id",
-    "user_id"
-  ]
+  "required": ["event_id", "user_id"],
+  "rls": {
+    "create": { "data.user_id": "{{user.id}}" },
+    "read": { "user_condition": { "id": "{{user.id}}" } },
+    "update": { "$or": [{ "data.user_id": "{{user.id}}" }, { "user_condition": { "role": "admin" } }] },
+    "delete": { "$or": [{ "data.user_id": "{{user.id}}" }, { "user_condition": { "role": "admin" } }] }
+  }
 }

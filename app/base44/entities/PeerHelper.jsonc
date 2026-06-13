@@ -2,75 +2,39 @@
   "name": "PeerHelper",
   "type": "object",
   "properties": {
-    "owner_user_id": {
-      "type": "string"
-    },
-    "display_name": {
-      "type": "string"
-    },
-    "university_id": {
-      "type": "string"
-    },
-    "faculty_id": {
-      "type": "string"
-    },
-    "field_of_study": {
-      "type": "string"
-    },
-    "academic_year": {
-      "type": "string"
-    },
-    "languages": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      }
-    },
-    "help_topics": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      }
-    },
-    "bio": {
-      "type": "string"
-    },
-    "availability": {
-      "type": "string"
-    },
-    "contact_method": {
+    "owner_user_id": { "type": "string" },
+    "display_name": { "type": "string" },
+    "university_id": { "type": "string" },
+    "faculty_id": { "type": "string" },
+    "field_of_study": { "type": "string" },
+    "academic_year": { "type": "string" },
+    "languages": { "type": "array", "items": { "type": "string" } },
+    "help_topics": { "type": "array", "items": { "type": "string" } },
+    "bio": { "type": "string" },
+    "availability": { "type": "string" },
+    "contact_method": { "type": "string", "enum": ["whatsapp", "email", "in_app", "none"], "default": "in_app" },
+    "contact_value": {
       "type": "string",
-      "enum": [
-        "whatsapp",
-        "email",
-        "in_app",
-        "none"
+      "rls": {
+        "read": { "$or": [{ "data.owner_user_id": "{{user.id}}" }, { "user_condition": { "role": "admin" } }] },
+        "write": { "$or": [{ "data.owner_user_id": "{{user.id}}" }, { "user_condition": { "role": "admin" } }] }
+      }
+    },
+    "contact_consent": { "type": "boolean", "default": false },
+    "is_visible": { "type": "boolean", "default": false },
+    "moderation_status": { "type": "string", "enum": ["ok", "under_review", "suspended"], "default": "ok" }
+  },
+  "required": ["owner_user_id", "display_name", "university_id"],
+  "rls": {
+    "create": { "user_condition": { "id": "{{user.id}}" } },
+    "read": {
+      "$or": [
+        { "$and": [{ "data.is_visible": true }, { "data.moderation_status": "ok" }] },
+        { "data.owner_user_id": "{{user.id}}" },
+        { "user_condition": { "role": "admin" } }
       ]
     },
-    "contact_value": {
-      "type": "string"
-    },
-    "contact_consent": {
-      "type": "boolean",
-      "default": false
-    },
-    "is_visible": {
-      "type": "boolean",
-      "default": false
-    },
-    "moderation_status": {
-      "type": "string",
-      "enum": [
-        "ok",
-        "under_review",
-        "suspended"
-      ],
-      "default": "ok"
-    }
-  },
-  "required": [
-    "owner_user_id",
-    "display_name",
-    "university_id"
-  ]
+    "update": { "$or": [{ "data.owner_user_id": "{{user.id}}" }, { "user_condition": { "role": "admin" } }] },
+    "delete": { "$or": [{ "data.owner_user_id": "{{user.id}}" }, { "user_condition": { "role": "admin" } }] }
+  }
 }

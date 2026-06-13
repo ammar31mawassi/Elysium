@@ -2,49 +2,33 @@
   "name": "Guide",
   "type": "object",
   "properties": {
-    "title": {
-      "type": "string"
-    },
-    "category": {
-      "type": "string",
-      "enum": [
-        "First Week",
-        "Course Registration",
-        "Exams & Appeals",
-        "Scholarships",
-        "Student Rights",
-        "Housing",
-        "University Systems",
-        "Email Templates",
-        "Mental Health",
-        "Study Skills"
-      ]
-    },
-    "situation": {
-      "type": "string"
-    },
-    "content": {
-      "type": "string"
-    },
-    "what_to_do": {
-      "type": "string"
-    },
-    "who_to_contact": {
-      "type": "string"
-    },
-    "university_id": {
-      "type": "string"
-    },
-    "source_url": {
-      "type": "string"
-    },
-    "is_published": {
-      "type": "boolean",
-      "default": true
-    }
+    "title": { "type": "string" },
+    "title_he": { "type": "string" },
+    "title_ar": { "type": "string" },
+    "category": { "type": "string", "enum": ["First Week", "Course Registration", "Exams & Appeals", "Scholarships", "Student Rights", "Housing", "University Systems", "Email Templates", "Mental Health", "Study Skills"] },
+    "situation": { "type": "string" },
+    "situation_he": { "type": "string" },
+    "situation_ar": { "type": "string" },
+    "content": { "type": "string" },
+    "content_he": { "type": "string" },
+    "content_ar": { "type": "string" },
+    "what_to_do": { "type": "string" },
+    "what_to_do_he": { "type": "string" },
+    "what_to_do_ar": { "type": "string" },
+    "who_to_contact": { "type": "string" },
+    "who_to_contact_he": { "type": "string" },
+    "who_to_contact_ar": { "type": "string" },
+    "university_id": { "type": "string" },
+    "source_url": { "type": "string", "format": "uri" },
+    "source_label": { "type": "string" },
+    "last_reviewed_date": { "type": "string", "format": "date" },
+    "is_published": { "type": "boolean", "default": true }
   },
-  "required": [
-    "title",
-    "category"
-  ]
+  "required": ["title", "category"],
+  "rls": {
+    "create": { "user_condition": { "role": "admin" } },
+    "read": { "$or": [{ "data.is_published": true }, { "user_condition": { "role": "admin" } }] },
+    "update": { "user_condition": { "role": "admin" } },
+    "delete": { "user_condition": { "role": "admin" } }
+  }
 }

@@ -1,331 +1,212 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useLocation } from "react-router-dom";
+import { BookOpenCheck, CalendarClock, Check, MapPin, Plus, Users, X } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useProfile } from "@/lib/useProfile";
-import { format } from "date-fns";
-import { Plus, Users, MapPin, Calendar, ChevronRight } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
+import { demoContent, withDemoFallback } from "@/lib/demoData";
+import PageLayout from "@/components/layout/PageLayout";
+import EmptyState from "@/components/ui/EmptyState";
+import SkeletonCard from "@/components/ui/SkeletonCard";
+import Modal from "@/components/ui/Modal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import PageLayout from "@/components/layout/PageLayout";
-import ElCard from "@/components/ui/ElCard";
-import SkeletonCard from "@/components/ui/SkeletonCard";
-import EmptyState from "@/components/ui/EmptyState";
-import Modal from "@/components/ui/Modal";
 import { cn } from "@/lib/utils";
+
+function safeQuery(promise) {
+  return promise.catch(() => []);
+}
+
+function asIso(value) {
+  return value ? new Date(value).toISOString() : undefined;
+}
 
 export default function StudyGroupsPage() {
   const location = useLocation();
-  const initialParams = new URLSearchParams(location.search);
   const { user, profile } = useProfile();
   const { t } = useLanguage();
-  const [tab, setTab] = useState(initialParams.get("tab") === "sessions" ? "sessions" : "groups");
+  const params = new URLSearchParams(location.search);
+  const [tab, setTab] = useState(params.get("tab") === "sessions" ? "sessions" : "groups");
   const [groups, setGroups] = useState([]);
   const [sessions, setSessions] = useState([]);
-  const [memberships, setMemberships] = useState([]);
-  const [faculties, setFaculties] = useState([]);
+  const [groupMembers, setGroupMembers] = useState([]);
+  const [sessionMembers, setSessionMembers] = useState([]);
+  const [calendarItems, setCalendarItems] = useState([]);
   const [loading, setLoading] = useState(true);
-
-  const [showGroupForm, setShowGroupForm] = useState(initialParams.get("create") === "1");
-  const [showSessionForm, setShowSessionForm] = useState(initialParams.get("create") === "session");
-  const [selectedGroup, setSelectedGroup] = useState(null);
-
-  const [groupForm, setGroupForm] = useState({ name: "", course_name: "", description: "", max_members: 10, preferred_language: "English" });
-  const [sessionForm, setSessionForm] = useState({ group_id: "", title: "", session_date: "", end_time: "", location: "", notes: "", max_spots: 10, is_marathon: false });
   const [saving, setSaving] = useState(false);
+  const [selectedGroup, setSelectedGroup] = useState(null);
+  const [selectedSession, setSelectedSession] = useState(null);
+  const [showGroupForm, setShowGroupForm] = useState(params.get("create") === "1");
+  const [showSessionForm, setShowSessionForm] = useState(params.get("create") === "session");
+  const [groupForm, setGroupForm] = useState({ name: "", course_name: "", description: "", max_members: 10, preferred_language: "English" });
+  const [sessionForm, setSessionForm] = useState({ group_id: "", title: "", course_name: "", preferred_language: "English", session_date: "", end_time: "", location: "", notes: "", max_spots: 8 });
 
   useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    if (params.get("tab") === "sessions") setTab("sessions");
-    if (params.get("create") === "1") setShowGroupForm(true);
-    if (params.get("create") === "session") { setTab("sessions"); setShowSessionForm(true); }
+    const next = new URLSearchParams(location.search);
+    if (next.get("tab") === "sessions") setTab("sessions");
+    if (next.get("create") === "1") setShowGroupForm(true);
+    if (next.get("create") === "session") { setTab("sessions"); setShowSessionForm(true); }
   }, [location.search]);
 
   useEffect(() => {
-    if (!profile?.university_id) return;
+    if (!profile?.university_id || !user?.id) return;
+    let active = true;
+    setLoading(true);
     Promise.all([
-      base44.entities.StudyGroup.filter({ university_id: profile.university_id, is_active: true }),
-      base44.entities.StudyGroupMember.filter({ user_id: user?.id }),
-      base44.entities.Faculty.filter({ university_id: profile.university_id }),
-    ]).then(([g, m, f]) => {
-      setGroups(g);
-      setMemberships(m);
-      setFaculties(f);
+      safeQuery(base44.entities.StudyGroup.filter({ university_id: profile.university_id, is_active: true })),
+      safeQuery(base44.entities.StudySession.filter({ university_id: profile.university_id })),
+      safeQuery(base44.entities.StudyGroupMember.list()),
+      safeQuery(base44.entities.StudySessionMember.list()),
+      safeQuery(base44.entities.CalendarItem.filter({ owner_user_id: user.id, source_type: "study_session" })),
+    ]).then(([groupRows, sessionRows, groupMemberRows, sessionMemberRows, calendarRows]) => {
+      if (!active) return;
+      setGroups(groupRows || []);
+      setSessions(withDemoFallback(sessionRows, demoContent.sessions));
+      setGroupMembers(groupMemberRows || []);
+      setSessionMembers(sessionMemberRows || []);
+      setCalendarItems(calendarRows || []);
       setLoading(false);
     });
+    return () => { active = false; };
   }, [profile?.university_id, user?.id]);
 
-  useEffect(() => {
-    if (!profile?.university_id || !memberships.length) { setSessions([]); return; }
-    const myGroupIds = memberships.map(m => m.group_id);
-    base44.entities.StudySession.list("-session_date", 50).then(all => {
-      setSessions(all.filter(s => myGroupIds.includes(s.group_id)));
-    });
-  }, [memberships.length]);
+  const myGroupMembers = groupMembers.filter((item) => item.user_id === user?.id);
+  const mySessionMembers = sessionMembers.filter((item) => item.user_id === user?.id);
+  const myGroupIds = new Set(myGroupMembers.map((item) => item.group_id));
+  const mySessionIds = new Set(mySessionMembers.map((item) => item.session_id));
+  const sortedSessions = useMemo(() => [...sessions].sort((a, b) => new Date(a.session_date) - new Date(b.session_date)), [sessions]);
+  const groupCount = (id) => groupMembers.filter((item) => item.group_id === id).length;
+  const sessionCount = (id) => sessionMembers.filter((item) => item.session_id === id).length;
 
-  const myGroupIds = new Set(memberships.map(m => m.group_id));
-
-  const handleJoin = async (groupId) => {
-    const m = await base44.entities.StudyGroupMember.create({ group_id: groupId, user_id: user.id, role: "Member" });
-    setMemberships(prev => [...prev, m]);
-  };
-
-  const handleLeave = async (groupId) => {
-    const mem = memberships.find(m => m.group_id === groupId);
-    if (mem) {
-      await base44.entities.StudyGroupMember.delete(mem.id);
-      setMemberships(prev => prev.filter(m => m.group_id !== groupId));
-    }
-  };
-
-  const handleCreateGroup = async () => {
+  const createGroup = async () => {
+    if (!groupForm.name || !user?.id || !profile?.university_id) return;
     setSaving(true);
-    const g = await base44.entities.StudyGroup.create({
-      ...groupForm,
-      university_id: profile.university_id,
-      faculty_id: profile.faculty_id,
-      is_active: true,
-      created_by: user.id,
-    });
-    await base44.entities.StudyGroupMember.create({ group_id: g.id, user_id: user.id, role: "Leader" });
-    setGroups(prev => [g, ...prev]);
-    setMemberships(prev => [...prev, { group_id: g.id, user_id: user.id, role: "Leader" }]);
-    setGroupForm({ name: "", course_name: "", description: "", max_members: 10, preferred_language: "English" });
-    setShowGroupForm(false);
-    setSaving(false);
+    try {
+      const group = await base44.entities.StudyGroup.create({ ...groupForm, university_id: profile.university_id, faculty_id: profile.faculty_id || "", created_by: user.id, is_active: true });
+      const membership = await base44.entities.StudyGroupMember.create({ group_id: group.id, user_id: user.id, role: "Leader" });
+      setGroups((current) => [group, ...current]);
+      setGroupMembers((current) => [...current, membership]);
+      setShowGroupForm(false);
+      setGroupForm({ name: "", course_name: "", description: "", max_members: 10, preferred_language: "English" });
+    } finally { setSaving(false); }
   };
 
-  const handleCreateSession = async () => {
+  const joinGroup = async (group) => {
+    if (!user?.id || myGroupIds.has(group.id) || groupCount(group.id) >= group.max_members) return;
+    const membership = await base44.entities.StudyGroupMember.create({ group_id: group.id, user_id: user.id, role: "Member" });
+    setGroupMembers((current) => [...current, membership]);
+  };
+
+  const leaveGroup = async (group) => {
+    const membership = myGroupMembers.find((item) => item.group_id === group.id);
+    if (!membership || group.created_by === user?.id) return;
+    await base44.entities.StudyGroupMember.delete(membership.id);
+    setGroupMembers((current) => current.filter((item) => item.id !== membership.id));
+  };
+
+  const createSession = async () => {
+    if (!sessionForm.title || !sessionForm.session_date || !user?.id || !profile?.university_id) return;
     setSaving(true);
-    const s = await base44.entities.StudySession.create({ ...sessionForm, host_id: user.id });
-    setSessions(prev => [s, ...prev]);
-    setSessionForm({ group_id: "", title: "", session_date: "", end_time: "", location: "", notes: "", max_spots: 10, is_marathon: false });
-    setShowSessionForm(false);
-    setSaving(false);
+    try {
+      const session = await base44.entities.StudySession.create({
+        ...sessionForm,
+        group_id: sessionForm.group_id || undefined,
+        university_id: profile.university_id,
+        session_date: asIso(sessionForm.session_date),
+        end_time: asIso(sessionForm.end_time),
+        host_id: user.id,
+        status: "open",
+      });
+      const membership = await base44.entities.StudySessionMember.create({ session_id: session.id, user_id: user.id });
+      const calendarItem = await base44.entities.CalendarItem.create({ owner_user_id: user.id, source_type: "study_session", source_id: session.id, title: session.title, starts_at: session.session_date, ends_at: session.end_time, notes: session.location || "", status: "active" });
+      setSessions((current) => [session, ...current.filter((item) => !String(item.id).startsWith("demo-"))]);
+      setSessionMembers((current) => [...current, membership]);
+      setCalendarItems((current) => [...current, calendarItem]);
+      setShowSessionForm(false);
+      setSessionForm({ group_id: "", title: "", course_name: "", preferred_language: "English", session_date: "", end_time: "", location: "", notes: "", max_spots: 8 });
+    } finally { setSaving(false); }
   };
 
-  const getGroupName = (id) => groups.find(g => g.id === id)?.name || "Unknown Group";
+  const joinSession = async (session) => {
+    if (!user?.id || mySessionIds.has(session.id) || sessionCount(session.id) >= session.max_spots || String(session.id).startsWith("demo-")) return;
+    setSaving(true);
+    try {
+      const membership = await base44.entities.StudySessionMember.create({ session_id: session.id, user_id: user.id });
+      const calendarItem = await base44.entities.CalendarItem.create({ owner_user_id: user.id, source_type: "study_session", source_id: session.id, title: session.title, starts_at: session.session_date, ends_at: session.end_time, notes: session.location || "", status: "active" });
+      setSessionMembers((current) => [...current, membership]);
+      setCalendarItems((current) => [...current, calendarItem]);
+      setSelectedSession(null);
+    } finally { setSaving(false); }
+  };
+
+  const leaveSession = async (session) => {
+    const membership = mySessionMembers.find((item) => item.session_id === session.id);
+    if (!membership || session.host_id === user?.id) return;
+    setSaving(true);
+    try {
+      await base44.entities.StudySessionMember.delete(membership.id);
+      const calendarItem = calendarItems.find((item) => item.source_id === session.id);
+      if (calendarItem) await base44.entities.CalendarItem.delete(calendarItem.id);
+      setSessionMembers((current) => current.filter((item) => item.id !== membership.id));
+      setCalendarItems((current) => current.filter((item) => item.id !== calendarItem?.id));
+      setSelectedSession(null);
+    } finally { setSaving(false); }
+  };
+
+  const cancelSession = async (session) => {
+    if (session.host_id !== user?.id) return;
+    setSaving(true);
+    try {
+      await base44.entities.StudySession.update(session.id, { status: "canceled" });
+      setSessions((current) => current.map((item) => item.id === session.id ? { ...item, status: "canceled" } : item));
+      setSelectedSession(null);
+    } finally { setSaving(false); }
+  };
 
   return (
-    <PageLayout>
-      <div className="flex items-center justify-between mb-5">
-        <div>
-          <h1 className="text-xl font-bold text-foreground">{t('groups_title')}</h1>
-          <p className="text-muted-foreground text-xs mt-0.5">{t('groups_subtitle')}</p>
-        </div>
+    <PageLayout wide>
+      <header className="mb-5">
+        <h1 className="text-2xl font-bold text-foreground sm:text-3xl">{t("groups_title")}</h1>
+        <p className="mt-2 text-sm text-muted-foreground">Create a one-time study session or build a persistent course group.</p>
+      </header>
+
+      <div className="mb-6 flex max-w-md rounded-md bg-muted p-1">
+        <button className={cn("h-10 flex-1 rounded-md text-sm font-semibold", tab === "groups" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground")} onClick={() => setTab("groups")}>{t("groups_tab")}</button>
+        <button className={cn("h-10 flex-1 rounded-md text-sm font-semibold", tab === "sessions" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground")} onClick={() => setTab("sessions")}>{t("sessions_tab")}</button>
       </div>
 
-      {/* Tabs */}
-      <div className="flex bg-white rounded-xl border border-gray-100 p-1 mb-5 shadow-sm">
-        {[["groups", t('groups_tab')], ["sessions", t('sessions_tab')]].map(([key, label]) => (
-          <button key={key} onClick={() => setTab(key)}
-            className={cn("flex-1 py-2 rounded-lg text-sm font-semibold transition-all", tab === key ? "bg-teal text-white shadow-sm" : "text-slate")}>
-            {label}
-          </button>
-        ))}
-      </div>
-
-      {/* GROUPS TAB */}
-      {tab === "groups" && (
-        <>
-          {loading ? (
-            <div className="space-y-3">{[1,2,3].map(i => <SkeletonCard key={i} lines={3} />)}</div>
-          ) : groups.length === 0 ? (
-            <EmptyState emoji="📚" title="No study groups yet" message="Create the first group for your course — others are probably searching too!" />
-          ) : (
-            <div className="space-y-3">
-              {groups.map(g => (
-                <GroupCard key={g.id} group={g} isMember={myGroupIds.has(g.id)} memberCount={memberships.filter(m => m.group_id === g.id).length}
-                  onJoin={() => handleJoin(g.id)} onLeave={() => handleLeave(g.id)} onDetail={() => setSelectedGroup(g)} />
-              ))}
-            </div>
-          )}
-          <button onClick={() => setShowGroupForm(true)}
-            className="fixed bottom-20 right-5 w-14 h-14 rounded-full bg-teal text-white flex items-center justify-center shadow-lg z-40"
-            style={{ boxShadow: "0 4px 20px rgba(10,112,117,0.4)" }}>
-            <Plus className="w-6 h-6" />
-          </button>
-        </>
+      {loading ? <div className="grid gap-3 md:grid-cols-2">{[1, 2, 3, 4].map((item) => <SkeletonCard key={item} lines={3} />)}</div> : tab === "groups" ? (
+        groups.length === 0 ? <EmptyState icon={Users} title="No course groups yet" message="Create a persistent group for classmates who want to keep studying together." /> : (
+          <div className="grid gap-3 md:grid-cols-2">{groups.map((group) => {
+            const count = groupCount(group.id);
+            const joined = myGroupIds.has(group.id);
+            return <button key={group.id} onClick={() => setSelectedGroup(group)} className="rounded-lg border border-border bg-card p-4 text-start hover:border-primary/40"><div className="flex items-start gap-3"><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary"><Users className="h-5 w-5" /></span><div className="min-w-0 flex-1" dir="auto"><div className="flex justify-between gap-3"><h2 className="font-semibold text-foreground">{group.name}</h2>{joined && <Check className="h-4 w-4 shrink-0 text-primary" />}</div><p className="mt-1 text-xs text-muted-foreground">{group.course_name || "Cross-course study group"}</p><p className="mt-3 text-xs text-muted-foreground">{count} / {group.max_members} members · {group.preferred_language}</p></div></div></button>;
+          })}</div>
+        )
+      ) : (
+        sortedSessions.length === 0 ? <EmptyState icon={BookOpenCheck} title="No study sessions yet" message="Create a library session without needing a permanent group first." /> : (
+          <div className="grid gap-3 md:grid-cols-2">{sortedSessions.map((session) => {
+            const joined = mySessionIds.has(session.id);
+            const count = sessionCount(session.id);
+            return <button key={session.id} onClick={() => setSelectedSession(session)} className="rounded-lg border border-border bg-card p-4 text-start hover:border-primary/40"><div className="flex items-start gap-3"><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-blue-500/10 text-blue-600"><BookOpenCheck className="h-5 w-5" /></span><div className="min-w-0 flex-1" dir="auto"><div className="flex justify-between gap-3"><h2 className="font-semibold text-foreground">{session.title}</h2><span className={cn("text-xs font-semibold", session.status === "canceled" ? "text-destructive" : "text-emerald-600")}>{session.status === "canceled" ? "Canceled" : joined ? "Joined" : "Open"}</span></div><p className="mt-1 text-xs text-muted-foreground">{session.course_name || "Open study"}</p><p className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground"><CalendarClock className="h-3.5 w-3.5" />{new Date(session.session_date).toLocaleString()}</p>{session.location && <p className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground"><MapPin className="h-3.5 w-3.5" />{session.location}</p>}<p className="mt-2 text-xs text-muted-foreground">{count} / {session.max_spots} joined</p></div></div></button>;
+          })}</div>
+        )
       )}
 
-      {/* SESSIONS TAB */}
-      {tab === "sessions" && (
-        <>
-          {sessions.length === 0 ? (
-            <EmptyState emoji="⏰" title="No sessions yet" message="Join a study group first, then schedule sessions with your group members." />
-          ) : (
-            <div className="space-y-3">
-              {sessions.map(s => (
-                <SessionCard key={s.id} session={s} groupName={getGroupName(s.group_id)} />
-              ))}
-            </div>
-          )}
-          {myGroupIds.size > 0 && (
-            <button onClick={() => setShowSessionForm(true)}
-              className="fixed bottom-20 right-5 w-14 h-14 rounded-full bg-teal text-white flex items-center justify-center shadow-lg z-40"
-              style={{ boxShadow: "0 4px 20px rgba(10,112,117,0.4)" }}>
-              <Plus className="w-6 h-6" />
-            </button>
-          )}
-        </>
-      )}
+      <button onClick={() => tab === "groups" ? setShowGroupForm(true) : setShowSessionForm(true)} className="fixed bottom-24 end-5 z-30 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-transform hover:scale-105" aria-label={tab === "groups" ? "Create study group" : "Create study session"}><Plus className="h-6 w-6" /></button>
 
-      {/* Group detail modal */}
-      {selectedGroup && (
-        <GroupDetailModal group={selectedGroup} isMember={myGroupIds.has(selectedGroup.id)} onClose={() => setSelectedGroup(null)}
-          sessions={sessions.filter(s => s.group_id === selectedGroup.id)} userId={user?.id}
-          onJoin={() => { handleJoin(selectedGroup.id); }}
-          onNewSession={() => { setSessionForm(f => ({ ...f, group_id: selectedGroup.id })); setSelectedGroup(null); setShowSessionForm(true); }}
-        />
-      )}
+      {selectedGroup && <Modal title={selectedGroup.name} onClose={() => setSelectedGroup(null)}><div className="space-y-4" dir="auto"><p className="text-sm leading-relaxed text-muted-foreground">{selectedGroup.description || "A persistent group for students who want to study this course together."}</p><p className="text-sm text-foreground">{groupCount(selectedGroup.id)} of {selectedGroup.max_members} members</p>{selectedGroup.created_by === user?.id ? <Button className="w-full" onClick={() => { setSessionForm((current) => ({ ...current, group_id: selectedGroup.id, course_name: selectedGroup.course_name || "" })); setSelectedGroup(null); setTab("sessions"); setShowSessionForm(true); }}>Create a group session</Button> : myGroupIds.has(selectedGroup.id) ? <Button variant="outline" className="w-full" onClick={() => leaveGroup(selectedGroup)}>Leave group</Button> : <Button className="w-full" disabled={groupCount(selectedGroup.id) >= selectedGroup.max_members} onClick={() => joinGroup(selectedGroup)}>Join group</Button>}</div></Modal>}
 
-      {/* Create group modal */}
-      {showGroupForm && (
-        <Modal title="Create Study Group" onClose={() => setShowGroupForm(false)}>
-          <div className="space-y-3">
-            <Field label="Group name *"><Input value={groupForm.name} onChange={e => setGroupForm(f => ({ ...f, name: e.target.value }))} placeholder="e.g. Calculus 2 Study Group" /></Field>
-            <Field label="Course name"><Input value={groupForm.course_name} onChange={e => setGroupForm(f => ({ ...f, course_name: e.target.value }))} placeholder="e.g. Introduction to Algorithms" /></Field>
-            <Field label="Description"><Textarea value={groupForm.description} onChange={e => setGroupForm(f => ({ ...f, description: e.target.value }))} rows={2} className="text-sm resize-none" /></Field>
-            <Field label="Language">
-              <div className="flex gap-2">
-                {["Hebrew", "Arabic", "English"].map(l => (
-                  <button key={l} onClick={() => setGroupForm(f => ({ ...f, preferred_language: l }))}
-                    className={cn("flex-1 py-2 rounded-xl border text-xs font-medium transition-all", groupForm.preferred_language === l ? "bg-teal text-white border-teal" : "border-gray-200 text-slate")}>
-                    {l}
-                  </button>
-                ))}
-              </div>
-            </Field>
-            <Field label="Max members"><Input type="number" value={groupForm.max_members} min={2} max={50} onChange={e => setGroupForm(f => ({ ...f, max_members: +e.target.value }))} /></Field>
-            <Button className="w-full bg-teal hover:bg-teal-dark text-white" disabled={!groupForm.name || saving} onClick={handleCreateGroup}>
-              {saving ? "Creating…" : "Create Group"}
-            </Button>
-          </div>
-        </Modal>
-      )}
+      {selectedSession && <Modal title={selectedSession.title} onClose={() => setSelectedSession(null)}><div className="space-y-4" dir="auto"><p className="text-sm text-muted-foreground">{selectedSession.notes || "Bring the material you want to work on."}</p><div className="rounded-md bg-muted/50 p-3 text-sm"><p>{new Date(selectedSession.session_date).toLocaleString()}</p>{selectedSession.location && <p className="mt-1 text-muted-foreground">{selectedSession.location}</p>}<p className="mt-1 text-muted-foreground">{sessionCount(selectedSession.id)} of {selectedSession.max_spots} spots</p></div>{selectedSession.host_id === user?.id ? <Button variant="destructive" className="w-full" disabled={saving || selectedSession.status === "canceled"} onClick={() => cancelSession(selectedSession)}><X className="me-2 h-4 w-4" />Cancel session</Button> : mySessionIds.has(selectedSession.id) ? <Button variant="outline" className="w-full" disabled={saving} onClick={() => leaveSession(selectedSession)}>Leave session</Button> : <Button className="w-full" disabled={saving || selectedSession.status === "canceled" || sessionCount(selectedSession.id) >= selectedSession.max_spots || String(selectedSession.id).startsWith("demo-")} onClick={() => joinSession(selectedSession)}>Join session</Button>}{String(selectedSession.id).startsWith("demo-") && <p className="text-center text-xs text-muted-foreground">Demo preview. Seed it to Base44 before the live demo to enable joining.</p>}</div></Modal>}
 
-      {/* Create session modal */}
-      {showSessionForm && (
-        <Modal title="Schedule Session" onClose={() => setShowSessionForm(false)}>
-          <div className="space-y-3">
-            <Field label="Group *">
-              <select className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm" value={sessionForm.group_id} onChange={e => setSessionForm(f => ({ ...f, group_id: e.target.value }))}>
-                <option value="">Select a group</option>
-                {groups.filter(g => myGroupIds.has(g.id)).map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
-              </select>
-            </Field>
-            <Field label="Session title"><Input value={sessionForm.title} onChange={e => setSessionForm(f => ({ ...f, title: e.target.value }))} placeholder="e.g. Pre-exam review" /></Field>
-            <Field label="Date & time *"><Input type="datetime-local" value={sessionForm.session_date} onChange={e => setSessionForm(f => ({ ...f, session_date: e.target.value }))} /></Field>
-            <Field label="End time"><Input type="time" value={sessionForm.end_time} onChange={e => setSessionForm(f => ({ ...f, end_time: e.target.value }))} /></Field>
-            <Field label="Location"><Input value={sessionForm.location} onChange={e => setSessionForm(f => ({ ...f, location: e.target.value }))} placeholder="Library, Room 3…" /></Field>
-            <Field label="Max spots"><Input type="number" value={sessionForm.max_spots} min={2} max={100} onChange={e => setSessionForm(f => ({ ...f, max_spots: +e.target.value }))} /></Field>
-            <label className="flex items-center gap-3 cursor-pointer">
-              <div onClick={() => setSessionForm(f => ({ ...f, is_marathon: !f.is_marathon }))}
-                className={cn("w-10 h-6 rounded-full transition-colors flex items-center px-1", sessionForm.is_marathon ? "bg-teal" : "bg-gray-200")}>
-                <div className={cn("w-4 h-4 rounded-full bg-white shadow transition-transform", sessionForm.is_marathon ? "translate-x-4" : "")} />
-              </div>
-              <span className="text-sm text-[#1C1C2E]">🏃 Marathon session (long study session)</span>
-            </label>
-            <Button className="w-full bg-teal hover:bg-teal-dark text-white" disabled={!sessionForm.group_id || !sessionForm.session_date || saving} onClick={handleCreateSession}>
-              {saving ? "Scheduling…" : "Schedule Session"}
-            </Button>
-          </div>
-        </Modal>
-      )}
+      {showGroupForm && <Modal title="Create course group" onClose={() => setShowGroupForm(false)}><div className="space-y-4"><Field label="Group name"><Input value={groupForm.name} onChange={(event) => setGroupForm((current) => ({ ...current, name: event.target.value }))} autoFocus /></Field><Field label="Course"><Input value={groupForm.course_name} onChange={(event) => setGroupForm((current) => ({ ...current, course_name: event.target.value }))} /></Field><div className="grid grid-cols-2 gap-3"><Field label="Language"><Input value={groupForm.preferred_language} onChange={(event) => setGroupForm((current) => ({ ...current, preferred_language: event.target.value }))} /></Field><Field label="Capacity"><Input type="number" min="2" max="100" value={groupForm.max_members} onChange={(event) => setGroupForm((current) => ({ ...current, max_members: Number(event.target.value) }))} /></Field></div><Field label="Description"><Textarea rows={3} value={groupForm.description} onChange={(event) => setGroupForm((current) => ({ ...current, description: event.target.value }))} /></Field><Button className="w-full" disabled={saving || !groupForm.name} onClick={createGroup}>{saving ? t("common_loading") : "Create group"}</Button></div></Modal>}
+
+      {showSessionForm && <Modal title="Create study session" onClose={() => setShowSessionForm(false)}><div className="space-y-4"><Field label="Session title"><Input value={sessionForm.title} onChange={(event) => setSessionForm((current) => ({ ...current, title: event.target.value }))} autoFocus /></Field><Field label="Course"><Input value={sessionForm.course_name} onChange={(event) => setSessionForm((current) => ({ ...current, course_name: event.target.value }))} /></Field><Field label="Optional persistent group"><select value={sessionForm.group_id} onChange={(event) => setSessionForm((current) => ({ ...current, group_id: event.target.value }))} className="h-11 w-full rounded-md border border-input bg-background px-3 text-sm"><option value="">No group, one-time session</option>{groups.filter((group) => myGroupIds.has(group.id)).map((group) => <option key={group.id} value={group.id}>{group.name}</option>)}</select></Field><div className="grid grid-cols-2 gap-3"><Field label="Starts"><Input type="datetime-local" value={sessionForm.session_date} onChange={(event) => setSessionForm((current) => ({ ...current, session_date: event.target.value }))} /></Field><Field label="Ends"><Input type="datetime-local" value={sessionForm.end_time} onChange={(event) => setSessionForm((current) => ({ ...current, end_time: event.target.value }))} /></Field></div><div className="grid grid-cols-2 gap-3"><Field label="Language"><Input value={sessionForm.preferred_language} onChange={(event) => setSessionForm((current) => ({ ...current, preferred_language: event.target.value }))} /></Field><Field label="Capacity"><Input type="number" min="2" max="50" value={sessionForm.max_spots} onChange={(event) => setSessionForm((current) => ({ ...current, max_spots: Number(event.target.value) }))} /></Field></div><Field label="Location"><Input value={sessionForm.location} onChange={(event) => setSessionForm((current) => ({ ...current, location: event.target.value }))} /></Field><Field label="What will you study?"><Textarea rows={3} value={sessionForm.notes} onChange={(event) => setSessionForm((current) => ({ ...current, notes: event.target.value }))} /></Field><Button className="w-full" disabled={saving || !sessionForm.title || !sessionForm.session_date} onClick={createSession}>{saving ? t("common_loading") : "Create session"}</Button></div></Modal>}
     </PageLayout>
   );
 }
 
-function GroupCard({ group, isMember, memberCount, onJoin, onLeave, onDetail }) {
-  return (
-    <ElCard className="p-4">
-      <div className="flex items-start justify-between">
-        <div className="flex-1 min-w-0 cursor-pointer" onClick={onDetail}>
-          <p className="font-semibold text-[#1C1C2E] text-sm">{group.name}</p>
-          {group.course_name && <p className="text-xs text-slate mt-0.5">{group.course_name}</p>}
-          {group.description && <p className="text-xs text-slate mt-1 line-clamp-2">{group.description}</p>}
-          <div className="flex items-center gap-2 mt-2">
-            <span className="flex items-center gap-1 text-xs text-slate"><Users className="w-3 h-3" />{memberCount}/{group.max_members}</span>
-            {group.preferred_language && (
-              <span className="px-2 py-0.5 bg-teal/10 text-teal text-[10px] font-semibold rounded-full">{group.preferred_language}</span>
-            )}
-          </div>
-        </div>
-        <div className="flex flex-col items-end gap-2 ml-3">
-          {isMember ? (
-            <button onClick={onLeave} className="text-xs text-red-500 border border-red-200 px-3 py-1.5 rounded-xl hover:bg-red-50 transition-all">Leave</button>
-          ) : (
-            <button onClick={onJoin} className="text-xs font-semibold text-teal bg-teal/10 border border-teal/20 px-3 py-1.5 rounded-xl hover:bg-teal hover:text-white transition-all">+ Join</button>
-          )}
-          <button onClick={onDetail} className="text-slate hover:text-teal transition-colors"><ChevronRight className="w-4 h-4" /></button>
-        </div>
-      </div>
-    </ElCard>
-  );
-}
-
-function SessionCard({ session, groupName }) {
-  return (
-    <ElCard className="p-4">
-      <div className="flex items-start gap-3">
-        <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl shrink-0 ${session.is_marathon ? "bg-amber/10" : "bg-teal/10"}`}>
-          {session.is_marathon ? "🏃" : "📖"}
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <p className="font-semibold text-[#1C1C2E] text-sm">{session.title || "Study Session"}</p>
-            {session.is_marathon && <span className="px-1.5 py-0.5 bg-amber/20 text-amber text-[10px] font-bold rounded-full">Marathon</span>}
-          </div>
-          <p className="text-xs text-slate mt-0.5">{groupName}</p>
-          <div className="flex items-center gap-3 mt-1">
-            <span className="text-xs text-slate flex items-center gap-1"><Calendar className="w-3 h-3" />{session.session_date ? format(new Date(session.session_date), "MMM d · HH:mm") : "TBD"}</span>
-            {session.location && <span className="text-xs text-slate flex items-center gap-1"><MapPin className="w-3 h-3" />{session.location}</span>}
-          </div>
-        </div>
-      </div>
-    </ElCard>
-  );
-}
-
-function GroupDetailModal({ group, isMember, sessions, onClose, onJoin, onNewSession, userId }) {
-  return (
-    <Modal title={group.name} onClose={onClose}>
-      <div className="space-y-4">
-        {group.course_name && <p className="text-slate text-sm">{group.course_name}</p>}
-        {group.description && <p className="text-[#1C1C2E] text-sm leading-relaxed">{group.description}</p>}
-        {!isMember && (
-          <Button className="w-full bg-teal hover:bg-teal-dark text-white" onClick={onJoin}>Join Group</Button>
-        )}
-        <div className="border-t border-gray-100 pt-4">
-          <div className="flex items-center justify-between mb-3">
-            <p className="font-semibold text-[#1C1C2E] text-sm">Upcoming Sessions</p>
-            {isMember && (
-              <button onClick={onNewSession} className="text-xs text-teal font-semibold flex items-center gap-1"><Plus className="w-3 h-3" />Add</button>
-            )}
-          </div>
-          {sessions.length === 0 ? (
-            <p className="text-slate text-xs text-center py-3">No sessions scheduled yet.</p>
-          ) : sessions.map(s => (
-            <div key={s.id} className="flex items-center gap-3 py-2 border-b border-gray-50 last:border-0">
-              <span className="text-lg">{s.is_marathon ? "🏃" : "📖"}</span>
-              <div>
-                <p className="text-xs font-semibold text-[#1C1C2E]">{s.title || "Session"}</p>
-                <p className="text-xs text-slate">{s.session_date ? format(new Date(s.session_date), "EEE MMM d · HH:mm") : "TBD"}{s.location ? ` · ${s.location}` : ""}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </Modal>
-  );
-}
-
 function Field({ label, children }) {
-  return (
-    <div>
-      <p className="text-xs font-semibold text-slate uppercase tracking-wide mb-1.5">{label}</p>
-      {children}
-    </div>
-  );
+  return <label className="block"><span className="mb-1.5 block text-xs font-semibold text-muted-foreground">{label}</span>{children}</label>;
 }

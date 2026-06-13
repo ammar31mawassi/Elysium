@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import PageLayout from "@/components/layout/PageLayout";
-import ElysiumLogo from "@/components/elysium/ElysiumLogo";
+import ElysiumMark from "@/components/elysium/ElysiumMark";
 import { cn } from "@/lib/utils";
 import { productText } from "@/lib/productCopy";
 
@@ -28,8 +28,8 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [showTutorForm, setShowTutorForm] = useState(false);
   const [showHelperForm, setShowHelperForm] = useState(false);
-  const [tutorForm, setTutorForm] = useState({ subjects_raw: '', phone_number: '', bio: '', teaching_mode: 'both', contact_consent: false });
-  const [helperForm, setHelperForm] = useState({ topics_raw: '', bio: '', availability: '', contact_method: 'in_app', contact_value: '', contact_consent: false });
+  const [tutorForm, setTutorForm] = useState({ subjects_raw: '', languages_raw: '', phone_number: '', bio: '', teaching_mode: 'both', price_min: '', price_max: '', availability: '', contact_consent: false });
+  const [helperForm, setHelperForm] = useState({ topics_raw: '', languages_raw: '', bio: '', availability: '', contact_method: 'in_app', contact_value: '', contact_consent: false });
   const [saving, setSaving] = useState(false);
   const [savingHelper, setSavingHelper] = useState(false);
 
@@ -48,12 +48,12 @@ export default function ProfilePage() {
       if (teachers?.length) {
         const t = teachers[0];
         setTeacherProfile(t);
-        setTutorForm({ subjects_raw: (t.subjects || []).join(', '), phone_number: t.phone_number || '', bio: t.bio || '', teaching_mode: t.teaching_mode || 'both', contact_consent: t.contact_consent || false });
+        setTutorForm({ subjects_raw: (t.subjects || []).join(', '), languages_raw: (t.languages || []).join(', '), phone_number: t.phone_number || '', bio: t.bio || '', teaching_mode: t.teaching_mode || 'both', price_min: t.price_min ?? '', price_max: t.price_max ?? '', availability: t.availability || '', contact_consent: t.contact_consent || false });
       }
       if (helpers?.length) {
         const h = helpers[0];
         setPeerHelper(h);
-        setHelperForm({ topics_raw: (h.help_topics || []).join(', '), bio: h.bio || '', availability: h.availability || '', contact_method: h.contact_method || 'in_app', contact_value: h.contact_value || '', contact_consent: h.contact_consent || false });
+        setHelperForm({ topics_raw: (h.help_topics || []).join(', '), languages_raw: (h.languages || []).join(', '), bio: h.bio || '', availability: h.availability || '', contact_method: h.contact_method || 'in_app', contact_value: h.contact_value || '', contact_consent: h.contact_consent || false });
       }
       setLoading(false);
     });
@@ -72,7 +72,8 @@ export default function ProfilePage() {
   const handleTutorSubmit = async () => {
     setSaving(true);
     const subjects = tutorForm.subjects_raw.split(',').map(s => s.trim()).filter(Boolean);
-    const data = { user_id: user.id, university_id: profile.university_id, display_name: user.full_name, subjects, phone_number: tutorForm.phone_number, bio: tutorForm.bio, teaching_mode: tutorForm.teaching_mode, contact_consent: tutorForm.contact_consent, is_active: false };
+    const languages = tutorForm.languages_raw.split(',').map(s => s.trim()).filter(Boolean);
+    const data = { user_id: user.id, university_id: profile.university_id, display_name: profile?.preferred_name || user.full_name || 'Student', subjects, languages, phone_number: tutorForm.contact_consent ? tutorForm.phone_number : '', bio: tutorForm.bio, teaching_mode: tutorForm.teaching_mode, price_min: tutorForm.price_min === '' ? undefined : Number(tutorForm.price_min), price_max: tutorForm.price_max === '' ? undefined : Number(tutorForm.price_max), currency: 'ILS', availability: tutorForm.availability, contact_consent: tutorForm.contact_consent, is_approved: false, is_active: false, moderation_status: 'pending' };
     if (teacherProfile) {
       await base44.entities.PrivateTeacher.update(teacherProfile.id, data);
     } else {
@@ -86,7 +87,8 @@ export default function ProfilePage() {
   const handleHelperSubmit = async () => {
     setSavingHelper(true);
     const topics = helperForm.topics_raw.split(',').map(s => s.trim()).filter(Boolean);
-    const data = { owner_user_id: user.id, university_id: profile.university_id, display_name: user.full_name || 'Student', help_topics: topics, bio: helperForm.bio, availability: helperForm.availability, contact_method: helperForm.contact_method, contact_value: helperForm.contact_consent ? helperForm.contact_value : '', contact_consent: helperForm.contact_consent, is_visible: true };
+    const languages = helperForm.languages_raw.split(',').map(s => s.trim()).filter(Boolean);
+    const data = { owner_user_id: user.id, university_id: profile.university_id, faculty_id: profile.faculty_id || '', field_of_study: profile.field_of_study || '', academic_year: profile.academic_year || '', display_name: profile?.preferred_name || user.full_name || 'Student', help_topics: topics, languages, bio: helperForm.bio, availability: helperForm.availability, contact_method: helperForm.contact_method, contact_value: helperForm.contact_consent ? helperForm.contact_value : '', contact_consent: helperForm.contact_consent, is_visible: true, moderation_status: 'ok' };
     if (peerHelper) {
       await base44.entities.PeerHelper.update(peerHelper.id, data);
     } else {
@@ -120,7 +122,7 @@ export default function ProfilePage() {
         {/* Tagline + logo small */}
         <div className="flex items-center justify-between mt-4 pt-4 border-t border-border">
           <p className="text-xs text-muted-foreground italic">{t('tagline')}</p>
-          <ElysiumLogo size={28} />
+          <ElysiumMark size={28} />
         </div>
       </div>
 
@@ -169,6 +171,15 @@ export default function ProfilePage() {
         {showTutorForm && (
           <div className="mt-3 pt-3 border-t border-border space-y-2 animate-fade-in">
             <Input className="text-sm" placeholder={p('profile_subjects')} value={tutorForm.subjects_raw} onChange={e => setTutorForm(f => ({ ...f, subjects_raw: e.target.value }))} />
+            <Input className="text-sm" placeholder="Languages, separated by commas" value={tutorForm.languages_raw} onChange={e => setTutorForm(f => ({ ...f, languages_raw: e.target.value }))} />
+            <div className="grid grid-cols-2 gap-2">
+              <Input className="text-sm" type="number" min="0" placeholder="Minimum ILS" value={tutorForm.price_min} onChange={e => setTutorForm(f => ({ ...f, price_min: e.target.value }))} />
+              <Input className="text-sm" type="number" min="0" placeholder="Maximum ILS" value={tutorForm.price_max} onChange={e => setTutorForm(f => ({ ...f, price_max: e.target.value }))} />
+            </div>
+            <select className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm" value={tutorForm.teaching_mode} onChange={e => setTutorForm(f => ({ ...f, teaching_mode: e.target.value }))}>
+              <option value="both">Online or in person</option><option value="online">Online</option><option value="in_person">In person</option>
+            </select>
+            <Input className="text-sm" placeholder="Availability" value={tutorForm.availability} onChange={e => setTutorForm(f => ({ ...f, availability: e.target.value }))} />
             <Input className="text-sm" placeholder={p('profile_phone')} value={tutorForm.phone_number} onChange={e => setTutorForm(f => ({ ...f, phone_number: e.target.value }))} />
             <Textarea className="text-sm resize-none" rows={2} placeholder={p('profile_tutor_bio')} value={tutorForm.bio} onChange={e => setTutorForm(f => ({ ...f, bio: e.target.value }))} />
             <label className="flex items-center gap-2 cursor-pointer">
@@ -200,6 +211,7 @@ export default function ProfilePage() {
         {showHelperForm && (
           <div className="mt-3 pt-3 border-t border-border space-y-2 animate-fade-in">
             <Input className="text-sm" placeholder={p('profile_help_topics')} value={helperForm.topics_raw} onChange={e => setHelperForm(f => ({ ...f, topics_raw: e.target.value }))} />
+            <Input className="text-sm" placeholder="Languages, separated by commas" value={helperForm.languages_raw} onChange={e => setHelperForm(f => ({ ...f, languages_raw: e.target.value }))} />
             <Textarea className="text-sm resize-none" rows={2} placeholder={p('profile_helper_bio')} value={helperForm.bio} onChange={e => setHelperForm(f => ({ ...f, bio: e.target.value }))} />
             <Input className="text-sm" placeholder={p('profile_availability')} value={helperForm.availability} onChange={e => setHelperForm(f => ({ ...f, availability: e.target.value }))} />
             <label className="flex items-center gap-2 cursor-pointer">

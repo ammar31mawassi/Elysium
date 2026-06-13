@@ -2,51 +2,27 @@
   "name": "StudentProfile",
   "type": "object",
   "properties": {
-    "user_id": {
-      "type": "string"
-    },
-    "university_id": {
-      "type": "string"
-    },
-    "faculty_id": {
-      "type": "string"
-    },
-    "academic_year": {
-      "type": "string",
-      "enum": [
-        "Preparatory",
-        "1st Year",
-        "2nd Year",
-        "3rd Year",
-        "4th Year+"
-      ]
-    },
-    "preferred_language": {
-      "type": "string",
-      "enum": [
-        "Hebrew",
-        "Arabic",
-        "English"
-      ],
-      "default": "English"
-    },
-    "help_needs": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      }
-    },
-    "living_context": {
-      "type": "string",
-      "enum": [
-        "Dorms",
-        "Commuting",
-        "Near Campus",
-        "Other"
-      ]
-    }
+    "user_id": { "type": "string" },
+    "preferred_name": { "type": "string" },
+    "preferred_locale": { "type": "string", "enum": ["en", "he", "ar"], "default": "en" },
+    "university_id": { "type": "string" },
+    "faculty_id": { "type": "string" },
+    "field_of_study": { "type": "string" },
+    "academic_year": { "type": "string", "enum": ["Preparatory", "1st Year", "2nd Year", "3rd Year", "4th Year+"] },
+    "preferred_language": { "type": "string", "enum": ["Hebrew", "Arabic", "English"], "default": "English" },
+    "language_preferences": { "type": "array", "items": { "type": "string" } },
+    "courses": { "type": "array", "items": { "type": "string" } },
+    "interests": { "type": "array", "items": { "type": "string" } },
+    "help_needs": { "type": "array", "items": { "type": "string" } },
+    "living_context": { "type": "string", "enum": ["Dorms", "Commuting", "Near Campus", "Other"] },
+    "theme_preference": { "type": "string", "enum": ["light", "dark", "system"], "default": "system" },
+    "onboarding_complete": { "type": "boolean", "default": false }
   },
-  "required": [
-    "user_id"
-  ]
+  "required": ["user_id"],
+  "rls": {
+    "create": { "user_condition": { "id": "{{user.id}}" } },
+    "read": { "$or": [{ "data.user_id": "{{user.id}}" }, { "user_condition": { "role": "admin" } }] },
+    "update": { "$or": [{ "data.user_id": "{{user.id}}" }, { "user_condition": { "role": "admin" } }] },
+    "delete": { "$or": [{ "data.user_id": "{{user.id}}" }, { "user_condition": { "role": "admin" } }] }
+  }
 }

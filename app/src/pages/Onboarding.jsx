@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import ElysiumLogo from "@/components/elysium/ElysiumLogo";
 import { cn } from "@/lib/utils";
+import { demoFaculties, demoUniversity } from "@/lib/demoData";
+import { isOnboardingStepValid } from "@/lib/productUtils";
 
 const languages = [
   { key: "en", short: "EN", name: "English" },
@@ -34,20 +36,28 @@ export default function Onboarding() {
   const [universities, setUniversities] = useState([]);
   const [faculties, setFaculties] = useState([]);
   const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({ preferred_name: "", preferred_locale: locale, university_id: "", faculty_id: "", field_of_study: "", academic_year: "", courses: [], interests: [], help_needs: [], language_preferences: [locale], theme_preference: "system", onboarding_complete: false });
+  const [form, setForm] = useState({ preferred_name: "", preferred_locale: locale, university_id: "", faculty_id: "", field_of_study: "", academic_year: "", courses: [], interests: [], help_needs: [], living_context: "", language_preferences: [locale], theme_preference: "system", onboarding_complete: false });
+  const [error, setError] = useState("");
   const totalSteps = 4;
   const stepIcons = [Globe2, GraduationCap, Shapes, LifeBuoy];
   const StepIcon = stepIcons[step - 1];
 
-  useEffect(() => { base44.entities.University.list().then(setUniversities).catch(() => setUniversities([])); }, []);
-  useEffect(() => { if (form.university_id) base44.entities.Faculty.filter({ university_id: form.university_id }).then(setFaculties).catch(() => setFaculties([])); }, [form.university_id]);
+  useEffect(() => { base44.entities.University.list().then((rows) => setUniversities(rows?.length ? rows : [demoUniversity])).catch(() => setUniversities([demoUniversity])); }, []);
+  useEffect(() => { if (form.university_id) base44.entities.Faculty.filter({ university_id: form.university_id }).then((rows) => setFaculties(rows?.length ? rows : demoFaculties)).catch(() => setFaculties(demoFaculties)); }, [form.university_id]);
 
   const selectLocale = (nextLocale) => {
     setLocale(nextLocale);
     setForm((current) => ({ ...current, preferred_locale: nextLocale, language_preferences: [nextLocale] }));
   };
   const toggleListValue = (field, value) => setForm((current) => ({ ...current, [field]: current[field].includes(value) ? current[field].filter((item) => item !== value) : [...current[field], value] }));
+  const canContinue = isOnboardingStepValid(form, step);
+  const continueOnboarding = () => {
+    if (!canContinue) { setError("Complete the required choices before continuing."); return; }
+    setError("");
+    setStep((current) => current + 1);
+  };
   const finish = async () => {
+    if (!canContinue) { setError("Choose at least one help need and your living or commuting context."); return; }
     setSaving(true);
     const user = await base44.auth.me();
     await base44.entities.StudentProfile.create({ ...form, user_id: user.id, preferred_language: locale === "he" ? "Hebrew" : locale === "ar" ? "Arabic" : "English", onboarding_complete: true });
@@ -92,10 +102,12 @@ export default function Onboarding() {
 
             {step === 4 && <Step title={p("onboarding_help_title")} body={p("onboarding_help_body")}>
               <div className="grid gap-2 sm:grid-cols-2">{helpOptions[locale].map((option) => <Choice key={option} selected={form.help_needs.includes(option)} onClick={() => toggleListValue("help_needs", option)}><div className="flex items-center gap-2"><span className={cn("flex h-5 w-5 items-center justify-center rounded border", form.help_needs.includes(option) ? "border-primary bg-primary text-primary-foreground" : "border-border")}>{form.help_needs.includes(option) && <Check className="h-3 w-3" />}</span><span className="text-sm font-medium text-foreground">{option}</span></div></Choice>)}</div>
+              <div className="mt-6"><Label>Living and commute context</Label><div className="flex flex-wrap gap-2">{["Dorms", "Commuting", "Near Campus", "Other"].map((option) => <Pill key={option} selected={form.living_context === option} onClick={() => setForm((current) => ({ ...current, living_context: option }))}>{option}</Pill>)}</div></div>
             </Step>}
           </div>
 
-          <footer className="mt-8 flex gap-3 border-t border-border pt-5">{step > 1 && <Button variant="outline" className="min-w-28 gap-2" onClick={() => setStep((current) => current - 1)}>{isRTL ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}{p("onboarding_back")}</Button>}{step < totalSteps ? <Button className="ms-auto min-w-32 gap-2" onClick={() => setStep((current) => current + 1)}>{p("onboarding_continue")}{isRTL ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}</Button> : <Button className="ms-auto min-w-40" onClick={finish} disabled={saving}>{saving ? "..." : p("onboarding_finish")}</Button>}</footer>
+          {error && <p className="mt-5 text-sm font-medium text-destructive" role="alert">{error}</p>}
+          <footer className="mt-8 flex gap-3 border-t border-border pt-5">{step > 1 && <Button variant="outline" className="min-h-11 min-w-28 gap-2" onClick={() => { setError(""); setStep((current) => current - 1); }}>{isRTL ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}{p("onboarding_back")}</Button>}{step < totalSteps ? <Button className="ms-auto min-h-11 min-w-32 gap-2" onClick={continueOnboarding}>{p("onboarding_continue")}{isRTL ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}</Button> : <Button className="ms-auto min-h-11 min-w-40" onClick={finish} disabled={saving}>{saving ? "..." : p("onboarding_finish")}</Button>}</footer>
         </section>
       </main>
     </div>

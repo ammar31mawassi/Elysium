@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { BookOpenCheck, CalendarDays, Compass, Flag, Home, Plus, Sparkles, Users, Wrench, X } from "lucide-react";
+import { BookOpenCheck, CalendarDays, Compass, Flag, Home, Plus, Users, Wrench, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/lib/LanguageContext";
 import { productText } from "@/lib/productCopy";
@@ -22,7 +22,6 @@ export default function BottomNav() {
     { label: p("create_social"), icon: Users, path: "/social?create=1" },
     { label: p("create_session"), icon: BookOpenCheck, path: "/groups?tab=sessions&create=session" },
     { label: p("add_deadline"), icon: Flag, path: "/calendar?create=1" },
-    { label: p("ask_elysium"), icon: Sparkles, path: "/ask" },
   ];
 
   return (
@@ -40,7 +39,7 @@ export default function BottomNav() {
                 </button>
               ))}
             </div>
-            <button onClick={() => setShowAdd(false)} className="mx-auto mt-3 flex h-10 w-full max-w-lg items-center justify-center gap-2 rounded-md text-sm text-muted-foreground hover:bg-muted hover:text-foreground">
+            <button onClick={() => setShowAdd(false)} className="mx-auto mt-3 flex h-11 w-full max-w-lg items-center justify-center gap-2 rounded-md text-sm text-muted-foreground hover:bg-muted hover:text-foreground">
               <X className="h-4 w-4" /> {t("common_cancel")}
             </button>
           </div>

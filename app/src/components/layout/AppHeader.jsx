@@ -5,7 +5,7 @@ import { useProfile } from "@/lib/useProfile";
 import { useTheme } from "@/lib/ThemeContext";
 import { useLanguage } from "@/lib/LanguageContext";
 import { productText } from "@/lib/productCopy";
-import ElysiumLogo from "@/components/elysium/ElysiumLogo";
+import ElysiumMark from "@/components/elysium/ElysiumMark";
 import { cn } from "@/lib/utils";
 
 function getInitials(name = "") {
@@ -30,7 +30,7 @@ export default function AppHeader() {
     <header className="sticky top-0 z-50 border-b border-border/80 bg-background/92 backdrop-blur-xl">
       <div className="mx-auto flex h-16 max-w-6xl items-center gap-4 px-4 sm:px-6">
         <Link to="/" className="flex min-w-0 items-center gap-2.5" aria-label="Elysium home">
-          <ElysiumLogo size={38} className="shrink-0" />
+          <ElysiumMark size={38} className="shrink-0" />
           <span className="hidden text-sm font-extrabold tracking-[0.16em] text-foreground sm:inline">ELYSIUM</span>
         </Link>
 
@@ -50,14 +50,14 @@ export default function AppHeader() {
         </nav>
 
         <div className="ms-auto flex items-center gap-1.5 md:ms-0">
-          <Link to="/social?create=1" className="hidden h-9 items-center gap-2 rounded-md bg-primary px-3 text-sm font-semibold text-primary-foreground hover:brightness-105 md:flex">
+          <Link to="/social?create=1" className="hidden h-11 items-center gap-2 rounded-md bg-primary px-3 text-sm font-semibold text-primary-foreground hover:brightness-105 md:flex">
             <Plus className="h-4 w-4" />
             {p("create_social")}
           </Link>
-          <button onClick={toggleTheme} className="flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground" aria-label="Toggle theme">
+          <button onClick={toggleTheme} className="flex h-11 w-11 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground" aria-label="Toggle theme">
             {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           </button>
-          <Link to="/profile" className="flex h-9 w-9 items-center justify-center rounded-full border border-primary/20 bg-primary/10 text-xs font-bold text-primary" aria-label={t("nav_profile")}>
+          <Link to="/profile" className="flex h-11 w-11 items-center justify-center rounded-full border border-primary/20 bg-primary/10 text-xs font-bold text-primary" aria-label={t("nav_profile")}>
             {getInitials(user?.full_name)}
           </Link>
         </div>

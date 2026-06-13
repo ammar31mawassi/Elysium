@@ -8,12 +8,12 @@ import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import { ProfileProvider } from '@/lib/useProfile';
 import { ThemeProvider } from '@/lib/ThemeContext';
 import { LanguageProvider } from '@/lib/LanguageContext';
+import ElysiumMark from '@/components/elysium/ElysiumMark';
 
 import Onboarding from '@/pages/Onboarding';
 import Dashboard from '@/pages/Dashboard';
 import SocialPage from '@/pages/SocialPage';
 import StudyGroupsPage from '@/pages/StudyGroupsPage';
-import TeachersPage from '@/pages/TeachersPage';
 import ToolsPage from '@/pages/ToolsPage';
 import ProfilePage from '@/pages/ProfilePage';
 import AdminPage from '@/pages/AdminPage';
@@ -35,10 +35,8 @@ const AuthenticatedApp = () => {
     return (
       <div className="fixed inset-0 flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-12 h-12 rounded-2xl bg-teal flex items-center justify-center animate-pulse">
-            <span className="text-white font-bold text-lg tracking-widest">E</span>
-          </div>
-          <p className="text-slate text-sm">Loading ELYSIUM…</p>
+          <ElysiumMark size={48} className="animate-pulse" />
+          <p className="text-sm text-muted-foreground">Loading Elysium...</p>
         </div>
       </div>
     );
@@ -70,7 +68,7 @@ const AuthenticatedApp = () => {
         <Route path="/" element={<Dashboard />} />
         <Route path="/social" element={<SocialPage />} />
         <Route path="/groups" element={<StudyGroupsPage />} />
-        <Route path="/teachers" element={<TeachersPage />} />
+        <Route path="/teachers" element={<Navigate to="/discover?tab=tutors" replace />} />
         <Route path="/tools" element={<ToolsPage />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/admin" element={<AdminPage />} />
@@ -96,14 +94,14 @@ function App() {
   return (
     <AuthProvider>
       <ThemeProvider>
-      <LanguageProvider>
-        <QueryClientProvider client={queryClientInstance}>
-          <Router>
-            <AuthenticatedApp />
-          </Router>
-          <Toaster />
-        </QueryClientProvider>
-      </LanguageProvider>
+        <LanguageProvider>
+          <QueryClientProvider client={queryClientInstance}>
+            <Router>
+              <AuthenticatedApp />
+            </Router>
+            <Toaster />
+          </QueryClientProvider>
+        </LanguageProvider>
       </ThemeProvider>
     </AuthProvider>
   );

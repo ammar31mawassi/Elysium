@@ -41,7 +41,7 @@ AI coordinates the hub and helps answer “what is next?” It does not replace 
 
 ## Repository
 
-- Remote: `https://github.com/ammar31mawassi/Dalili.git`
+- Remote: `https://github.com/ammar31mawassi/Elysium.git`
 - Workflow: feature branches and pull requests; no direct implementation work on `main`.
 - Base44 CLI and plugin are installed and authenticated.
 - Main branch protection is unavailable for this private repository on the current GitHub plan.

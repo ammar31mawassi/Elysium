@@ -2,38 +2,21 @@
   "name": "StudyGroup",
   "type": "object",
   "properties": {
-    "name": {
-      "type": "string"
-    },
-    "university_id": {
-      "type": "string"
-    },
-    "faculty_id": {
-      "type": "string"
-    },
-    "course_name": {
-      "type": "string"
-    },
-    "description": {
-      "type": "string"
-    },
-    "max_members": {
-      "type": "number",
-      "default": 10
-    },
-    "preferred_language": {
-      "type": "string"
-    },
-    "is_active": {
-      "type": "boolean",
-      "default": true
-    },
-    "created_by": {
-      "type": "string"
-    }
+    "name": { "type": "string" },
+    "university_id": { "type": "string" },
+    "faculty_id": { "type": "string" },
+    "course_name": { "type": "string" },
+    "description": { "type": "string" },
+    "max_members": { "type": "number", "default": 10 },
+    "preferred_language": { "type": "string" },
+    "is_active": { "type": "boolean", "default": true },
+    "created_by": { "type": "string" }
   },
-  "required": [
-    "name",
-    "university_id"
-  ]
+  "required": ["name", "university_id", "created_by"],
+  "rls": {
+    "create": { "data.created_by": "{{user.id}}" },
+    "read": { "user_condition": { "id": "{{user.id}}" } },
+    "update": { "$or": [{ "data.created_by": "{{user.id}}" }, { "user_condition": { "role": "admin" } }] },
+    "delete": { "$or": [{ "data.created_by": "{{user.id}}" }, { "user_condition": { "role": "admin" } }] }
+  }
 }

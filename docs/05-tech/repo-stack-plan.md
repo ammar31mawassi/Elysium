@@ -11,7 +11,7 @@ Workspace:
 Current status:
 
 - The folder is a git repository.
-- Remote is `https://github.com/ammar31mawassi/Dalili.git`.
+- Remote is `https://github.com/ammar31mawassi/Elysium.git`.
 - The GitHub repo is private.
 - Default branch is `main`.
 - GitHub CLI is installed at `C:\Program Files\GitHub CLI\gh.exe`.
@@ -35,12 +35,12 @@ References:
 
 Completed:
 
-- Name: `Dalili`
+- Name: `Elysium`
 - Visibility: private.
 - README: created from this docs foundation.
 - License: none for now.
 - Default branch: `main`.
-- Remote: `https://github.com/ammar31mawassi/Dalili.git`.
+- Remote: `https://github.com/ammar31mawassi/Elysium.git`.
 - Labels: created.
 - Starter issues: created from `docs/06-backlog/initial-issues.md`.
 

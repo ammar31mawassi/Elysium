@@ -10,6 +10,7 @@
     --foreground: 165 24% 10%;
     --card: 0 0% 100%;
     --card-foreground: 165 24% 10%;
+    --surface-elevated: 150 17% 95%;
     --popover: 0 0% 100%;
     --popover-foreground: 165 24% 10%;
     --primary: 174 78% 28%;
@@ -37,25 +38,26 @@
 
 @layer base {
   .dark {
-    --background: 160 20% 8%;
-    --foreground: 150 20% 96%;
-    --card: 160 16% 11%;
-    --card-foreground: 150 20% 96%;
-    --popover: 160 16% 11%;
-    --popover-foreground: 150 20% 96%;
-    --primary: 172 66% 50%;
-    --primary-foreground: 162 28% 8%;
+    --background: 180 5% 4%;
+    --foreground: 120 11% 96%;
+    --card: 160 8% 8%;
+    --card-foreground: 120 11% 96%;
+    --surface-elevated: 150 8% 10%;
+    --popover: 150 8% 10%;
+    --popover-foreground: 120 11% 96%;
+    --primary: 176 63% 51%;
+    --primary-foreground: 180 20% 5%;
     --secondary: 39 92% 60%;
-    --secondary-foreground: 162 28% 8%;
-    --muted: 159 13% 16%;
-    --muted-foreground: 155 10% 66%;
+    --secondary-foreground: 180 20% 5%;
+    --muted: 150 8% 10%;
+    --muted-foreground: 143 4% 62%;
     --accent: 210 88% 65%;
     --accent-foreground: 0 0% 100%;
     --destructive: 0 63% 55%;
     --destructive-foreground: 0 0% 100%;
-    --border: 158 12% 22%;
-    --input: 158 12% 22%;
-    --ring: 172 66% 50%;
+    --border: 144 6% 17%;
+    --input: 144 6% 17%;
+    --ring: 176 63% 51%;
   }
 }
 
@@ -66,6 +68,7 @@
   body {
     @apply bg-background text-foreground font-body antialiased;
     min-width: 320px;
+    text-rendering: optimizeLegibility;
   }
   h1, h2, h3, h4, h5, h6 {
     @apply font-heading;
@@ -82,6 +85,23 @@ body, header, nav, main, section, article, button, a, input, textarea, select {
   transition-property: color, background-color, border-color, box-shadow;
   transition-duration: 180ms;
   transition-timing-function: ease;
+}
+
+:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+}
+
+.surface-elevated {
+  background-color: hsl(var(--surface-elevated));
+}
+
+.dark .shadow-sm,
+.dark .shadow-md,
+.dark .shadow-lg,
+.dark .shadow-xl,
+.dark .shadow-2xl {
+  box-shadow: none;
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -2,43 +2,42 @@
   "name": "PrivateTeacher",
   "type": "object",
   "properties": {
-    "user_id": {
-      "type": "string"
-    },
-    "university_id": {
-      "type": "string"
-    },
-    "display_name": {
-      "type": "string"
-    },
-    "subjects": {
-      "type": "array",
-      "items": {
-        "type": "string"
+    "user_id": { "type": "string" },
+    "university_id": { "type": "string" },
+    "display_name": { "type": "string" },
+    "subjects": { "type": "array", "items": { "type": "string" } },
+    "languages": { "type": "array", "items": { "type": "string" } },
+    "bio": { "type": "string" },
+    "teaching_mode": { "type": "string", "enum": ["online", "in_person", "both"], "default": "both" },
+    "price_min": { "type": "number" },
+    "price_max": { "type": "number" },
+    "currency": { "type": "string", "default": "ILS" },
+    "availability": { "type": "string" },
+    "phone_number": {
+      "type": "string",
+      "rls": {
+        "read": { "$or": [{ "data.user_id": "{{user.id}}" }, { "user_condition": { "role": "admin" } }] },
+        "write": { "$or": [{ "data.user_id": "{{user.id}}" }, { "user_condition": { "role": "admin" } }] }
       }
     },
-    "phone_number": {
-      "type": "string"
-    },
-    "bio": {
-      "type": "string"
-    },
-    "rating_avg": {
-      "type": "number",
-      "default": 0
-    },
-    "rating_count": {
-      "type": "number",
-      "default": 0
-    },
-    "is_active": {
-      "type": "boolean",
-      "default": false
-    }
+    "contact_consent": { "type": "boolean", "default": false },
+    "rating_avg": { "type": "number", "default": 0 },
+    "rating_count": { "type": "number", "default": 0 },
+    "is_approved": { "type": "boolean", "default": false },
+    "is_active": { "type": "boolean", "default": false },
+    "moderation_status": { "type": "string", "enum": ["pending", "approved", "suspended"], "default": "pending" }
   },
-  "required": [
-    "user_id",
-    "university_id",
-    "display_name"
-  ]
+  "required": ["user_id", "university_id", "display_name"],
+  "rls": {
+    "create": { "user_condition": { "id": "{{user.id}}" } },
+    "read": {
+      "$or": [
+        { "$and": [{ "data.is_approved": true }, { "data.is_active": true }, { "data.moderation_status": "approved" }] },
+        { "data.user_id": "{{user.id}}" },
+        { "user_condition": { "role": "admin" } }
+      ]
+    },
+    "update": { "$or": [{ "data.user_id": "{{user.id}}" }, { "user_condition": { "role": "admin" } }] },
+    "delete": { "$or": [{ "data.user_id": "{{user.id}}" }, { "user_condition": { "role": "admin" } }] }
+  }
 }

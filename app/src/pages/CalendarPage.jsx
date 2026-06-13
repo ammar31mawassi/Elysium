@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useLocation } from "react-router-dom";
-import { format, isValid, parseISO, startOfDay } from "date-fns";
-import { BookOpenCheck, CalendarDays, Flag, MapPin, Plus, Trash2, Users } from "lucide-react";
+import { CalendarDays, Check, Circle, MapPin, Plus, Trash2 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useProfile } from "@/lib/useProfile";
 import { useLanguage } from "@/lib/LanguageContext";
@@ -11,116 +10,106 @@ import SkeletonCard from "@/components/ui/SkeletonCard";
 import EmptyState from "@/components/ui/EmptyState";
 import Modal from "@/components/ui/Modal";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-const categories = ["Exam", "Scholarship", "Admin", "Personal"];
-const meta = {
-  deadline: { icon: Flag, tone: "bg-rose-500/10 text-rose-600 dark:text-rose-400" },
-  social: { icon: Users, tone: "bg-amber-500/12 text-amber-700 dark:text-amber-400" },
-  session: { icon: BookOpenCheck, tone: "bg-blue-500/10 text-blue-600 dark:text-blue-400" },
-};
-
-function parseDate(value) {
-  const date = parseISO(value || "");
-  return isValid(date) ? date : null;
-}
-
-function safeQuery(promise, timeout = 7000) {
-  return Promise.race([promise.catch(() => []), new Promise((resolve) => setTimeout(() => resolve([]), timeout))]);
+function safeQuery(promise) {
+  return promise.catch(() => []);
 }
 
 export default function CalendarPage() {
-  const { user, profile } = useProfile();
+  const location = useLocation();
+  const { user } = useProfile();
   const { locale, t } = useLanguage();
   const p = (key) => productText(locale, key);
-  const location = useLocation();
+  const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [tab, setTab] = useState("upcoming");
   const [showAdd, setShowAdd] = useState(new URLSearchParams(location.search).get("create") === "1");
-  const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({ title: "", due_date: "", category: "Personal", source: "" });
-  const [data, setData] = useState({ deadlines: [], events: [], eventMemberships: [], groupMemberships: [], sessions: [] });
+  const [form, setForm] = useState({ title: "", starts_at: "", notes: "", priority: "normal", all_day: false });
 
   useEffect(() => {
     setShowAdd(new URLSearchParams(location.search).get("create") === "1");
   }, [location.search]);
 
   useEffect(() => {
-    if (!user?.id) { setLoading(false); return; }
+    if (!user?.id) return;
     let active = true;
     setLoading(true);
-    Promise.all([
-      safeQuery(base44.entities.Deadline.filter({ user_id: user.id })),
-      profile?.university_id ? safeQuery(base44.entities.SocialEvent.filter({ university_id: profile.university_id })) : Promise.resolve([]),
-      safeQuery(base44.entities.SocialEventMember.filter({ user_id: user.id })),
-      safeQuery(base44.entities.StudyGroupMember.filter({ user_id: user.id })),
-      safeQuery(base44.entities.StudySession.list("session_date", 200)),
-    ]).then(([deadlines, events, eventMemberships, groupMemberships, sessions]) => {
-      if (active) setData({ deadlines: deadlines || [], events: events || [], eventMemberships: eventMemberships || [], groupMemberships: groupMemberships || [], sessions: sessions || [] });
-    }).catch(console.error).finally(() => active && setLoading(false));
+    safeQuery(base44.entities.CalendarItem.filter({ owner_user_id: user.id })).then((rows) => {
+      if (active) { setItems(rows || []); setLoading(false); }
+    });
     return () => { active = false; };
-  }, [user?.id, profile?.university_id]);
+  }, [user?.id]);
 
-  const items = useMemo(() => {
-    const joinedEventIds = new Set(data.eventMemberships.map((item) => item.event_id));
-    const joinedGroupIds = new Set(data.groupMemberships.map((item) => item.group_id));
-    return [
-      ...data.deadlines.map((item) => ({ id: item.id, type: "deadline", title: item.title, date: item.due_date, detail: item.source || item.category, deletable: true })),
-      ...data.events.filter((item) => joinedEventIds.has(item.id)).map((item) => ({ id: item.id, type: "social", title: item.title, date: item.date, detail: item.location })),
-      ...data.sessions.filter((item) => joinedGroupIds.has(item.group_id)).map((item) => ({ id: item.id, type: "session", title: item.title || p("home_session"), date: item.session_date, detail: item.location })),
-    ].map((item) => ({ ...item, parsedDate: parseDate(item.date) })).filter((item) => item.parsedDate).sort((a, b) => a.parsedDate - b.parsedDate);
-  }, [data, locale]);
+  const displayed = useMemo(() => {
+    const now = new Date();
+    return items
+      .filter((item) => item.status !== "canceled")
+      .filter((item) => tab === "upcoming" ? new Date(item.starts_at) >= now || !item.completed : new Date(item.starts_at) < now && item.completed)
+      .sort((a, b) => new Date(a.starts_at) - new Date(b.starts_at));
+  }, [items, tab]);
 
-  const today = startOfDay(new Date());
-  const displayed = items.filter((item) => tab === "upcoming" ? startOfDay(item.parsedDate) >= today : startOfDay(item.parsedDate) < today);
-
-  const addDeadline = async () => {
-    if (!form.title || !form.due_date || !user?.id) return;
+  const addItem = async () => {
+    if (!user?.id || !form.title || !form.starts_at) return;
     setSaving(true);
-    const deadline = await base44.entities.Deadline.create({ ...form, user_id: user.id, university_id: profile?.university_id || "" });
-    setData((current) => ({ ...current, deadlines: [...current.deadlines, deadline] }));
-    setForm({ title: "", due_date: "", category: "Personal", source: "" });
-    setSaving(false);
-    setShowAdd(false);
+    try {
+      const item = await base44.entities.CalendarItem.create({
+        owner_user_id: user.id,
+        source_type: "personal",
+        title: form.title,
+        starts_at: new Date(form.starts_at).toISOString(),
+        notes: form.notes,
+        priority: form.priority,
+        all_day: form.all_day,
+        completed: false,
+        status: "active",
+      });
+      setItems((current) => [...current, item]);
+      setForm({ title: "", starts_at: "", notes: "", priority: "normal", all_day: false });
+      setShowAdd(false);
+    } finally { setSaving(false); }
   };
-  const deleteDeadline = async (id) => {
-    await base44.entities.Deadline.delete(id);
-    setData((current) => ({ ...current, deadlines: current.deadlines.filter((item) => item.id !== id) }));
+
+  const toggleComplete = async (item) => {
+    const completed = !item.completed;
+    await base44.entities.CalendarItem.update(item.id, { completed, status: completed ? "completed" : "active" });
+    setItems((current) => current.map((row) => row.id === item.id ? { ...row, completed, status: completed ? "completed" : "active" } : row));
+  };
+
+  const removeItem = async (item) => {
+    await base44.entities.CalendarItem.delete(item.id);
+    setItems((current) => current.filter((row) => row.id !== item.id));
   };
 
   return (
     <PageLayout wide>
-      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+      <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div><h1 className="text-2xl font-bold text-foreground sm:text-3xl">{p("calendar_title")}</h1><p className="mt-2 text-sm text-muted-foreground">{p("calendar_body")}</p></div>
-        <Button onClick={() => setShowAdd(true)} className="gap-2 self-start sm:self-auto"><Plus className="h-4 w-4" />{p("add_deadline")}</Button>
+        <Button className="min-h-11 gap-2 self-start" onClick={() => setShowAdd(true)}><Plus className="h-4 w-4" />{p("add_deadline")}</Button>
+      </header>
+
+      <div className="mb-5 flex max-w-sm rounded-md bg-muted p-1">
+        {[['upcoming', p('calendar_upcoming')], ['past', p('calendar_past')]].map(([key, label]) => <button key={key} onClick={() => setTab(key)} className={cn("h-10 flex-1 rounded-md text-sm font-semibold", tab === key ? "bg-background text-foreground shadow-sm" : "text-muted-foreground")}>{label}</button>)}
       </div>
 
-      <div className="mb-5 flex w-full max-w-sm rounded-md bg-muted p-1">
-        {[["upcoming", p("calendar_upcoming")], ["past", p("calendar_past")]].map(([key, label]) => <button key={key} onClick={() => setTab(key)} className={cn("h-9 flex-1 rounded-md text-sm font-semibold", tab === key ? "bg-background text-foreground shadow-sm" : "text-muted-foreground")}>{label}</button>)}
-      </div>
-
-      {loading ? <div className="grid gap-3 md:grid-cols-2">{[1,2,3,4].map((item) => <SkeletonCard key={item} lines={2} />)}</div> : displayed.length === 0 ? <EmptyState icon={CalendarDays} title={p("calendar_empty")} message={p("home_clear_body")} action={<Button size="sm" onClick={() => setShowAdd(true)}>{p("add_deadline")}</Button>} /> : (
+      {loading ? <div className="grid gap-3 md:grid-cols-2">{[1, 2, 3, 4].map((item) => <SkeletonCard key={item} lines={2} />)}</div> : displayed.length === 0 ? <EmptyState icon={CalendarDays} title={p("calendar_empty")} message="Your personal deadlines and joined sessions will appear here." action={<Button size="sm" onClick={() => setShowAdd(true)}>{p("add_deadline")}</Button>} /> : (
         <div className="overflow-hidden rounded-lg border border-border bg-card">
-          {displayed.map((item, index) => <TimelineItem key={`${item.type}-${item.id}`} item={item} p={p} last={index === displayed.length - 1} onDelete={() => deleteDeadline(item.id)} />)}
+          {displayed.map((item, index) => <article key={item.id} className={cn("flex items-start gap-3 p-4 sm:p-5", index !== displayed.length - 1 && "border-b border-border")}>
+            <button className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-primary hover:bg-primary/10" onClick={() => toggleComplete(item)} aria-label={item.completed ? "Mark incomplete" : "Mark complete"}>{item.completed ? <Check className="h-5 w-5" /> : <Circle className="h-5 w-5" />}</button>
+            <div className="min-w-0 flex-1" dir="auto"><div className="flex flex-wrap items-start justify-between gap-2"><h2 className={cn("text-sm font-semibold text-foreground", item.completed && "line-through text-muted-foreground")}>{item.title}</h2><span className={cn("rounded px-2 py-0.5 text-xs font-semibold", item.priority === "urgent" ? "bg-destructive/10 text-destructive" : item.priority === "important" ? "bg-amber-500/10 text-amber-700 dark:text-amber-400" : "bg-muted text-muted-foreground")}>{item.source_type.replaceAll("_", " ")}</span></div><p className="mt-1 text-xs text-muted-foreground">{new Date(item.starts_at).toLocaleString(locale)}</p>{item.notes && <p className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground"><MapPin className="h-3.5 w-3.5" />{item.notes}</p>}</div>
+            <button onClick={() => removeItem(item)} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive" aria-label="Delete calendar item"><Trash2 className="h-4 w-4" /></button>
+          </article>)}
         </div>
       )}
 
-      {showAdd && <Modal title={p("add_deadline")} onClose={() => setShowAdd(false)}><div className="space-y-4">
-        <div><label className="mb-1.5 block text-xs font-semibold text-muted-foreground">Title</label><Input value={form.title} onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))} autoFocus /></div>
-        <div><label className="mb-1.5 block text-xs font-semibold text-muted-foreground">Date</label><Input type="date" value={form.due_date} onChange={(event) => setForm((current) => ({ ...current, due_date: event.target.value }))} /></div>
-        <div><label className="mb-1.5 block text-xs font-semibold text-muted-foreground">Category</label><div className="grid grid-cols-2 gap-2">{categories.map((category) => <button key={category} onClick={() => setForm((current) => ({ ...current, category }))} className={cn("h-9 rounded-md border text-xs font-semibold", form.category === category ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground")}>{category}</button>)}</div></div>
-        <div><label className="mb-1.5 block text-xs font-semibold text-muted-foreground">Source or course</label><Input value={form.source} onChange={(event) => setForm((current) => ({ ...current, source: event.target.value }))} /></div>
-        <Button className="w-full" onClick={addDeadline} disabled={!form.title || !form.due_date || saving}>{saving ? t("common_loading") : t("common_save")}</Button>
-      </div></Modal>}
+      {showAdd && <Modal title={p("add_deadline")} onClose={() => setShowAdd(false)}><div className="space-y-4"><Field label="Title"><Input value={form.title} onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))} autoFocus /></Field><Field label="Date and time"><Input type="datetime-local" value={form.starts_at} onChange={(event) => setForm((current) => ({ ...current, starts_at: event.target.value }))} /></Field><Field label="Priority"><div className="grid grid-cols-3 gap-2">{["normal", "important", "urgent"].map((priority) => <button key={priority} onClick={() => setForm((current) => ({ ...current, priority }))} className={cn("h-10 rounded-md border text-xs font-semibold", form.priority === priority ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground")}>{priority}</button>)}</div></Field><Field label="Notes or location"><Textarea rows={3} value={form.notes} onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))} /></Field><Button className="w-full" disabled={saving || !form.title || !form.starts_at} onClick={addItem}>{saving ? t("common_loading") : t("common_save")}</Button></div></Modal>}
     </PageLayout>
   );
 }
 
-function TimelineItem({ item, p, last, onDelete }) {
-  const itemMeta = meta[item.type];
-  const Icon = itemMeta.icon;
-  const diff = Math.round((startOfDay(item.parsedDate) - startOfDay(new Date())) / 86400000);
-  const relative = diff === 0 ? p("due_today") : diff === 1 ? p("tomorrow") : diff > 1 ? `${diff} ${p("days")}` : format(item.parsedDate, "MMM d");
-  return <article className={cn("flex items-start gap-3 px-4 py-4 sm:px-5", !last && "border-b border-border")}><span className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-md", itemMeta.tone)}><Icon className="h-5 w-5" /></span><div className="min-w-0 flex-1"><div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-1"><div><p className="text-sm font-bold text-foreground">{item.title}</p><p className="mt-1 text-xs text-muted-foreground">{format(item.parsedDate, "EEEE, MMMM d")}</p></div><span className="text-xs font-semibold text-primary">{relative}</span></div>{item.detail && <p className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground"><MapPin className="h-3.5 w-3.5" />{item.detail}</p>}</div>{item.deletable && <button onClick={onDelete} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive" aria-label="Delete deadline"><Trash2 className="h-4 w-4" /></button>}</article>;
+function Field({ label, children }) {
+  return <label className="block"><span className="mb-1.5 block text-xs font-semibold text-muted-foreground">{label}</span>{children}</label>;
 }

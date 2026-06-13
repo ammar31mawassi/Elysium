@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useProfile } from "@/lib/useProfile";
-import { Search, Star, Phone, Mail } from "lucide-react";
+import { Search, Star, Phone } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
 import { Input } from "@/components/ui/input";
 import PageLayout from "@/components/layout/PageLayout";

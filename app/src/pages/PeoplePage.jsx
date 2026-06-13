@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { Plus, X, Check } from "lucide-react";
+import { Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -9,7 +9,6 @@ import BottomNav from "@/components/elysium/BottomNav";
 import EmptyState from "@/components/elysium/EmptyState";
 import MentorCard from "@/components/elysium/MentorCard";
 import StudyGroupCard from "@/components/elysium/StudyGroupCard";
-import { getInitials } from "@/lib/elysium";
 import { cn } from "@/lib/utils";
 
 export default function PeoplePage() {

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
-import { Heart, HeartOff, ThumbsUp, ThumbsDown, ChevronLeft, ExternalLink } from "lucide-react";
+import { Heart, ThumbsUp, ThumbsDown, ChevronLeft, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import CategoryBadge from "@/components/elysium/CategoryBadge";

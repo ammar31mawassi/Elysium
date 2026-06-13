@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useLanguage } from '@/lib/LanguageContext';
-import { Users, Plus, Check, X, Search, Languages, Tag } from 'lucide-react';
+import { Users, Plus, X, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';

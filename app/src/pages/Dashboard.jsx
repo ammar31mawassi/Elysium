@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { format, formatDistanceToNowStrict } from "date-fns";
-import { ArrowRight, BookOpenCheck, Calculator, CalendarDays, ChevronRight, Flag, GraduationCap, HelpCircle, MapPin, Plus, Users } from "lucide-react";
+import { ArrowRight, BookOpenCheck, Calculator, CalendarDays, ChevronRight, Flag, GraduationCap, HelpCircle, MapPin, Users } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useProfile } from "@/lib/useProfile";
 import { useLanguage } from "@/lib/LanguageContext";
@@ -11,6 +11,8 @@ import { sortByUrgency } from "@/lib/productUtils";
 import PageLayout from "@/components/layout/PageLayout";
 import SkeletonCard from "@/components/ui/SkeletonCard";
 import { cn } from "@/lib/utils";
+import CreateActionMenu from "@/components/elysium/CreateActionMenu";
+import { activeCourseNames } from "@/lib/profileCourses";
 
 const itemMeta = {
   personal: { icon: Flag, tone: "bg-rose-500/10 text-rose-600 dark:text-rose-400", path: "/calendar" },
@@ -27,7 +29,7 @@ export default function Dashboard() {
   const { user, profile, university, loading: profileLoading } = useProfile();
   const { locale, t } = useLanguage();
   const p = (key) => productText(locale, key);
-  const [data, setData] = useState({ calendar: [], events: [], eventMembers: [], sessions: [], sessionMembers: [], groups: [], groupMembers: [], tutors: [], helpers: [] });
+  const [data, setData] = useState({ calendar: [], events: [], eventMembers: [], sessions: [], sessionMembers: [], tutors: [], helpers: [] });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -43,11 +45,9 @@ export default function Dashboard() {
       safeQuery(base44.entities.SocialEventMember.filter({ user_id: user.id })),
       safeQuery(base44.entities.StudySession.filter({ university_id: profile.university_id })),
       safeQuery(base44.entities.StudySessionMember.filter({ user_id: user.id })),
-      safeQuery(base44.entities.StudyGroup.filter({ university_id: profile.university_id, is_active: true })),
-      safeQuery(base44.entities.StudyGroupMember.filter({ user_id: user.id })),
       safeQuery(base44.entities.PrivateTeacher.filter({ university_id: profile.university_id, is_active: true, is_approved: true })),
       safeQuery(base44.entities.PeerHelper.filter({ university_id: profile.university_id, is_visible: true })),
-    ]).then(([calendar, events, eventMembers, sessions, sessionMembers, groups, groupMembers, tutors, helpers]) => {
+    ]).then(([calendar, events, eventMembers, sessions, sessionMembers, tutors, helpers]) => {
       if (!active) return;
       const allowBguDemo = !university?.name || /Ben-Gurion|בן-גוריון|بن غوريون/i.test(university.name);
       setData({
@@ -56,8 +56,6 @@ export default function Dashboard() {
         eventMembers: eventMembers || [],
         sessions: allowBguDemo ? withDemoFallback(sessions, demoContent.sessions) : sessions || [],
         sessionMembers: sessionMembers || [],
-        groups: groups || [],
-        groupMembers: groupMembers || [],
         tutors: allowBguDemo ? withDemoFallback(tutors, demoContent.tutors) : tutors || [],
         helpers: allowBguDemo ? withDemoFallback(helpers, demoContent.helpers) : helpers || [],
       });
@@ -68,17 +66,18 @@ export default function Dashboard() {
   const model = useMemo(() => {
     const joinedEvents = new Set(data.eventMembers.filter((member) => member.status !== "rejected").map((member) => member.event_id));
     const joinedSessions = new Set(data.sessionMembers.map((member) => member.session_id));
-    const joinedGroups = new Set(data.groupMembers.map((member) => member.group_id));
+    const interestSet = new Set((profile?.interests || []).map((interest) => interest.toLocaleLowerCase("en")));
+    const courseSet = new Set(activeCourseNames(profile).map((course) => course.toLocaleLowerCase("en")));
     const calendarSourceIds = new Set(data.calendar.map((item) => item.source_id).filter(Boolean));
     const timeline = sortByUrgency([
       ...data.calendar.filter((item) => item.status === "active" && !item.completed).map((item) => ({ ...item, type: item.source_type === "social_activity" ? "social" : item.source_type === "study_session" ? "session" : item.source_type === "tutor_request" ? "tutor" : "personal", date: item.starts_at, detail: item.notes })),
       ...data.events.filter((event) => joinedEvents.has(event.id) && !calendarSourceIds.has(event.id) && event.status !== "canceled").map((event) => ({ id: event.id, type: "social", title: event.title, date: `${event.date}T${event.start_time || "12:00"}`, detail: event.location })),
-      ...data.sessions.filter((session) => (joinedSessions.has(session.id) || joinedGroups.has(session.group_id)) && !calendarSourceIds.has(session.id) && session.status !== "canceled").map((session) => ({ id: session.id, type: "session", title: session.title || session.course_name, date: session.session_date, detail: session.location })),
+      ...data.sessions.filter((session) => joinedSessions.has(session.id) && !calendarSourceIds.has(session.id) && session.status !== "canceled").map((session) => ({ id: session.id, type: "session", title: session.title || session.course_name, date: session.session_date, detail: session.location })),
     ], new Date());
-    const futureEvents = sortByUrgency(data.events.filter((event) => event.is_open !== false && event.status !== "canceled" && !joinedEvents.has(event.id)).map((event) => ({ ...event, date: `${event.date}T${event.start_time || "12:00"}` })), new Date());
-    const futureSessions = sortByUrgency(data.sessions.filter((session) => session.status !== "canceled" && !joinedSessions.has(session.id)).map((session) => ({ ...session, date: session.session_date })), new Date());
-    return { timeline, next: timeline[0], event: futureEvents[0], session: futureSessions[0], group: data.groups.find((group) => !joinedGroups.has(group.id)), tutor: data.tutors[0], helper: data.helpers[0] };
-  }, [data]);
+    const futureEvents = sortByUrgency(data.events.filter((event) => (!interestSet.size || interestSet.has((event.activity_name || "").toLocaleLowerCase("en"))) && event.is_open !== false && event.status !== "canceled" && !joinedEvents.has(event.id)).map((event) => ({ ...event, date: `${event.date}T${event.start_time || "12:00"}` })), new Date());
+    const futureSessions = sortByUrgency(data.sessions.filter((session) => courseSet.has((session.course_name || "").toLocaleLowerCase("en")) && session.status !== "canceled" && !joinedSessions.has(session.id)).map((session) => ({ ...session, date: session.session_date })), new Date());
+    return { timeline, next: timeline[0], event: futureEvents[0], session: futureSessions[0], tutor: data.tutors[0], helper: data.helpers[0] };
+  }, [data, profile]);
 
   if (profileLoading || loading) return <PageLayout wide><div className="grid gap-4 lg:grid-cols-3"><SkeletonCard lines={4} className="lg:col-span-2" /><SkeletonCard lines={4} />{[1, 2, 3].map((item) => <SkeletonCard key={item} lines={3} />)}</div></PageLayout>;
 
@@ -94,7 +93,7 @@ export default function Dashboard() {
         <p className="text-sm text-muted-foreground">{university?.name || p("your_university")}</p>
       </header>
 
-      <div className="grid gap-5 lg:grid-cols-[minmax(0,1.6fr)_minmax(300px,.85fr)]">
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-5 lg:grid-cols-[minmax(0,1.6fr)_minmax(300px,.85fr)]">
         <div className="min-w-0 space-y-7">
           <section className="grid gap-3 sm:grid-cols-[1.45fr_.75fr]">
             <Link to={nextMeta.path} className="featured-surface group flex min-h-48 flex-col justify-between rounded-lg p-5">
@@ -102,18 +101,18 @@ export default function Dashboard() {
               <span className="mt-5 flex items-center gap-2 text-sm font-semibold">{model.next ? p("see_all") : p("add_deadline")}<ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1 rtl:rotate-180 rtl:group-hover:-translate-x-1" /></span>
             </Link>
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-1">
-              <QuickAction icon={Plus} label={p("create_social")} to="/social?create=1" />
-              <QuickAction icon={BookOpenCheck} label={p("create_session")} to="/groups?tab=sessions&create=session" />
+              <CreateActionMenu className="min-h-14 w-full justify-start border border-border bg-card px-3 text-foreground" label={locale === "he" ? "הוספת פריט" : locale === "ar" ? "إضافة عنصر" : "Add something"} />
+              <QuickAction icon={BookOpenCheck} label="Create study group" to="/groups?create=1" />
               <QuickAction icon={Flag} label={p("add_deadline")} to="/calendar?create=1" className="col-span-2 sm:col-span-1" />
             </div>
           </section>
 
           <section><SectionTitle title={p("home_upcoming")} action={p("see_all")} to="/calendar" />{model.timeline.length ? <div className="overflow-hidden rounded-lg border border-border bg-card">{model.timeline.slice(0, 4).map((item, index) => <TimelineRow key={`${item.type}-${item.id}`} item={item} last={index === Math.min(model.timeline.length, 4) - 1} />)}</div> : <div className="rounded-lg border border-dashed border-border px-4 py-7 text-center text-sm text-muted-foreground">{p("no_upcoming")}</div>}</section>
 
-          <section><SectionTitle title={p("home_for_you")} action={p("see_all")} to="/discover" /><div className="grid gap-3 sm:grid-cols-2"><RecommendationCard icon={Users} tone="amber" eyebrow={p("home_social")} title={model.event?.title || p("discover_social")} detail={model.event ? [format(model.event.parsedDate, "EEE, MMM d · HH:mm"), model.event.location].filter(Boolean).join(" · ") : p("discover_body")} to="/discover?tab=social" /><RecommendationCard icon={BookOpenCheck} tone="blue" eyebrow={p("home_study")} title={model.session?.title || model.group?.name || p("discover_sessions")} detail={model.session?.course_name || model.session?.location || model.group?.course_name || p("discover_body")} to="/discover?tab=sessions" /></div></section>
+          <section><SectionTitle title={p("home_for_you")} action={p("see_all")} to="/discover" /><div className="grid gap-3 sm:grid-cols-2"><RecommendationCard icon={Users} tone="amber" eyebrow={p("home_social")} title={model.event?.title || p("discover_social")} detail={model.event ? [format(model.event.parsedDate, "EEE, MMM d · HH:mm"), model.event.location].filter(Boolean).join(" · ") : p("discover_body")} to="/discover?tab=social" /><RecommendationCard icon={BookOpenCheck} tone="blue" eyebrow={p("home_study")} title={model.session?.title || p("discover_groups")} detail={model.session?.course_name || model.session?.location || "Add active courses in your profile"} to="/discover?tab=sessions" /></div></section>
         </div>
 
-        <aside className="space-y-7">
+        <aside className="min-w-0 space-y-7">
           <section><SectionTitle title={p("home_academic")} action={p("see_all")} to="/discover?tab=tutors" /><div className="overflow-hidden rounded-lg border border-border bg-card"><PersonRow icon={GraduationCap} title={model.tutor?.display_name || p("tutors")} detail={model.tutor?.subjects?.slice(0, 3).join(" · ") || p("request")} to="/discover?tab=tutors" /><PersonRow icon={HelpCircle} title={model.helper?.display_name || p("helpers")} detail={model.helper?.help_topics?.slice(0, 3).join(" · ") || p("contact")} to="/discover?tab=helpers" border={false} /></div></section>
           <section><SectionTitle title={p("home_tools")} /><div className="grid grid-cols-2 gap-2"><ToolLink icon={Calculator} label="GPA" to="/tools?tool=gpa" /><ToolLink icon={Flag} label={p("add_deadline")} to="/calendar?create=1" /><ToolLink icon={BookOpenCheck} label={t("tools_flashcards")} to="/tools?tool=flashcards" /><ToolLink icon={CalendarDays} label={p("calendar_title")} to="/calendar" /></div></section>
           <section className="rounded-lg border border-border bg-card p-4"><div className="flex items-center gap-3"><span className="flex h-10 w-10 items-center justify-center rounded-md bg-primary/10 text-primary"><MapPin className="h-4 w-4" /></span><div className="min-w-0"><p className="text-xs text-muted-foreground">{p("campus")}</p><p className="truncate text-sm font-semibold text-foreground">{university?.name || p("your_university")}</p></div></div></section>

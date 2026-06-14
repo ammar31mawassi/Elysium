@@ -1,15 +1,16 @@
 import React, { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { BookOpenCheck, CalendarDays, Compass, Flag, Home, Plus, Users, Wrench, X } from "lucide-react";
+import { CalendarDays, Compass, Home, Plus, Wrench, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/lib/LanguageContext";
-import { productText } from "@/lib/productCopy";
+import { createActionCopy } from "@/lib/createActions";
+import { createActionIcons } from "@/components/elysium/CreateActionMenu";
 
 export default function BottomNav() {
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const { t, locale } = useLanguage();
-  const p = (key) => productText(locale, key);
+  const createMenu = createActionCopy(locale);
   const [showAdd, setShowAdd] = useState(false);
   const nav = [
     { path: "/", label: t("nav_home"), icon: Home },
@@ -18,24 +19,21 @@ export default function BottomNav() {
     { path: "/calendar", label: t("nav_calendar"), icon: CalendarDays },
     { path: "/tools", label: t("nav_tools"), icon: Wrench },
   ];
-  const actions = [
-    { label: p("create_social"), icon: Users, path: "/social?create=1" },
-    { label: p("create_session"), icon: BookOpenCheck, path: "/groups?tab=sessions&create=session" },
-    { label: p("add_deadline"), icon: Flag, path: "/calendar?create=1" },
-  ];
+  const actions = createMenu.actions.map((action) => ({ ...action, icon: createActionIcons[action.key] }));
 
   return (
     <>
       {showAdd && (
         <div className="fixed inset-0 z-[70] md:hidden" role="dialog" aria-modal="true" aria-label={t("nav_add")}>
           <button className="absolute inset-0 bg-black/55" onClick={() => setShowAdd(false)} aria-label={t("common_cancel")} />
-          <div className="absolute inset-x-0 bottom-0 rounded-t-2xl border-t border-border bg-background px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-3 shadow-2xl">
+          <div className="absolute inset-x-0 bottom-0 max-h-[80vh] overflow-y-auto rounded-t-2xl border-t border-border bg-background px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-3 shadow-2xl">
             <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-border" />
+            <h2 className="mx-auto mb-3 max-w-lg text-base font-bold text-foreground">{createMenu.title}</h2>
             <div className="mx-auto grid max-w-lg grid-cols-2 gap-2">
-              {actions.map(({ label, icon: Icon, path }) => (
+              {actions.map(({ key, label, description, icon: Icon, path }) => (
                 <button key={path} onClick={() => { navigate(path); setShowAdd(false); }} className="flex min-h-24 flex-col items-start justify-between rounded-lg border border-border bg-card p-3 text-start hover:border-primary/40 hover:bg-primary/5">
                   <span className="flex h-9 w-9 items-center justify-center rounded-md bg-primary/10 text-primary"><Icon className="h-[18px] w-[18px]" /></span>
-                  <span className="text-sm font-semibold text-foreground">{label}</span>
+                  <span><span className="block text-sm font-semibold text-foreground">{label}</span><span className="mt-1 block text-[11px] leading-snug text-muted-foreground">{description}</span></span>
                 </button>
               ))}
             </div>

@@ -100,9 +100,13 @@ export default function SocialPage() {
   const myMemberships = approvedMemberships.filter((item) => item.user_id === user?.id);
   const myEventIds = new Set(myMemberships.map((item) => item.event_id));
   const memberCount = (eventId) => approvedMemberships.filter((item) => item.event_id === eventId).length;
-  const visibleEvents = useMemo(() => events
-    .filter((event) => !openOnly || (event.status !== "canceled" && event.is_open))
-    .sort((a, b) => `${a.date}${a.start_time || ""}`.localeCompare(`${b.date}${b.start_time || ""}`)), [events, openOnly]);
+  const visibleEvents = useMemo(() => {
+    const interests = new Set((profile?.interests || []).map((interest) => interest.toLocaleLowerCase("en")));
+    return events
+      .filter((event) => !interests.size || interests.has((event.activity_name || "").toLocaleLowerCase("en")) || event.organizer_id === user?.id || myEventIds.has(event.id))
+      .filter((event) => !openOnly || (event.status !== "canceled" && event.is_open))
+      .sort((a, b) => `${a.date}${a.start_time || ""}`.localeCompare(`${b.date}${b.start_time || ""}`));
+  }, [events, openOnly, profile?.interests, user?.id, memberships]);
   const activityChoices = useMemo(() => interestOptions.map((interest) => ({
     value: interest.en,
     label: localizedOption(interest, locale),
@@ -199,7 +203,7 @@ export default function SocialPage() {
       {loading ? (
         <div className="grid gap-3 md:grid-cols-2">{[1, 2, 3, 4].map((item) => <SkeletonCard key={item} lines={3} />)}</div>
       ) : visibleEvents.length === 0 ? (
-        <EmptyState icon={Users} title="No activities yet" message="Create a small campus activity and make it easy for others to join." />
+        <EmptyState icon={Users} title="No relevant activities yet" message="Activities linked to your profile hobbies will appear here. Add more hobbies from your profile or create one." />
       ) : (
         <div className="grid gap-3 md:grid-cols-2">
           {visibleEvents.map((event) => {

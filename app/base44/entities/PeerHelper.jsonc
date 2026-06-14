@@ -12,11 +12,11 @@
     "help_topics": { "type": "array", "items": { "type": "string" } },
     "bio": { "type": "string" },
     "availability": { "type": "string" },
-    "contact_method": { "type": "string", "enum": ["whatsapp", "email", "in_app", "none"], "default": "in_app" },
+    "contact_method": { "type": "string", "enum": ["whatsapp", "none"], "default": "whatsapp" },
     "contact_value": {
       "type": "string",
       "rls": {
-        "read": { "$or": [{ "data.owner_user_id": "{{user.id}}" }, { "user_condition": { "role": "admin" } }] },
+        "read": { "$or": [{ "data.contact_consent": true }, { "data.owner_user_id": "{{user.id}}" }, { "user_condition": { "role": "admin" } }] },
         "write": { "$or": [{ "data.owner_user_id": "{{user.id}}" }, { "user_condition": { "role": "admin" } }] }
       }
     },

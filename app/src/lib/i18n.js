@@ -88,7 +88,7 @@ export const t = {
     joinGroup: 'Join group',
     leaveGroup: 'Leave group',
     groupMembers: 'Members',
-    addSession: 'Add study session',
+    addSession: 'Create study group',
     generalSkills: 'General Skills',
     // Planner / Calendar
     addDeadline: 'Add deadline',

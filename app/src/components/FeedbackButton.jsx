@@ -17,7 +17,7 @@ export default function FeedbackButton() {
   const handleSubmit = async () => {
     if (!message.trim()) return;
     setLoading(true);
-    await base44.entities.Feedback.create({ type: 'app', message, rating });
+    await base44.entities.Feedback.create({ feedback_type: 'app', message, rating });
     setLoading(false);
     setSubmitted(true);
     setTimeout(() => { setOpen(false); setSubmitted(false); setMessage(''); setRating(0); }, 2000);

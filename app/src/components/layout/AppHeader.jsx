@@ -1,11 +1,11 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
-import { CalendarDays, Compass, Home, Moon, Plus, Sun, Wrench } from "lucide-react";
+import { CalendarDays, Compass, Home, Moon, Sun, Wrench } from "lucide-react";
 import { useProfile } from "@/lib/useProfile";
 import { useTheme } from "@/lib/ThemeContext";
 import { useLanguage } from "@/lib/LanguageContext";
-import { productText } from "@/lib/productCopy";
 import ElysiumMark from "@/components/elysium/ElysiumMark";
+import CreateActionMenu from "@/components/elysium/CreateActionMenu";
 import { cn } from "@/lib/utils";
 
 function getInitials(name = "") {
@@ -16,8 +16,7 @@ export default function AppHeader() {
   const { pathname } = useLocation();
   const { user } = useProfile();
   const { isDark, preference, setTheme } = useTheme();
-  const { t, locale } = useLanguage();
-  const p = (key) => productText(locale, key);
+  const { t } = useLanguage();
   const toggleTheme = () => setTheme(preference === "system" ? (isDark ? "light" : "dark") : (preference === "dark" ? "light" : "dark"));
   const nav = [
     ["/", t("nav_home"), Home],
@@ -50,10 +49,7 @@ export default function AppHeader() {
         </nav>
 
         <div className="ms-auto flex items-center gap-1.5 md:ms-0">
-          <Link to="/social?create=1" className="featured-surface featured-action hidden h-11 items-center gap-2 rounded-md px-3 text-sm font-semibold md:flex">
-            <Plus className="h-4 w-4" />
-            {p("create_social")}
-          </Link>
+          <CreateActionMenu className="hidden md:flex" compact />
           <button onClick={toggleTheme} className="flex h-11 w-11 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground" aria-label="Toggle theme">
             {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           </button>

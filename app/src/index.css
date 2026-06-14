@@ -78,6 +78,8 @@
   body {
     @apply bg-background text-foreground font-body antialiased;
     min-width: 320px;
+    max-width: 100%;
+    overflow-x: clip;
     text-rendering: optimizeLegibility;
   }
   h1, h2, h3, h4, h5, h6 {
@@ -85,8 +87,9 @@
   }
 }
 
-html { color-scheme: light; scroll-behavior: smooth; }
+html { color-scheme: light; scroll-behavior: smooth; max-width: 100%; overflow-x: clip; }
 html.dark { color-scheme: dark; }
+#root { min-width: 0; max-width: 100%; overflow-x: clip; }
 
 .no-scrollbar { scrollbar-width: none; }
 .no-scrollbar::-webkit-scrollbar { display: none; }

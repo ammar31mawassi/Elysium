@@ -12,6 +12,19 @@
     "preferred_language": { "type": "string", "enum": ["Hebrew", "Arabic", "English"], "default": "English" },
     "language_preferences": { "type": "array", "items": { "type": "string" } },
     "courses": { "type": "array", "items": { "type": "string" } },
+    "course_records": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" },
+          "status": { "type": "string", "enum": ["active", "finished"], "default": "active" },
+          "grade": { "type": "number" },
+          "credits": { "type": "number" }
+        },
+        "required": ["name", "status"]
+      }
+    },
     "interests": { "type": "array", "items": { "type": "string" } },
     "help_needs": { "type": "array", "items": { "type": "string" } },
     "theme_preference": { "type": "string", "enum": ["light", "dark", "system"], "default": "system" },

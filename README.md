@@ -1,49 +1,201 @@
-# Elysium (formerly Dalili / دليلي)
+# Elysium
 
-Elysium is a personalized, trilingual student hub for planning university life, meeting people, studying together, finding academic help, and knowing what to do next.
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="app/src/assets/elysium-logo-dark.png">
+    <source media="(prefers-color-scheme: light)" srcset="app/src/assets/elysium-logo-light.png">
+    <img src="app/src/assets/elysium-logo-light.png" alt="Elysium logo" width="220">
+  </picture>
+</p>
 
-The product brings together social activities, study sessions, private tutors, peer helpers, personal deadlines, student tools, trusted university resources, and contextual AI assistance. English, Hebrew, and Arabic are first-class languages, including RTL layouts.
+<p align="center"><strong>University the way it should feel.</strong></p>
 
-## Current Stage
+Elysium is a trilingual student hub that brings campus planning, social connection, collaborative study, academic support, and practical tools into one personalized product.
 
-Elysium is in active MVP development for the June 17-22, 2026 Hub02 x BGU hackathon.
+The interface supports English, Hebrew, and Arabic, including first-class RTL layouts. Elysium is currently a private MVP being developed for the Hub02 x BGU Hackathon, scheduled for June 17-22, 2026.
 
-- Live app: <https://elysium-nexus-flow.base44.app>
-- Base44 app ID: `6a2ae3a92ace0dad0f92f1a6`
-- Application source: [`app/`](app/)
-- Product and research documentation: [`docs/`](docs/)
+**Live application:** [elysium-nexus-flow.base44.app](https://elysium-nexus-flow.base44.app/)
 
-The current Base44 build includes authenticated accounts, onboarding, a personalized home, social and study discovery, tutors, peer helpers, a personal calendar, GPA and grade tools, flashcards, guides, university links, AI assistance, light/dark themes, and trilingual RTL support.
+## Product Purpose
 
-## Product Direction
+Students routinely split their university life across calendars, messaging groups, course systems, social media, tutoring directories, and institutional websites. Elysium provides one place to answer three practical questions:
 
-The core promise is a one-stop student hub, not a generic planner:
+1. What do I need to do next?
+2. Who can I study, meet, or ask for help?
+3. Which tool or trusted resource should I use?
 
-> Elysium turns the fragmented parts of campus life into one personalized place for the next task, the right people, and useful support.
+Elysium is not a generic planner. Recommendations are shaped by the student's university, active courses, interests, calendar, language, and current needs.
 
-AI coordinates the hub and helps answer “what is next?” It does not replace the social, study, tutoring, calendar, and resource workflows.
+## MVP Features
+
+- Personalized home screen with upcoming commitments and relevant recommendations.
+- Social activities matched to students who share the selected hobby or interest.
+- Scheduled study groups and study marathons matched to active courses.
+- Private tutors and peer helpers contacted directly through consented WhatsApp links.
+- Personal calendar items for homework, exams, and other commitments.
+- Active and finished course management shared across study discovery and grade tools.
+- GPA and required-grade calculators, flashcards, guides, and official university links.
+- Ely, an action-oriented assistant that uses Base44 Agents with a Base44 AI fallback.
+- Light, dark, and system appearance settings.
+- English, Hebrew, and Arabic interfaces with responsive LTR and RTL behavior.
+
+## Product Status
+
+| Area | MVP status |
+| --- | --- |
+| Authentication and onboarding | Working |
+| Personalized dashboard | Working |
+| Social activity discovery and participation | Working |
+| Course-matched study groups and marathons | Working |
+| Tutor and peer-helper discovery | Working; contact moves to WhatsApp |
+| Calendar, GPA tools, and flashcards | Working |
+| Ely assistant | Working with persistent Agent conversations and an AI fallback |
+| Payments, in-app chat, and calendar sync | Planned, not part of this MVP |
+
+## How Creation Works
+
+The global Create action offers five choices:
+
+| Item | Visibility | Relevance rule |
+| --- | --- | --- |
+| Social activity | Public within the campus community | Shared hobby or interest |
+| Study group | Public within the campus community | Shared active course |
+| Homework | Private | Owner's calendar only |
+| Exam | Private | Owner's calendar only |
+| Other | Private | Owner's calendar only |
+
+## Technology
+
+- React 18 and Vite
+- JavaScript with TypeScript checking through `jsconfig.json`
+- Tailwind CSS and Radix UI primitives
+- Base44 authentication, entities, agents, AI integrations, and hosting
+- TanStack Query
+- Vitest and Testing Library
+- ESLint
+
+## Repository Structure
+
+```text
+app/
+  base44/
+    agents/       Base44 AI agent definitions
+    auth/         Authentication configuration
+    entities/     Data schemas and row-level access rules
+  src/
+    components/   Shared product and UI components
+    lib/          Product logic, localization, and helpers
+    pages/        Application routes
+docs/             Product research, design, team, and hackathon planning
+```
+
+Original logos and the hackathon roadmap in the repository root are project-owned source assets. Supplied assets must not be replaced or regenerated without explicit approval from the project owner.
+
+## Local Development
+
+Requirements:
+
+- Node.js 20 or newer
+- npm
+- A Base44 account with access to the Elysium app
+
+```bash
+cd app
+npm install
+```
+
+Set the Base44 application values in your local environment:
+
+```bash
+VITE_BASE44_APP_ID=your_app_id
+VITE_BASE44_APP_BASE_URL=https://your-app.base44.app
+```
+
+Start the development server:
+
+```bash
+npm run dev
+```
+
+## Quality Checks
+
+Run all repository checks before opening a pull request:
+
+```bash
+npm test
+npm run lint
+npm run typecheck
+npm run build
+```
+
+Tests currently cover localization direction, theme persistence, onboarding rules, urgency ordering, grade calculations, course normalization, creation helpers, and WhatsApp URL generation.
+
+## Demo Journey
+
+A focused demo can be completed without exposing private data:
+
+1. Complete onboarding with a university, field, interests, and optional courses.
+2. Add an active course and confirm it appears in the GPA calculator.
+3. Create or discover a study group for that course.
+4. Create a social activity linked to a hobby.
+5. Add homework or an exam through the global Create action and confirm it remains private in the calendar.
+6. Ask Ely what to focus on next and follow the suggested internal action.
+7. Open an approved tutor or peer-helper profile and use WhatsApp only when contact consent is enabled.
+
+## Base44 Workflow
+
+The Base44 project configuration is stored in `app/base44/config.jsonc`. Schema and agent changes should be reviewed before synchronizing because entity pushes affect the linked Base44 application.
+
+```bash
+cd app
+npx base44 whoami
+npx base44 entities push
+npx base44 agents push
+npm run build
+npx base44 site deploy -y
+```
+
+Never commit access tokens, passwords, private contact information, or environment files containing secrets.
+
+## Privacy And Safety
+
+- Student profiles, calendars, flashcards, and private calendar entries are owner-scoped.
+- Social activities and study groups expose only the information needed for discovery and participation.
+- Tutor and peer-helper contact details are shown only when the owner explicitly consents.
+- Elysium does not host student-to-student messaging. Contact moves to WhatsApp.
+- Ely must not invent university policies, deadlines, phone numbers, or official links.
+- Ely may explain concepts and create study plans, but must not complete graded assignments.
+
+## Current Scope
+
+BGU is the first fully represented campus, while the data architecture supports multiple universities. Payments, verified ratings, calendar synchronization, push notifications, university-system integrations, syllabus import, and campus maps remain future work.
+
+This repository remains private during hackathon development. Public release requires a final security review, production content review, and an explicit license decision.
 
 ## Team
 
-- Ammar: product, design, frontend, content direction, and demo narrative.
-- Marwan: backend, data, security, integrations, and technical QA.
+- **Ammar:** product, design, frontend, content direction, and demo narrative
+- **Marwan:** backend, data, security, integrations, and technical QA
 
-## Key Documents
+## Contributing
 
-- [Elysium Product Definition](docs/02-product/elysium-product-definition.md)
-- [MVP Scope](docs/02-product/mvp-scope.md)
-- [Campus Compass Design](docs/03-design/campus-compass.md)
-- [Team Workflow](docs/04-team/workflow.md)
-- [Hub02 Winning Strategy](docs/07-hackathon/hub02-winning-strategy.md)
-- [Current Elysium Audit](docs/07-hackathon/current-elysium-audit.md)
-- [Hackathon Execution Plan](docs/07-hackathon/execution-plan.md)
-- [Base44 Master Build Prompt](docs/07-hackathon/base44-master-build-prompt.md)
+Development uses feature branches and pull requests. Do not commit directly to `main`.
 
-## Repository
+1. Create a branch with a focused name.
+2. Keep changes scoped to one product concern.
+3. Run all quality checks.
+4. Describe user-visible behavior, data changes, and verification in the pull request.
+5. Obtain review before deploying schema or agent changes.
 
-- Remote: `https://github.com/ammar31mawassi/Elysium.git`
-- Workflow: feature branches and pull requests; no direct implementation work on `main`.
-- Base44 CLI and plugin are installed and authenticated.
-- Main branch protection is unavailable for this private repository on the current GitHub plan.
+## Documentation
 
-The logo files and hackathon roadmap PDF in the repository root are original project assets and source material.
+- [Product definition](docs/02-product/elysium-product-definition.md)
+- [MVP scope](docs/02-product/mvp-scope.md)
+- [Design direction](docs/03-design/campus-compass.md)
+- [Team workflow](docs/04-team/workflow.md)
+- [Hackathon strategy](docs/07-hackathon/hub02-winning-strategy.md)
+- [Execution plan](docs/07-hackathon/execution-plan.md)
+
+## License
+
+No open-source license has been granted yet. All rights are reserved by the Elysium team until a license is selected before public release.

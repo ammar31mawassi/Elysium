@@ -14,7 +14,6 @@ import {
   HelpCircle,
   Layers3,
   Map,
-  MessageSquare,
   Plus,
   Sparkles,
   Target,
@@ -31,6 +30,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import PageLayout from "@/components/layout/PageLayout";
 import { cn } from "@/lib/utils";
+import { courseProfileUpdate, normalizeCourseRecords } from "@/lib/profileCourses";
 
 const toolDefinitions = [
   { key: "gpa", icon: Calculator, component: GpaCalculator },
@@ -40,7 +40,6 @@ const toolDefinitions = [
 
 const plannedFeatures = [
   [CreditCard, "Tutor payments"],
-  [MessageSquare, "In-app messaging"],
   [CalendarSync, "Google and Outlook sync"],
   [Bell, "Push notifications"],
   [Upload, "Moodle, Inbar and syllabus import"],
@@ -114,10 +113,29 @@ function GuideRow({ guide, locale, expanded, onToggle }) {
 }
 
 function GpaCalculator() {
-  const [courses, setCourses] = useState([{ name: "", grade: "", credits: "" }]);
+  const { profile, setProfile } = useProfile();
+  const [courses, setCourses] = useState(() => {
+    const profileCourses = normalizeCourseRecords(profile);
+    return profileCourses.length ? profileCourses : [{ name: "", status: "active", grade: "", credits: "" }];
+  });
+  const [saving, setSaving] = useState(false);
+  useEffect(() => {
+    const profileCourses = normalizeCourseRecords(profile);
+    if (profileCourses.length) setCourses(profileCourses);
+  }, [profile?.id]);
   const result = useMemo(() => calculateGpa(courses), [courses]);
   const updateCourse = (index, field, value) => setCourses((current) => current.map((course, courseIndex) => courseIndex === index ? { ...course, [field]: value } : course));
-  return <div className="space-y-3">{courses.map((course, index) => <div key={index} className="grid grid-cols-[minmax(0,2fr)_1fr_1fr_44px] gap-2"><Input aria-label="Course" placeholder="Course" value={course.name} onChange={(event) => updateCourse(index, "name", event.target.value)} /><Input aria-label="Grade" type="number" min="0" max="100" placeholder="Grade" value={course.grade} onChange={(event) => updateCourse(index, "grade", event.target.value)} /><Input aria-label="Credits" type="number" min="0.5" max="20" step="0.5" placeholder="Credits" value={course.credits} onChange={(event) => updateCourse(index, "credits", event.target.value)} /><button className="flex h-10 w-10 items-center justify-center rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive" onClick={() => setCourses((current) => current.length > 1 ? current.filter((_, courseIndex) => courseIndex !== index) : current)} aria-label="Remove course"><X className="h-4 w-4" /></button></div>)}<Button variant="outline" className="gap-2" onClick={() => setCourses((current) => [...current, { name: "", grade: "", credits: "" }])}><Plus className="h-4 w-4" />Add course</Button>{result && <div className="rounded-lg border border-primary/20 bg-primary/5 p-4 text-center"><p className="text-xs text-muted-foreground">Weighted average across {result.credits} credits</p><p className="mt-1 text-4xl font-bold text-primary">{result.average.toFixed(2)}</p><p className="mt-2 text-xs text-muted-foreground">Sum of grade times credits, divided by total credits.</p></div>}</div>;
+  const saveGrades = async () => {
+    if (!profile?.id) return;
+    setSaving(true);
+    try {
+      const update = courseProfileUpdate(courses.filter((course) => course.name.trim()));
+      await base44.entities.StudentProfile.update(profile.id, update);
+      setProfile((current) => ({ ...current, ...update }));
+      setCourses(update.course_records.length ? update.course_records : [{ name: "", status: "active", grade: "", credits: "" }]);
+    } finally { setSaving(false); }
+  };
+  return <div className="space-y-3">{courses.map((course, index) => <div key={`${course.name}-${index}`} className="grid min-w-0 gap-2 rounded-md border border-border p-2 sm:grid-cols-[minmax(0,2fr)_minmax(88px,1fr)_minmax(88px,1fr)_44px] sm:border-0 sm:p-0"><Input className="min-w-0" aria-label="Course" placeholder="Course" value={course.name} onChange={(event) => updateCourse(index, "name", event.target.value)} /><div className="grid grid-cols-2 gap-2 sm:contents"><Input className="min-w-0" aria-label="Grade" type="number" min="0" max="100" placeholder="Grade" value={course.grade ?? ""} onChange={(event) => updateCourse(index, "grade", event.target.value)} /><Input className="min-w-0" aria-label="Credits" type="number" min="0.5" max="20" step="0.5" placeholder="Credits" value={course.credits ?? ""} onChange={(event) => updateCourse(index, "credits", event.target.value)} /></div><button className="flex h-10 w-10 items-center justify-center rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive" onClick={() => setCourses((current) => current.length > 1 ? current.filter((_, courseIndex) => courseIndex !== index) : current)} aria-label="Remove course"><X className="h-4 w-4" /></button></div>)}<div className="flex flex-wrap gap-2"><Button variant="outline" className="gap-2" onClick={() => setCourses((current) => [...current, { name: "", status: "active", grade: "", credits: "" }])}><Plus className="h-4 w-4" />Add course</Button><Button onClick={saveGrades} disabled={saving || !courses.some((course) => course.name.trim())}>{saving ? "Saving..." : "Save grades"}</Button></div>{result && <div className="rounded-lg border border-primary/20 bg-primary/5 p-4 text-center"><p className="text-xs text-muted-foreground">Weighted average across {result.credits} credits</p><p className="mt-1 text-4xl font-bold text-primary">{result.average.toFixed(2)}</p><p className="mt-2 text-xs text-muted-foreground">Sum of grade times credits, divided by total credits.</p></div>}</div>;
 }
 
 function GradeNeeded() {

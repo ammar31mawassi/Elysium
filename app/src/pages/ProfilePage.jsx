@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useProfile } from "@/lib/useProfile";
 import { useLanguage } from "@/lib/LanguageContext";
 import { useTheme } from "@/lib/ThemeContext";
 import { LOCALE_NAMES, SUPPORTED_LOCALES } from "@/lib/i18n";
-import { LogOut, Edit2, GraduationCap, HelpCircle, Sun, Moon, Monitor } from "lucide-react";
+import { BookOpenCheck, LogOut, Edit2, GraduationCap, HelpCircle, Sun, Moon, Monitor, Plus, Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -12,6 +12,8 @@ import PageLayout from "@/components/layout/PageLayout";
 import ElysiumMark from "@/components/elysium/ElysiumMark";
 import { cn } from "@/lib/utils";
 import { productText } from "@/lib/productCopy";
+import { DEFAULT_INTERESTS, filterLocalizedOptions, localizedOption, mergeInterestOptions, normalizeOptionName } from "@/lib/onboardingOptions";
+import { courseProfileUpdate, normalizeCourseRecords } from "@/lib/profileCourses";
 
 function getInitials(name = '') {
   return name.split(' ').filter(Boolean).map(n => n[0]).join('').toUpperCase().slice(0, 2) || 'S';
@@ -22,29 +24,33 @@ export default function ProfilePage() {
   const { locale, setLocale, t } = useLanguage();
   const p = (key) => productText(locale, key);
   const { preference, setTheme, isDark } = useTheme();
-  const [myGroups, setMyGroups] = useState([]);
   const [teacherProfile, setTeacherProfile] = useState(null);
   const [peerHelper, setPeerHelper] = useState(null);
+  const [courseRecords, setCourseRecords] = useState([]);
+  const [courseDraft, setCourseDraft] = useState({ name: '', status: 'active' });
+  const [interestOptions, setInterestOptions] = useState(DEFAULT_INTERESTS);
+  const [interestSearch, setInterestSearch] = useState('');
+  const [showCustomInterest, setShowCustomInterest] = useState(false);
+  const [customInterest, setCustomInterest] = useState({ en: '', he: '' });
   const [loading, setLoading] = useState(true);
   const [showTutorForm, setShowTutorForm] = useState(false);
   const [showHelperForm, setShowHelperForm] = useState(false);
   const [tutorForm, setTutorForm] = useState({ subjects_raw: '', languages_raw: '', phone_number: '', bio: '', teaching_mode: 'both', price_min: '', price_max: '', availability: '', contact_consent: false });
-  const [helperForm, setHelperForm] = useState({ topics_raw: '', languages_raw: '', bio: '', availability: '', contact_method: 'in_app', contact_value: '', contact_consent: false });
+  const [helperForm, setHelperForm] = useState({ topics_raw: '', languages_raw: '', bio: '', availability: '', contact_method: 'whatsapp', contact_value: '', contact_consent: false });
   const [saving, setSaving] = useState(false);
   const [savingHelper, setSavingHelper] = useState(false);
 
   useEffect(() => {
+    setCourseRecords(normalizeCourseRecords(profile));
+  }, [profile]);
+
+  useEffect(() => {
     if (!user?.id) return;
     Promise.all([
-      base44.entities.StudyGroupMember.filter({ user_id: user.id }),
       base44.entities.PrivateTeacher.filter({ user_id: user.id }),
       base44.entities.PeerHelper.filter({ owner_user_id: user.id }),
-    ]).then(async ([mems, teachers, helpers]) => {
-      if (mems?.length) {
-        const groups = await base44.entities.StudyGroup.list();
-        const ids = new Set(mems.map(m => m.group_id));
-        setMyGroups(groups.filter(g => ids.has(g.id)));
-      }
+      base44.entities.Interest.filter({ is_active: true }),
+    ]).then(([teachers, helpers, interests]) => {
       if (teachers?.length) {
         const t = teachers[0];
         setTeacherProfile(t);
@@ -53,11 +59,57 @@ export default function ProfilePage() {
       if (helpers?.length) {
         const h = helpers[0];
         setPeerHelper(h);
-        setHelperForm({ topics_raw: (h.help_topics || []).join(', '), languages_raw: (h.languages || []).join(', '), bio: h.bio || '', availability: h.availability || '', contact_method: h.contact_method || 'in_app', contact_value: h.contact_value || '', contact_consent: h.contact_consent || false });
+        setHelperForm({ topics_raw: (h.help_topics || []).join(', '), languages_raw: (h.languages || []).join(', '), bio: h.bio || '', availability: h.availability || '', contact_method: 'whatsapp', contact_value: h.contact_value || '', contact_consent: h.contact_consent || false });
       }
+      setInterestOptions(mergeInterestOptions(interests));
       setLoading(false);
     });
   }, [user?.id]);
+
+  const filteredInterests = useMemo(() => filterLocalizedOptions(interestOptions, interestSearch).slice(0, 24), [interestOptions, interestSearch]);
+
+  const saveProfilePatch = async (patch) => {
+    if (!profile?.id) return;
+    await base44.entities.StudentProfile.update(profile.id, patch);
+    setProfile((current) => ({ ...current, ...patch }));
+  };
+
+  const persistCourses = async (nextCourses) => {
+    const update = courseProfileUpdate(nextCourses);
+    setCourseRecords(update.course_records);
+    await saveProfilePatch(update);
+  };
+
+  const addCourse = async () => {
+    const name = courseDraft.name.trim();
+    if (!name || courseRecords.some((course) => course.name.toLowerCase() === name.toLowerCase())) return;
+    await persistCourses([...courseRecords, { name, status: courseDraft.status, grade: '', credits: '' }]);
+    setCourseDraft({ name: '', status: 'active' });
+  };
+
+  const toggleInterest = async (name) => {
+    const current = profile?.interests || [];
+    const interests = current.includes(name) ? current.filter((item) => item !== name) : [...current, name];
+    await saveProfilePatch({ interests });
+  };
+
+  const addCustomInterest = async () => {
+    const english = customInterest.en.trim();
+    const hebrew = customInterest.he.trim();
+    if (!english || !hebrew || !user?.id) return;
+    const existing = interestOptions.find((interest) => normalizeOptionName(interest.en) === normalizeOptionName(english));
+    if (existing) {
+      if (!(profile?.interests || []).includes(existing.en)) await saveProfilePatch({ interests: [...(profile?.interests || []), existing.en] });
+    } else {
+      const record = await base44.entities.Interest.create({ name_en: english, name_he: hebrew, normalized_key: normalizeOptionName(english), created_by: user.id, is_active: true });
+      const option = { id: record.id, en: english, he: hebrew, ar: english, persisted: true };
+      setInterestOptions((current) => [...current, option]);
+      await saveProfilePatch({ interests: [...(profile?.interests || []), english] });
+    }
+    setCustomInterest({ en: '', he: '' });
+    setShowCustomInterest(false);
+    setInterestSearch('');
+  };
 
   const handleLocaleChange = async (l) => {
     setLocale(l);
@@ -88,7 +140,7 @@ export default function ProfilePage() {
     setSavingHelper(true);
     const topics = helperForm.topics_raw.split(',').map(s => s.trim()).filter(Boolean);
     const languages = helperForm.languages_raw.split(',').map(s => s.trim()).filter(Boolean);
-    const data = { owner_user_id: user.id, university_id: profile.university_id, faculty_id: profile.faculty_id || '', field_of_study: profile.field_of_study || '', academic_year: profile.academic_year || '', display_name: profile?.preferred_name || user.full_name || 'Student', help_topics: topics, languages, bio: helperForm.bio, availability: helperForm.availability, contact_method: helperForm.contact_method, contact_value: helperForm.contact_consent ? helperForm.contact_value : '', contact_consent: helperForm.contact_consent, is_visible: true, moderation_status: 'ok' };
+    const data = { owner_user_id: user.id, university_id: profile.university_id, faculty_id: profile.faculty_id || '', field_of_study: profile.field_of_study || '', academic_year: profile.academic_year || '', display_name: profile?.preferred_name || user.full_name || 'Student', help_topics: topics, languages, bio: helperForm.bio, availability: helperForm.availability, contact_method: 'whatsapp', contact_value: helperForm.contact_consent ? helperForm.contact_value : '', contact_consent: helperForm.contact_consent, is_visible: true, moderation_status: 'ok' };
     if (peerHelper) {
       await base44.entities.PeerHelper.update(peerHelper.id, data);
     } else {
@@ -148,6 +200,40 @@ export default function ProfilePage() {
             </button>
           ))}
         </div>
+      </SettingsCard>
+
+      <SettingsCard title="My courses" icon={<BookOpenCheck className="h-4 w-4 text-primary" />}>
+        <p className="mb-3 text-xs leading-relaxed text-muted-foreground">Active courses are used for study-group matching. Finished courses stay available in your grade tools.</p>
+        <div className="space-y-2">
+          {courseRecords.map((course) => (
+            <div key={course.name} className="flex min-w-0 items-center gap-2 rounded-md border border-border p-2">
+              <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">{course.name}</span>
+              <select aria-label={`${course.name} status`} value={course.status} onChange={(event) => persistCourses(courseRecords.map((item) => item.name === course.name ? { ...item, status: event.target.value } : item))} className="h-10 rounded-md border border-input bg-background px-2 text-xs">
+                <option value="active">Active</option>
+                <option value="finished">Finished</option>
+              </select>
+              <button onClick={() => persistCourses(courseRecords.filter((item) => item.name !== course.name))} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive" aria-label={`Remove ${course.name}`}><X className="h-4 w-4" /></button>
+            </div>
+          ))}
+        </div>
+        <div className="mt-3 grid gap-2 sm:grid-cols-[minmax(0,1fr)_130px_auto]">
+          <Input value={courseDraft.name} onChange={(event) => setCourseDraft((current) => ({ ...current, name: event.target.value }))} placeholder="Add a course" />
+          <select aria-label="New course status" value={courseDraft.status} onChange={(event) => setCourseDraft((current) => ({ ...current, status: event.target.value }))} className="h-10 rounded-md border border-input bg-background px-3 text-sm"><option value="active">Active</option><option value="finished">Finished</option></select>
+          <Button variant="outline" className="gap-2" disabled={!courseDraft.name.trim()} onClick={addCourse}><Plus className="h-4 w-4" />Add</Button>
+        </div>
+      </SettingsCard>
+
+      <SettingsCard title="Interests and hobbies">
+        <p className="mb-3 text-xs leading-relaxed text-muted-foreground">Your interests decide which social activities are relevant to you.</p>
+        <div className="relative"><Search className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><Input className="ps-9" value={interestSearch} onChange={(event) => setInterestSearch(event.target.value)} placeholder="Search hobbies" /></div>
+        <div className="mt-3 flex max-h-48 flex-wrap gap-2 overflow-y-auto pe-1">
+          {filteredInterests.map((interest) => {
+            const selected = (profile?.interests || []).includes(interest.en);
+            return <button key={interest.id} type="button" onClick={() => toggleInterest(interest.en)} className={cn("min-h-10 rounded-full border px-3 py-1.5 text-xs font-semibold", selected ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card text-muted-foreground hover:border-primary/40 hover:text-foreground")}>{localizedOption(interest, locale)}</button>;
+          })}
+        </div>
+        <Button type="button" variant="outline" className="mt-3 gap-2" onClick={() => setShowCustomInterest((current) => !current)}><Plus className="h-4 w-4" />Add a hobby</Button>
+        {showCustomInterest && <div className="mt-3 rounded-md border border-border p-3"><p className="mb-2 text-xs text-muted-foreground">New hobbies require an English and Hebrew name so other students can find them.</p><div className="grid gap-2 sm:grid-cols-2"><Input value={customInterest.en} onChange={(event) => setCustomInterest((current) => ({ ...current, en: event.target.value }))} placeholder="English name" /><Input dir="rtl" value={customInterest.he} onChange={(event) => setCustomInterest((current) => ({ ...current, he: event.target.value }))} placeholder="Hebrew name" /></div><Button className="mt-3" disabled={!customInterest.en.trim() || !customInterest.he.trim()} onClick={addCustomInterest}>Add hobby</Button></div>}
       </SettingsCard>
 
       {/* Offer tutoring */}
@@ -228,20 +314,6 @@ export default function ProfilePage() {
           </div>
         )}
       </SettingsCard>
-
-      {/* Study Groups */}
-      {myGroups.length > 0 && (
-        <SettingsCard title={p('profile_my_groups')}>
-          <div className="space-y-1.5">
-            {myGroups.map(g => (
-              <div key={g.id} className="flex items-center gap-2 py-1">
-                <div className="w-2 h-2 rounded-full bg-primary shrink-0" />
-                <p className="text-sm text-foreground">{g.name}</p>
-              </div>
-            ))}
-          </div>
-        </SettingsCard>
-      )}
 
       {/* Sign out */}
       <button onClick={() => base44.auth.logout('/')} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-destructive transition-colors mt-2 pb-4">

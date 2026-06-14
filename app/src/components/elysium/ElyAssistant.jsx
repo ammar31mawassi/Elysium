@@ -8,9 +8,10 @@ import { useProfile } from "@/lib/useProfile";
 import ElysiumMark from "@/components/elysium/ElysiumMark";
 import { cn } from "@/lib/utils";
 import { extractInternalPaths } from "@/lib/productUtils";
+import { normalizeCourseRecords } from "@/lib/profileCourses";
 
 const labels = {
-  en: { title: "Ely", subtitle: "Your campus next-step assistant", placeholder: "What do you need help with?", empty: "Ask about your next deadline, a course, campus help, or where to find the right person.", open: "Open Ely", close: "Close Ely", full: "Open full chat", error: "Ely could not respond. Try again.", suggestions: ["What should I focus on next?", "Find a Calculus study session", "Where can I get official academic help?"] },
+  en: { title: "Ely", subtitle: "Your campus next-step assistant", placeholder: "What do you need help with?", empty: "Ask about your next deadline, a course, campus help, or where to find the right person.", open: "Open Ely", close: "Close Ely", full: "Open full chat", error: "Ely could not respond. Try again.", suggestions: ["What should I focus on next?", "Find a Calculus study group", "Where can I get official academic help?"] },
   he: { title: "Ely", subtitle: "העוזר שלך לצעד הבא בקמפוס", placeholder: "במה אפשר לעזור?", empty: "אפשר לשאול על המועד הבא, קורס, עזרה בקמפוס או האדם המתאים.", open: "פתיחת Ely", close: "סגירת Ely", full: "פתיחת הצ'אט המלא", error: "Ely לא הצליחה לענות. נסו שוב.", suggestions: ["במה כדאי להתמקד עכשיו?", "מצא מפגש לימוד בחדו״א", "איפה מקבלים עזרה אקדמית רשמית?"] },
   ar: { title: "Ely", subtitle: "مساعدك للخطوة التالية في الحرم", placeholder: "بماذا تحتاج مساعدة؟", empty: "اسأل عن الموعد القادم أو مساق أو دعم جامعي أو الشخص المناسب.", open: "فتح Ely", close: "إغلاق Ely", full: "فتح المحادثة الكاملة", error: "تعذر على Ely الرد. حاول مرة أخرى.", suggestions: ["على ماذا أركز الآن؟", "ابحث عن جلسة تفاضل وتكامل", "أين أحصل على دعم أكاديمي رسمي؟"] },
 };
@@ -36,6 +37,9 @@ export default function ElyAssistant({ embedded = false, defaultOpen = false }) 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const bottomRef = useRef(null);
+  const messagesRef = useRef([]);
+
+  useEffect(() => { messagesRef.current = messages; }, [messages]);
 
   useEffect(() => {
     if (!open || conversation || !user?.id) return undefined;
@@ -74,9 +78,30 @@ export default function ElyAssistant({ embedded = false, defaultOpen = false }) 
     university?.name ? `University: ${university.name}` : "",
     profile?.academic_year ? `Academic year: ${profile.academic_year}` : "",
     profile?.field_of_study ? `Field: ${profile.field_of_study}` : "",
-    profile?.courses?.length ? `Courses: ${profile.courses.join(", ")}` : "",
+    normalizeCourseRecords(profile).length
+      ? `Courses: ${normalizeCourseRecords(profile).map((course) => `${course.name} (${course.status})`).join(", ")}`
+      : "",
     `Preferred locale: ${locale}`,
   ].filter(Boolean).join("\n"), [profile, user?.full_name, university?.name, locale]);
+
+  async function waitForAgentReply(conversationId, previousAssistantCount) {
+    for (let attempt = 0; attempt < 6; attempt += 1) {
+      await new Promise((resolve) => window.setTimeout(resolve, 1250));
+      const updated = await base44.agents.getConversation(conversationId);
+      const nextMessages = updated?.messages || [];
+      if (nextMessages.length) setMessages(nextMessages);
+      if (nextMessages.filter((message) => message.role === "assistant" && message.content).length > previousAssistantCount) return true;
+    }
+    return false;
+  }
+
+  async function fallbackReply(content) {
+    const recent = messagesRef.current.slice(-6).map((message) => `${message.role}: ${typeof message.content === "string" ? message.content : JSON.stringify(message.content)}`).join("\n");
+    const prompt = `You are Ely, Elysium's trilingual campus next-step assistant. Reply in ${locale === "he" ? "Hebrew" : locale === "ar" ? "Arabic" : "English"}. Keep the answer short and use these headings: Now, Next, Help. Never invent university rules, deadlines, contacts, or links. You may suggest these verified internal routes: /calendar, /discover?tab=social, /discover?tab=sessions, /discover?tab=tutors, /discover?tab=helpers, /tools, /profile. Do not complete graded assignments.\n\nStudent context:\n${studentContext}\n\nRecent conversation:\n${recent}\n\nStudent question: ${content}`;
+    const response = await base44.integrations.Core.InvokeLLM({ prompt });
+    const assistantMessage = { id: `ely-fallback-${Date.now()}`, role: "assistant", content: typeof response === "string" ? response : JSON.stringify(response), created_date: new Date().toISOString(), fallback: true };
+    setMessages((current) => [...current, assistantMessage]);
+  }
 
   async function send(message = input) {
     const content = message.trim();
@@ -85,14 +110,24 @@ export default function ElyAssistant({ embedded = false, defaultOpen = false }) 
     setError("");
     setLoading(true);
     try {
+      const previousAssistantCount = messagesRef.current.filter((item) => item.role === "assistant" && item.content).length;
+      const optimistic = { id: `ely-user-${Date.now()}`, role: "user", content, created_date: new Date().toISOString() };
+      setMessages((current) => [...current, optimistic]);
       await base44.agents.addMessage(conversation, {
         role: "user",
         content,
         custom_context: [{ type: "student_context", message: "Use this current student context.", data: { summary: studentContext } }],
       });
+      const replied = await waitForAgentReply(conversation.id, previousAssistantCount);
+      if (!replied) await fallbackReply(content);
     } catch (cause) {
       console.error(cause);
-      setError(copy.error);
+      try {
+        await fallbackReply(content);
+      } catch (fallbackError) {
+        console.error(fallbackError);
+        setError(copy.error);
+      }
     } finally {
       setLoading(false);
     }

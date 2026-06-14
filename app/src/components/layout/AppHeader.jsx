@@ -50,7 +50,7 @@ export default function AppHeader() {
         </nav>
 
         <div className="ms-auto flex items-center gap-1.5 md:ms-0">
-          <Link to="/social?create=1" className="hidden h-11 items-center gap-2 rounded-md bg-primary px-3 text-sm font-semibold text-primary-foreground hover:brightness-105 md:flex">
+          <Link to="/social?create=1" className="featured-surface featured-action hidden h-11 items-center gap-2 rounded-md px-3 text-sm font-semibold md:flex">
             <Plus className="h-4 w-4" />
             {p("create_social")}
           </Link>

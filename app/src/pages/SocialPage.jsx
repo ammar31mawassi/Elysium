@@ -20,12 +20,14 @@ import PageLayout from "@/components/layout/PageLayout";
 import SkeletonCard from "@/components/ui/SkeletonCard";
 import EmptyState from "@/components/ui/EmptyState";
 import Modal from "@/components/ui/Modal";
+import SearchableChoice from "@/components/elysium/SearchableChoice";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
+import { DEFAULT_INTERESTS, localizedOption, mergeInterestOptions } from "@/lib/onboardingOptions";
+import { categoryForInterest } from "@/lib/creationOptions";
 
-const categories = ["social", "sports", "gaming", "music", "career", "volunteering", "other"];
 const categoryIcons = {
   social: Users,
   sports: Trophy,
@@ -47,8 +49,9 @@ function calendarStart(event) {
 export default function SocialPage() {
   const location = useLocation();
   const { user, profile } = useProfile();
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
   const [events, setEvents] = useState([]);
+  const [interestOptions, setInterestOptions] = useState(DEFAULT_INTERESTS);
   const [memberships, setMemberships] = useState([]);
   const [calendarItems, setCalendarItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -62,7 +65,9 @@ export default function SocialPage() {
     start_time: "",
     end_time: "",
     location: "",
-    category: "social",
+    activity_id: "",
+    activity_name: "",
+    category: "",
     max_spots: 10,
     description: "",
   });
@@ -79,11 +84,13 @@ export default function SocialPage() {
       safeQuery(base44.entities.SocialEvent.filter({ university_id: profile.university_id })),
       safeQuery(base44.entities.SocialEventMember.list()),
       safeQuery(base44.entities.CalendarItem.filter({ owner_user_id: user.id, source_type: "social_activity" })),
-    ]).then(([eventRows, memberRows, calendarRows]) => {
+      safeQuery(base44.entities.Interest.filter({ is_active: true })),
+    ]).then(([eventRows, memberRows, calendarRows, interestRows]) => {
       if (!active) return;
       setEvents(withDemoFallback(eventRows, demoContent.events));
       setMemberships(memberRows || []);
       setCalendarItems(calendarRows || []);
+      setInterestOptions(mergeInterestOptions(interestRows));
       setLoading(false);
     });
     return () => { active = false; };
@@ -96,9 +103,15 @@ export default function SocialPage() {
   const visibleEvents = useMemo(() => events
     .filter((event) => !openOnly || (event.status !== "canceled" && event.is_open))
     .sort((a, b) => `${a.date}${a.start_time || ""}`.localeCompare(`${b.date}${b.start_time || ""}`)), [events, openOnly]);
+  const activityChoices = useMemo(() => interestOptions.map((interest) => ({
+    value: interest.en,
+    label: localizedOption(interest, locale),
+    keywords: [interest.en, interest.he, interest.ar],
+    sourceId: interest.persisted ? interest.id : "",
+  })), [interestOptions, locale]);
 
   const createEvent = async () => {
-    if (!user?.id || !profile?.university_id || !form.title || !form.date) return;
+    if (!user?.id || !profile?.university_id || !form.title || !form.date || !form.activity_name) return;
     setSaving(true);
     try {
       const created = await base44.entities.SocialEvent.create({
@@ -114,7 +127,7 @@ export default function SocialPage() {
       setMemberships((current) => [...current, membership]);
       setCalendarItems((current) => [...current, calendarItem]);
       setShowCreate(false);
-      setForm({ title: "", date: "", start_time: "", end_time: "", location: "", category: "social", max_spots: 10, description: "" });
+      setForm({ title: "", date: "", start_time: "", end_time: "", location: "", activity_id: "", activity_name: "", category: "", max_spots: 10, description: "" });
     } finally {
       setSaving(false);
     }
@@ -199,6 +212,7 @@ export default function SocialPage() {
                   <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary"><Icon className="h-5 w-5" /></span>
                   <div className="min-w-0 flex-1" dir="auto">
                     <div className="flex items-start justify-between gap-3"><h2 className="font-semibold text-foreground">{event.title}</h2><span className={cn("shrink-0 text-xs font-semibold", event.status === "canceled" ? "text-destructive" : full ? "text-amber-600" : "text-emerald-600")}>{event.status === "canceled" ? "Canceled" : full ? "Full" : "Open"}</span></div>
+                    <p className="mt-1 text-xs font-semibold text-primary">{event.activity_name || event.category}</p>
                     <p className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground"><CalendarClock className="h-3.5 w-3.5" />{event.date}{event.start_time ? `, ${event.start_time}` : ""}</p>
                     {event.location && <p className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground"><MapPin className="h-3.5 w-3.5" />{event.location}</p>}
                     <p className="mt-3 text-xs font-medium text-muted-foreground">{count} / {event.max_spots} joined{myEventIds.has(event.id) ? " · You joined" : ""}</p>
@@ -216,6 +230,7 @@ export default function SocialPage() {
         <Modal title={selected.title} onClose={() => setSelected(null)}>
           <div className="space-y-4" dir="auto">
             {selected.description && <p className="text-sm leading-relaxed text-muted-foreground">{selected.description}</p>}
+            <p className="text-xs font-semibold text-primary">{selected.activity_name || selected.category}</p>
             <div className="rounded-md bg-muted/50 p-3 text-sm text-foreground">
               <p>{selected.date}{selected.start_time ? `, ${selected.start_time}` : ""}</p>
               {selected.location && <p className="mt-1 text-muted-foreground">{selected.location}</p>}
@@ -237,12 +252,12 @@ export default function SocialPage() {
         <Modal title="Create activity" onClose={() => setShowCreate(false)}>
           <div className="space-y-4">
             <Field label="Activity name"><Input value={form.title} onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))} autoFocus /></Field>
+            <Field label="Related hobby or activity"><SearchableChoice value={form.activity_name} options={activityChoices} placeholder="Search football, gaming, music..." emptyLabel="No matching hobby found." onChange={(option) => setForm((current) => ({ ...current, activity_id: option?.sourceId || "", activity_name: option?.value || "", category: option ? categoryForInterest(option.value) : "" }))} /></Field>
             <div className="grid grid-cols-2 gap-3"><Field label="Date"><Input type="date" value={form.date} onChange={(event) => setForm((current) => ({ ...current, date: event.target.value }))} /></Field><Field label="Capacity"><Input type="number" min="2" max="200" value={form.max_spots} onChange={(event) => setForm((current) => ({ ...current, max_spots: Number(event.target.value) }))} /></Field></div>
             <div className="grid grid-cols-2 gap-3"><Field label="Starts"><Input type="time" value={form.start_time} onChange={(event) => setForm((current) => ({ ...current, start_time: event.target.value }))} /></Field><Field label="Ends"><Input type="time" value={form.end_time} onChange={(event) => setForm((current) => ({ ...current, end_time: event.target.value }))} /></Field></div>
             <Field label="Location"><Input value={form.location} onChange={(event) => setForm((current) => ({ ...current, location: event.target.value }))} /></Field>
-            <Field label="Category"><select value={form.category} onChange={(event) => setForm((current) => ({ ...current, category: event.target.value }))} className="h-11 w-full rounded-md border border-input bg-background px-3 text-sm">{categories.map((category) => <option key={category} value={category}>{category}</option>)}</select></Field>
             <Field label="Description"><Textarea rows={3} value={form.description} onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))} /></Field>
-            <Button className="w-full" disabled={saving || !form.title || !form.date || form.max_spots < 2} onClick={createEvent}>{saving ? t("common_loading") : "Create activity"}</Button>
+            <Button className="w-full" disabled={saving || !form.title || !form.activity_name || !form.date || form.max_spots < 2} onClick={createEvent}>{saving ? t("common_loading") : "Create activity"}</Button>
           </div>
         </Modal>
       )}

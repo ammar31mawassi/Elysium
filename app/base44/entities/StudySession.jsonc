@@ -16,7 +16,7 @@
     "is_marathon": { "type": "boolean", "default": false },
     "status": { "type": "string", "enum": ["open", "canceled", "completed"], "default": "open" }
   },
-  "required": ["university_id", "session_date", "host_id"],
+  "required": ["university_id", "course_name", "session_date", "host_id"],
   "rls": {
     "create": { "data.host_id": "{{user.id}}" },
     "read": { "user_condition": { "id": "{{user.id}}" } },

@@ -97,7 +97,7 @@ export default function Dashboard() {
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1.6fr)_minmax(300px,.85fr)]">
         <div className="min-w-0 space-y-7">
           <section className="grid gap-3 sm:grid-cols-[1.45fr_.75fr]">
-            <Link to={nextMeta.path} className="group flex min-h-48 flex-col justify-between rounded-lg bg-primary p-5 text-primary-foreground">
+            <Link to={nextMeta.path} className="featured-surface group flex min-h-48 flex-col justify-between rounded-lg p-5">
               <div className="flex items-start justify-between gap-4"><div><p className="text-xs font-bold uppercase opacity-75">{p("home_next")}</p><h2 className="mt-3 max-w-xl text-xl font-bold leading-snug sm:text-2xl">{model.next?.title || p("home_clear_title")}</h2><p className="mt-2 max-w-xl text-sm leading-relaxed opacity-80">{model.next ? `${format(model.next.parsedDate, "EEE, MMM d · HH:mm")} · ${formatDistanceToNowStrict(model.next.parsedDate, { addSuffix: true })}${model.next.detail ? ` · ${model.next.detail}` : ""}` : p("home_clear_body")}</p></div><span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md bg-white/15"><NextIcon className="h-5 w-5" /></span></div>
               <span className="mt-5 flex items-center gap-2 text-sm font-semibold">{model.next ? p("see_all") : p("add_deadline")}<ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1 rtl:rotate-180 rtl:group-hover:-translate-x-1" /></span>
             </Link>

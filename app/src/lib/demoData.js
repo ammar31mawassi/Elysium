@@ -25,8 +25,8 @@ export const demoFaculties = [
 
 export const demoContent = {
   events: [
-    { id: "demo-event-football", title: "Casual football after classes", organizer_id: "demo-host", university_id: bguId, date: futureDate(2).slice(0, 10), start_time: "18:00", location: "Sports Center field", category: "sports", max_spots: 14, is_open: true, status: "open", description: "Mixed-level game. Bring water and a light shirt." },
-    { id: "demo-event-coffee", title: "First-year coffee meetup", organizer_id: "demo-host-2", university_id: bguId, date: futureDate(4).slice(0, 10), start_time: "16:30", location: "Student Center courtyard", category: "social", max_spots: 20, is_open: true, status: "open", description: "Meet students from other departments and swap first-semester tips." },
+    { id: "demo-event-football", title: "Casual football after classes", organizer_id: "demo-host", university_id: bguId, date: futureDate(2).slice(0, 10), start_time: "18:00", location: "Sports Center field", category: "sports", activity_name: "Football", max_spots: 14, is_open: true, status: "open", description: "Mixed-level game. Bring water and a light shirt." },
+    { id: "demo-event-coffee", title: "First-year coffee meetup", organizer_id: "demo-host-2", university_id: bguId, date: futureDate(4).slice(0, 10), start_time: "16:30", location: "Student Center courtyard", category: "social", activity_name: "Coffee", max_spots: 20, is_open: true, status: "open", description: "Meet students from other departments and swap first-semester tips." },
   ],
   sessions: [
     { id: "demo-session-calculus", university_id: bguId, course_name: "Calculus 2", preferred_language: "English / Hebrew", title: "Calculus problem-solving session", location: "Aranne Library, floor 2", session_date: futureDate(1, 15), end_time: futureDate(1, 17), max_spots: 8, host_id: "demo-host", status: "open", notes: "We will solve tutorial sheet 9 together." },

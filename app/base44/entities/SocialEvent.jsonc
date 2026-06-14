@@ -9,13 +9,15 @@
     "start_time": { "type": "string", "format": "time" },
     "end_time": { "type": "string", "format": "time" },
     "location": { "type": "string" },
+    "activity_id": { "type": "string" },
+    "activity_name": { "type": "string" },
     "category": { "type": "string", "enum": ["gaming", "sports", "music", "study_marathon", "social", "career", "volunteering", "other"] },
     "max_spots": { "type": "number", "default": 10 },
     "is_open": { "type": "boolean", "default": true },
     "status": { "type": "string", "enum": ["open", "canceled", "completed"], "default": "open" },
     "description": { "type": "string" }
   },
-  "required": ["title", "organizer_id", "university_id", "date", "category"],
+  "required": ["title", "organizer_id", "university_id", "date", "category", "activity_name"],
   "rls": {
     "create": { "data.organizer_id": "{{user.id}}" },
     "read": { "user_condition": { "id": "{{user.id}}" } },

@@ -1,0 +1,19 @@
+{
+  "name": "Interest",
+  "type": "object",
+  "properties": {
+    "name_en": { "type": "string" },
+    "name_he": { "type": "string" },
+    "name_ar": { "type": "string" },
+    "normalized_key": { "type": "string" },
+    "created_by": { "type": "string" },
+    "is_active": { "type": "boolean", "default": true }
+  },
+  "required": ["name_en", "name_he", "normalized_key", "created_by"],
+  "rls": {
+    "create": { "data.created_by": "{{user.id}}" },
+    "read": { "user_condition": { "id": "{{user.id}}" } },
+    "update": { "$or": [{ "data.created_by": "{{user.id}}" }, { "user_condition": { "role": "admin" } }] },
+    "delete": { "$or": [{ "data.created_by": "{{user.id}}" }, { "user_condition": { "role": "admin" } }] }
+  }
+}

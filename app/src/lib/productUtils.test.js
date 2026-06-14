@@ -37,8 +37,8 @@ describe("student planning utilities", () => {
   });
 
   it("validates each onboarding stage", () => {
-    const form = { preferred_locale: "en", preferred_name: "Ammar", university_id: "bgu", faculty_id: "engineering", academic_year: "1st Year", field_of_study: "CS", courses: ["Calculus"], interests: ["Football"], help_needs: ["Study partners"], living_context: "Commuting" };
+    const form = { preferred_locale: "en", preferred_name: "Ammar", university_id: "bgu", academic_year: "1st Year", field_of_study: "Computer Science", courses: [], interests: [], help_needs: [] };
     expect([1, 2, 3, 4].every((step) => isOnboardingStepValid(form, step))).toBe(true);
-    expect(isOnboardingStepValid({ ...form, help_needs: [] }, 4)).toBe(false);
+    expect(isOnboardingStepValid({ ...form, field_of_study: "" }, 2)).toBe(false);
   });
 });

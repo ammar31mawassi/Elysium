@@ -14,13 +14,12 @@
     "courses": { "type": "array", "items": { "type": "string" } },
     "interests": { "type": "array", "items": { "type": "string" } },
     "help_needs": { "type": "array", "items": { "type": "string" } },
-    "living_context": { "type": "string", "enum": ["Dorms", "Commuting", "Near Campus", "Other"] },
     "theme_preference": { "type": "string", "enum": ["light", "dark", "system"], "default": "system" },
     "onboarding_complete": { "type": "boolean", "default": false }
   },
   "required": ["user_id"],
   "rls": {
-    "create": { "user_condition": { "id": "{{user.id}}" } },
+    "create": { "data.user_id": "{{user.id}}" },
     "read": { "$or": [{ "data.user_id": "{{user.id}}" }, { "user_condition": { "role": "admin" } }] },
     "update": { "$or": [{ "data.user_id": "{{user.id}}" }, { "user_condition": { "role": "admin" } }] },
     "delete": { "$or": [{ "data.user_id": "{{user.id}}" }, { "user_condition": { "role": "admin" } }] }

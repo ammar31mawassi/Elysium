@@ -49,8 +49,7 @@ export function extractInternalPaths(content = "") {
 
 export function isOnboardingStepValid(form, step) {
   if (step === 1) return Boolean(form.preferred_locale && form.preferred_name?.trim());
-  if (step === 2) return Boolean(form.university_id && form.faculty_id && form.academic_year && form.field_of_study?.trim());
-  if (step === 3) return Boolean(form.courses?.length && form.interests?.length);
-  if (step === 4) return Boolean(form.help_needs?.length && form.living_context);
+  if (step === 2) return Boolean(form.university_id && form.academic_year && form.field_of_study?.trim());
+  if (step === 3 || step === 4) return true;
   return false;
 }

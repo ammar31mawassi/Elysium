@@ -29,7 +29,21 @@ export function ThemeProvider({ children }) {
     localStorage.setItem(STORAGE_KEY, preference);
   }, [preference, isDark]);
 
-  const setTheme = useCallback((next) => setPreference(VALID_THEMES.has(next) ? next : "system"), []);
+  const setTheme = useCallback((next) => {
+    const resolved = VALID_THEMES.has(next) ? next : "system";
+    const root = document.documentElement;
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const apply = () => setPreference(resolved);
+
+    if (!document.startViewTransition || reduceMotion) {
+      root.classList.add("theme-transitioning");
+      apply();
+      window.setTimeout(() => root.classList.remove("theme-transitioning"), 650);
+      return;
+    }
+
+    document.startViewTransition(apply);
+  }, []);
   const value = useMemo(() => ({ preference, setTheme, isDark, resolvedTheme: isDark ? "dark" : "light" }), [preference, isDark]);
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;

@@ -38,26 +38,28 @@
 
 @layer base {
   .dark {
-    --background: 180 5% 4%;
-    --foreground: 120 11% 96%;
-    --card: 160 8% 8%;
-    --card-foreground: 120 11% 96%;
-    --surface-elevated: 150 8% 10%;
-    --popover: 150 8% 10%;
-    --popover-foreground: 120 11% 96%;
-    --primary: 176 63% 51%;
-    --primary-foreground: 180 20% 5%;
-    --secondary: 39 92% 60%;
-    --secondary-foreground: 180 20% 5%;
-    --muted: 150 8% 10%;
-    --muted-foreground: 143 4% 62%;
-    --accent: 210 88% 65%;
-    --accent-foreground: 0 0% 100%;
-    --destructive: 0 63% 55%;
+    --background: 160 9% 9%;
+    --foreground: 140 23% 98%;
+    --card: 160 10% 12%;
+    --card-foreground: 140 23% 98%;
+    --surface-elevated: 158 11% 15%;
+    --popover: 158 11% 15%;
+    --popover-foreground: 140 23% 98%;
+    --primary: 176 63% 55%;
+    --primary-foreground: 165 35% 8%;
+    --secondary: 76 100% 65%;
+    --secondary-foreground: 165 35% 8%;
+    --muted: 158 11% 16%;
+    --muted-foreground: 145 8% 70%;
+    --accent: 205 100% 65%;
+    --accent-foreground: 165 35% 8%;
+    --destructive: 0 72% 62%;
     --destructive-foreground: 0 0% 100%;
-    --border: 144 6% 17%;
-    --input: 144 6% 17%;
-    --ring: 176 63% 51%;
+    --success: 139 69% 68%;
+    --success-foreground: 165 35% 8%;
+    --border: 153 10% 23%;
+    --input: 153 10% 25%;
+    --ring: 176 63% 55%;
   }
 }
 
@@ -84,7 +86,22 @@ html.dark { color-scheme: dark; }
 body, header, nav, main, section, article, button, a, input, textarea, select {
   transition-property: color, background-color, border-color, box-shadow;
   transition-duration: 180ms;
-  transition-timing-function: ease;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+html.theme-transitioning body,
+html.theme-transitioning header,
+html.theme-transitioning nav,
+html.theme-transitioning main,
+html.theme-transitioning section,
+html.theme-transitioning article,
+html.theme-transitioning button,
+html.theme-transitioning a,
+html.theme-transitioning input,
+html.theme-transitioning textarea,
+html.theme-transitioning select {
+  transition-duration: 620ms;
+  transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 :focus-visible {
@@ -101,7 +118,7 @@ body, header, nav, main, section, article, button, a, input, textarea, select {
 .dark .shadow-lg,
 .dark .shadow-xl,
 .dark .shadow-2xl {
-  box-shadow: none;
+  box-shadow: 0 12px 36px hsl(160 20% 3% / 0.22);
 }
 
 @media (prefers-reduced-motion: reduce) {

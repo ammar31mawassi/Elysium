@@ -6,6 +6,7 @@ import { useLanguage } from "@/lib/LanguageContext";
 import { useTheme } from "@/lib/ThemeContext";
 import { LOCALE_NAMES, SUPPORTED_LOCALES } from "@/lib/i18n";
 import { normalizeWhatsAppNumber } from "@/lib/whatsapp";
+import { buildTutorProfilePayload, emptyTutorForm, splitCommaList, tutorFormFromProfile, tutorStatus } from "@/lib/tutorProfile";
 import { productText } from "@/lib/productCopy";
 import PageLayout from "@/components/layout/PageLayout";
 import ElysiumMark from "@/components/elysium/ElysiumMark";
@@ -33,10 +34,6 @@ function getInitials(name = "") {
   return name.split(" ").filter(Boolean).map((part) => part[0]).join("").toUpperCase().slice(0, 2) || "S";
 }
 
-function splitList(value = "") {
-  return value.split(",").map((item) => item.trim()).filter(Boolean);
-}
-
 export default function ProfilePage() {
   const { user, profile, university, setProfile, setUniversity } = useProfile();
   const { locale, setLocale, t } = useLanguage();
@@ -46,7 +43,7 @@ export default function ProfilePage() {
   const [teacherProfile, setTeacherProfile] = useState(null);
   const [peerHelper, setPeerHelper] = useState(null);
   const [profileForm, setProfileForm] = useState({ preferred_name: "", university_id: "", academic_year: "", field_of_study: "", preferred_language: "English" });
-  const [tutorForm, setTutorForm] = useState({ subjects_raw: "", languages_raw: "", phone_number: "", bio: "", teaching_mode: "both", price_min: "", price_max: "", availability: "", contact_consent: false });
+  const [tutorForm, setTutorForm] = useState(emptyTutorForm);
   const [helperForm, setHelperForm] = useState({ topics_raw: "", languages_raw: "", bio: "", availability: "", contact_value: "" });
   const [showTutorForm, setShowTutorForm] = useState(false);
   const [showHelperForm, setShowHelperForm] = useState(false);
@@ -76,7 +73,7 @@ export default function ProfilePage() {
       if (teachers?.length) {
         const record = teachers[0];
         setTeacherProfile(record);
-        setTutorForm({ subjects_raw: (record.subjects || []).join(", "), languages_raw: (record.languages || []).join(", "), phone_number: record.phone_number || "", bio: record.bio || "", teaching_mode: record.teaching_mode || "both", price_min: record.price_min ?? "", price_max: record.price_max ?? "", availability: record.availability || "", contact_consent: Boolean(record.contact_consent) });
+        setTutorForm(tutorFormFromProfile(record));
       }
       if (helpers?.length) {
         const record = helpers[0];
@@ -127,38 +124,32 @@ export default function ProfilePage() {
   };
 
   const handleTutorSubmit = async () => {
-    if (!user?.id || !profile?.university_id) return;
+    const { data, error } = buildTutorProfilePayload({ user, profile, profileForm, tutorForm, existingProfile: teacherProfile });
+    if (error) {
+      toast({ variant: "destructive", title: "Tutor profile was not saved", description: error });
+      return;
+    }
+
     setSavingTutor(true);
     try {
-      const data = {
-        user_id: user.id,
-        university_id: profile.university_id,
-        display_name: profileForm.preferred_name || user.full_name || "Student",
-        subjects: splitList(tutorForm.subjects_raw),
-        languages: splitList(tutorForm.languages_raw),
-        phone_number: tutorForm.contact_consent ? tutorForm.phone_number : "",
-        bio: tutorForm.bio,
-        teaching_mode: tutorForm.teaching_mode,
-        price_min: tutorForm.price_min === "" ? undefined : Number(tutorForm.price_min),
-        price_max: tutorForm.price_max === "" ? undefined : Number(tutorForm.price_max),
-        currency: "ILS",
-        availability: tutorForm.availability,
-        contact_consent: tutorForm.contact_consent,
-        is_approved: false,
-        is_active: false,
-        moderation_status: "pending",
-      };
-      if (teacherProfile) {
-        await base44.entities.PrivateTeacher.update(teacherProfile.id, data);
-        setTeacherProfile((current) => ({ ...current, ...data }));
+      const existing = teacherProfile || (await base44.entities.PrivateTeacher.filter({ user_id: user.id }).catch(() => []))[0];
+      let saved;
+      if (existing) {
+        saved = await base44.entities.PrivateTeacher.update(existing.id, data);
       } else {
-        setTeacherProfile(await base44.entities.PrivateTeacher.create(data));
+        saved = await base44.entities.PrivateTeacher.create(data);
       }
+      const persisted = saved?.id ? await base44.entities.PrivateTeacher.get(saved.id).catch(() => saved) : saved;
+      setTeacherProfile(persisted || { ...existing, ...data });
+      setTutorForm(tutorFormFromProfile(persisted || data));
       setShowTutorForm(false);
-      toast({ title: "Tutoring profile saved" });
+      toast({
+        title: "Tutoring profile saved",
+        description: data.is_active ? "Students can now find you in private tutors." : "Your tutor profile was resubmitted for review.",
+      });
     } catch (error) {
       console.error(error);
-      toast({ variant: "destructive", title: "Tutoring profile was not saved" });
+      toast({ variant: "destructive", title: "Tutoring profile was not saved", description: error.message || "Please try again." });
     } finally {
       setSavingTutor(false);
     }
@@ -166,7 +157,7 @@ export default function ProfilePage() {
 
   const handleHelperSubmit = async () => {
     const whatsapp = normalizeWhatsAppNumber(helperForm.contact_value);
-    if (!splitList(helperForm.topics_raw).length || !splitList(helperForm.languages_raw).length || !helperForm.bio.trim() || !helperForm.availability.trim() || !whatsapp) {
+    if (!splitCommaList(helperForm.topics_raw).length || !splitCommaList(helperForm.languages_raw).length || !helperForm.bio.trim() || !helperForm.availability.trim() || !whatsapp) {
       toast({ variant: "destructive", title: "Complete every Peer Helper field", description: "A valid WhatsApp number is required." });
       return;
     }
@@ -178,8 +169,8 @@ export default function ProfilePage() {
         field_of_study: profileForm.field_of_study,
         academic_year: profileForm.academic_year,
         display_name: profileForm.preferred_name || user.full_name || "Student",
-        help_topics: splitList(helperForm.topics_raw),
-        languages: splitList(helperForm.languages_raw),
+        help_topics: splitCommaList(helperForm.topics_raw),
+        languages: splitCommaList(helperForm.languages_raw),
         bio: helperForm.bio.trim(),
         availability: helperForm.availability.trim(),
         contact_method: "whatsapp",
@@ -222,6 +213,8 @@ export default function ProfilePage() {
     }
   };
 
+  const teacherStatus = tutorStatus(teacherProfile);
+
   return (
     <PageLayout title={t("profile_title")}>
       <div className="mb-4 rounded-lg border border-border bg-card p-5">
@@ -257,6 +250,7 @@ export default function ProfilePage() {
 
       <SettingsCard title={t("profile_offer_tutoring")} icon={<GraduationCap className={cn("h-4 w-4", domainTones.tutor.text)} />}>
         <p className="mb-2 text-xs text-muted-foreground">{p("profile_public_note")}</p>
+        <p className={cn("mb-3 text-xs font-semibold", teacherStatus.tone)}>{teacherStatus.label}</p>
         <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setShowTutorForm(true)}><Edit2 className="h-3.5 w-3.5" />{teacherProfile ? t("profile_edit") : t("profile_offer_tutoring")}</Button>
       </SettingsCard>
 

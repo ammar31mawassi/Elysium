@@ -10,6 +10,14 @@ import { productText } from "@/lib/productCopy";
 import PageLayout from "@/components/layout/PageLayout";
 import ElysiumMark from "@/components/elysium/ElysiumMark";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
@@ -187,7 +195,7 @@ export default function ProfilePage() {
         setPeerHelper(await base44.entities.PeerHelper.create(data));
       }
       setShowHelperForm(false);
-      toast({ title: "Peer Helper is on", description: "Students can now find your public helper profile." });
+      toast({ title: "Peer Helper is on", description: "Students can now find your public helper profile.", duration: 5000 });
     } catch (error) {
       console.error(error);
       toast({ variant: "destructive", title: "Peer Helper was not saved", description: "Your previous setting was kept. Please try again." });
@@ -205,7 +213,7 @@ export default function ProfilePage() {
     try {
       await base44.entities.PeerHelper.update(peerHelper.id, { is_visible: checked });
       setPeerHelper((current) => ({ ...current, is_visible: checked }));
-      toast({ title: checked ? "Peer Helper is on" : "Peer Helper is off" });
+      toast({ title: checked ? "Peer Helper is on" : "Peer Helper is off", duration: checked ? 5000 : undefined });
     } catch (error) {
       console.error(error);
       toast({ variant: "destructive", title: "Peer Helper setting was not changed" });
@@ -255,12 +263,94 @@ export default function ProfilePage() {
 
       <SettingsCard title="Peer Helper details" icon={<HelpCircle className={cn("h-4 w-4", domainTones.helper.text)} />}>
         <p className="mb-2 text-xs text-muted-foreground">Turn Peer Helper on in the profile header. The first time, complete these public details. Your WhatsApp number is required and is only shown while Peer Helper is on.</p>
-        {peerHelper && <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setShowHelperForm((current) => !current)}><Edit2 className="h-3.5 w-3.5" />Edit helper details</Button>}
-        {showHelperForm && <div className="mt-3 space-y-2 border-t border-border pt-3"><Field label="Topics you can help with"><Input placeholder="First week, Moodle, course registration" value={helperForm.topics_raw} onChange={(event) => setHelperForm((current) => ({ ...current, topics_raw: event.target.value }))} /></Field><Field label="Languages"><Input placeholder="Arabic, Hebrew, English" value={helperForm.languages_raw} onChange={(event) => setHelperForm((current) => ({ ...current, languages_raw: event.target.value }))} /></Field><Field label="Short introduction"><Textarea rows={3} value={helperForm.bio} onChange={(event) => setHelperForm((current) => ({ ...current, bio: event.target.value }))} /></Field><Field label="Availability"><Input placeholder="Weekdays after 18:00" value={helperForm.availability} onChange={(event) => setHelperForm((current) => ({ ...current, availability: event.target.value }))} /></Field><Field label="WhatsApp number (required)"><Input inputMode="tel" placeholder="050-000-0000" value={helperForm.contact_value} onChange={(event) => setHelperForm((current) => ({ ...current, contact_value: event.target.value }))} /></Field><p className="text-xs text-muted-foreground">Saving confirms that this WhatsApp number may be shown on your public Peer Helper card while the switch is on.</p><div className="flex gap-2"><Button className="flex-1" disabled={savingHelper} onClick={handleHelperSubmit}>{savingHelper ? "Saving..." : "Save and turn on"}</Button><Button variant="outline" onClick={() => setShowHelperForm(false)}>Cancel</Button></div></div>}
+        <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setShowHelperForm(true)}><Edit2 className="h-3.5 w-3.5" />{peerHelper ? "Edit helper details" : "Sign up as Peer Helper"}</Button>
       </SettingsCard>
+
+      <PeerHelperDialog
+        open={showHelperForm}
+        onOpenChange={setShowHelperForm}
+        helperForm={helperForm}
+        setHelperForm={setHelperForm}
+        savingHelper={savingHelper}
+        onSubmit={handleHelperSubmit}
+      />
 
       <button onClick={() => base44.auth.logout("/")} className="mt-2 flex items-center gap-2 pb-4 text-sm text-muted-foreground hover:text-destructive"><LogOut className="h-4 w-4" />{t("profile_signout")}</button>
     </PageLayout>
+  );
+}
+
+function PeerHelperDialog({ open, onOpenChange, helperForm, setHelperForm, savingHelper, onSubmit }) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-h-[calc(100vh-2rem)] overflow-y-auto sm:max-w-lg">
+        <form
+          className="space-y-4"
+          onSubmit={(event) => {
+            event.preventDefault();
+            onSubmit();
+          }}
+        >
+          <DialogHeader>
+            <DialogTitle>Sign up as a Peer Helper</DialogTitle>
+            <DialogDescription>
+              Share what you can help with. Your WhatsApp number is shown only while your Peer Helper profile is on.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3">
+            <Field label="Topics you can help with">
+              <Input
+                placeholder="First week, Moodle, course registration"
+                value={helperForm.topics_raw}
+                onChange={(event) => setHelperForm((current) => ({ ...current, topics_raw: event.target.value }))}
+              />
+            </Field>
+            <Field label="Languages">
+              <Input
+                placeholder="Arabic, Hebrew, English"
+                value={helperForm.languages_raw}
+                onChange={(event) => setHelperForm((current) => ({ ...current, languages_raw: event.target.value }))}
+              />
+            </Field>
+            <Field label="Short introduction">
+              <Textarea
+                rows={3}
+                value={helperForm.bio}
+                onChange={(event) => setHelperForm((current) => ({ ...current, bio: event.target.value }))}
+              />
+            </Field>
+            <Field label="Availability">
+              <Input
+                placeholder="Weekdays after 18:00"
+                value={helperForm.availability}
+                onChange={(event) => setHelperForm((current) => ({ ...current, availability: event.target.value }))}
+              />
+            </Field>
+            <Field label="WhatsApp number (required)">
+              <Input
+                inputMode="tel"
+                placeholder="050-000-0000"
+                value={helperForm.contact_value}
+                onChange={(event) => setHelperForm((current) => ({ ...current, contact_value: event.target.value }))}
+              />
+            </Field>
+            <p className="text-xs text-muted-foreground">
+              Saving confirms that this WhatsApp number may be shown on your public Peer Helper card while the switch is on.
+            </p>
+          </div>
+
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={savingHelper}>
+              {savingHelper ? "Saving..." : "Save and turn on"}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }
 

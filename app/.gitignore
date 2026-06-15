@@ -2,6 +2,7 @@
 .env
 .env.*
 !.env.example
+.app.jsonc
 base44/.app.jsonc
 
 # Logs

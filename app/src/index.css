@@ -49,8 +49,10 @@
     --surface-elevated: 220 7% 14%;
     --popover: 220 7% 14%;
     --popover-foreground: 0 0% 98%;
-    --primary: 176 63% 55%;
-    --primary-foreground: 220 15% 8%;
+    --primary: 207 53% 27%;
+    --primary-hover: 205 51% 32%;
+    --primary-readable: 205 100% 65%;
+    --primary-foreground: 190 55% 96%;
     --secondary: 76 100% 65%;
     --secondary-foreground: 220 15% 8%;
     --muted: 220 6% 16%;
@@ -63,9 +65,9 @@
     --success-foreground: 220 15% 8%;
     --border: 220 6% 23%;
     --input: 220 6% 25%;
-    --ring: 176 63% 55%;
-    --featured-surface: 204 52% 23%;
-    --featured-surface-hover: 202 52% 27%;
+    --ring: 205 100% 65%;
+    --featured-surface: 207 53% 27%;
+    --featured-surface-hover: 205 51% 32%;
     --featured-surface-foreground: 190 55% 96%;
     --featured-surface-border: 196 42% 34%;
   }
@@ -144,6 +146,16 @@ html.theme-transitioning select {
 .featured-action:hover {
   transform: translateY(-1px);
   box-shadow: 0 8px 24px hsl(204 70% 5% / 0.22), inset 0 1px 0 hsl(190 80% 92% / 0.08);
+}
+
+.dark .text-primary {
+  color: hsl(var(--primary-readable));
+}
+
+.dark .hover\:bg-primary:hover,
+.dark .hover\:bg-primary\/80:hover,
+.dark .hover\:bg-primary\/90:hover {
+  background-color: hsl(var(--primary-hover));
 }
 
 .dark .shadow-sm,

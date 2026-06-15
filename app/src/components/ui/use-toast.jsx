@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 
 const TOAST_LIMIT = 20;
-const TOAST_REMOVE_DELAY = 1000000;
+const TOAST_REMOVE_DELAY = 350;
 
 const actionTypes = {
   ADD_TOAST: "ADD_TOAST",
@@ -19,6 +19,7 @@ function genId() {
 }
 
 const toastTimeouts = new Map();
+const autoDismissTimeouts = new Map();
 
 const addToRemoveQueue = (toastId) => {
   if (toastTimeouts.has(toastId)) {
@@ -44,6 +45,14 @@ const _clearFromRemoveQueue = (toastId) => {
   }
 };
 
+const clearAutoDismiss = (toastId) => {
+  const timeout = autoDismissTimeouts.get(toastId);
+  if (timeout) {
+    clearTimeout(timeout);
+    autoDismissTimeouts.delete(toastId);
+  }
+};
+
 export const reducer = (state, action) => {
   switch (action.type) {
     case actionTypes.ADD_TOAST:
@@ -66,9 +75,11 @@ export const reducer = (state, action) => {
       // ! Side effects ! - This could be extracted into a dismissToast() action,
       // but I'll keep it here for simplicity
       if (toastId) {
+        clearAutoDismiss(toastId);
         addToRemoveQueue(toastId);
       } else {
         state.toasts.forEach((toast) => {
+          clearAutoDismiss(toast.id);
           addToRemoveQueue(toast.id);
         });
       }
@@ -87,11 +98,14 @@ export const reducer = (state, action) => {
     }
     case actionTypes.REMOVE_TOAST:
       if (action.toastId === undefined) {
+        autoDismissTimeouts.forEach((timeout) => clearTimeout(timeout));
+        autoDismissTimeouts.clear();
         return {
           ...state,
           toasts: [],
         };
       }
+      clearAutoDismiss(action.toastId);
       return {
         ...state,
         toasts: state.toasts.filter((t) => t.id !== action.toastId),
@@ -112,6 +126,7 @@ function dispatch(action) {
 
 function toast({ ...props }) {
   const id = genId();
+  const { duration, ...toastProps } = props;
 
   const update = (props) =>
     dispatch({
@@ -125,7 +140,7 @@ function toast({ ...props }) {
   dispatch({
     type: actionTypes.ADD_TOAST,
     toast: {
-      ...props,
+      ...toastProps,
       id,
       open: true,
       onOpenChange: (open) => {
@@ -133,6 +148,10 @@ function toast({ ...props }) {
       },
     },
   });
+
+  if (typeof duration === "number" && duration > 0) {
+    autoDismissTimeouts.set(id, setTimeout(dismiss, duration));
+  }
 
   return {
     id,

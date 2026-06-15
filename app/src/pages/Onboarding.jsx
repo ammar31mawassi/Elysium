@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 import { demoUniversity } from "@/lib/demoData";
 import { isOnboardingStepValid, localizedField } from "@/lib/productUtils";
 import { courseProfileUpdate } from "@/lib/profileCourses";
+import { registerCourses } from "@/lib/courseCatalog";
 import {
   DEFAULT_INTERESTS,
   FIELD_OPTIONS,
@@ -159,6 +160,7 @@ export default function Onboarding() {
       } else {
         await base44.entities.StudentProfile.create(profileData);
       }
+      await registerCourses(base44, { universityId: profileData.university_id, userId: user.id, courses: profileData.course_records });
       navigate("/");
     } catch (cause) {
       console.error(cause);

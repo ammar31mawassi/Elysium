@@ -1,6 +1,6 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
-import { CalendarDays, Compass, Home, Moon, Sun, Wrench } from "lucide-react";
+import { CalendarDays, Compass, Home, Moon, Sun, UserRound, Wrench } from "lucide-react";
 import { useProfile } from "@/lib/useProfile";
 import { useTheme } from "@/lib/ThemeContext";
 import { useLanguage } from "@/lib/LanguageContext";
@@ -22,6 +22,7 @@ export default function AppHeader() {
     ["/", t("nav_home"), Home],
     ["/discover", t("nav_discover"), Compass],
     ["/calendar", t("nav_calendar"), CalendarDays],
+    ["/me", t("nav_me"), UserRound],
     ["/tools", t("nav_tools"), Wrench],
   ];
 

@@ -31,6 +31,7 @@ import { Button } from "@/components/ui/button";
 import PageLayout from "@/components/layout/PageLayout";
 import { cn } from "@/lib/utils";
 import { courseProfileUpdate, normalizeCourseRecords } from "@/lib/profileCourses";
+import { mergeCourseSuggestions, registerCourses } from "@/lib/courseCatalog";
 
 const toolDefinitions = [
   { key: "gpa", icon: Calculator, component: GpaCalculator },
@@ -113,16 +114,25 @@ function GuideRow({ guide, locale, expanded, onToggle }) {
 }
 
 function GpaCalculator() {
-  const { profile, setProfile } = useProfile();
+  const { user, profile, setProfile } = useProfile();
+  const makeRow = (course = {}) => ({ name: "", status: "active", grade: "", credits: "", ...course, _rowId: `${Date.now()}-${Math.random()}` });
   const [courses, setCourses] = useState(() => {
     const profileCourses = normalizeCourseRecords(profile);
-    return profileCourses.length ? profileCourses : [{ name: "", status: "active", grade: "", credits: "" }];
+    return profileCourses.length ? profileCourses.map(makeRow) : [makeRow()];
   });
+  const [courseSuggestions, setCourseSuggestions] = useState([]);
   const [saving, setSaving] = useState(false);
   useEffect(() => {
     const profileCourses = normalizeCourseRecords(profile);
-    if (profileCourses.length) setCourses(profileCourses);
+    if (profileCourses.length) setCourses(profileCourses.map(makeRow));
   }, [profile?.id]);
+  useEffect(() => {
+    if (!profile?.university_id) return;
+    Promise.all([
+      base44.entities.CourseCatalog.filter({ university_id: profile.university_id }).catch(() => []),
+      base44.entities.StudySession.filter({ university_id: profile.university_id }).catch(() => []),
+    ]).then(([catalog, sessions]) => setCourseSuggestions(mergeCourseSuggestions(catalog, sessions, normalizeCourseRecords(profile))));
+  }, [profile?.university_id]);
   const result = useMemo(() => calculateGpa(courses), [courses]);
   const updateCourse = (index, field, value) => setCourses((current) => current.map((course, courseIndex) => courseIndex === index ? { ...course, [field]: value } : course));
   const saveGrades = async () => {
@@ -131,11 +141,13 @@ function GpaCalculator() {
     try {
       const update = courseProfileUpdate(courses.filter((course) => course.name.trim()));
       await base44.entities.StudentProfile.update(profile.id, update);
+      await registerCourses(base44, { universityId: profile.university_id, userId: user.id, courses: update.course_records });
       setProfile((current) => ({ ...current, ...update }));
-      setCourses(update.course_records.length ? update.course_records : [{ name: "", status: "active", grade: "", credits: "" }]);
+      setCourses(update.course_records.length ? update.course_records.map(makeRow) : [makeRow()]);
+      setCourseSuggestions((current) => mergeCourseSuggestions(current, update.course_records));
     } finally { setSaving(false); }
   };
-  return <div className="space-y-3">{courses.map((course, index) => <div key={`${course.name}-${index}`} className="grid min-w-0 gap-2 rounded-md border border-border p-2 sm:grid-cols-[minmax(0,2fr)_minmax(88px,1fr)_minmax(88px,1fr)_44px] sm:border-0 sm:p-0"><Input className="min-w-0" aria-label="Course" placeholder="Course" value={course.name} onChange={(event) => updateCourse(index, "name", event.target.value)} /><div className="grid grid-cols-2 gap-2 sm:contents"><Input className="min-w-0" aria-label="Grade" type="number" min="0" max="100" placeholder="Grade" value={course.grade ?? ""} onChange={(event) => updateCourse(index, "grade", event.target.value)} /><Input className="min-w-0" aria-label="Credits" type="number" min="0.5" max="20" step="0.5" placeholder="Credits" value={course.credits ?? ""} onChange={(event) => updateCourse(index, "credits", event.target.value)} /></div><button className="flex h-10 w-10 items-center justify-center rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive" onClick={() => setCourses((current) => current.length > 1 ? current.filter((_, courseIndex) => courseIndex !== index) : current)} aria-label="Remove course"><X className="h-4 w-4" /></button></div>)}<div className="flex flex-wrap gap-2"><Button variant="outline" className="gap-2" onClick={() => setCourses((current) => [...current, { name: "", status: "active", grade: "", credits: "" }])}><Plus className="h-4 w-4" />Add course</Button><Button onClick={saveGrades} disabled={saving || !courses.some((course) => course.name.trim())}>{saving ? "Saving..." : "Save grades"}</Button></div>{result && <div className="rounded-lg border border-primary/20 bg-primary/5 p-4 text-center"><p className="text-xs text-muted-foreground">Weighted average across {result.credits} credits</p><p className="mt-1 text-4xl font-bold text-primary">{result.average.toFixed(2)}</p><p className="mt-2 text-xs text-muted-foreground">Sum of grade times credits, divided by total credits.</p></div>}</div>;
+  return <div className="space-y-3"><datalist id="gpa-course-suggestions">{courseSuggestions.map((name) => <option key={name} value={name} />)}</datalist>{courses.map((course, index) => <div key={course._rowId} className="grid min-w-0 gap-2 rounded-md border border-border p-2 sm:grid-cols-[minmax(0,2fr)_minmax(88px,1fr)_minmax(88px,1fr)_44px] sm:border-0 sm:p-0"><Input className="min-w-0" aria-label="Course" list="gpa-course-suggestions" autoComplete="off" placeholder="Course" value={course.name} onChange={(event) => updateCourse(index, "name", event.target.value)} /><div className="grid grid-cols-2 gap-2 sm:contents"><Input className="min-w-0" aria-label="Grade" type="number" min="0" max="100" placeholder="Grade" value={course.grade ?? ""} onChange={(event) => updateCourse(index, "grade", event.target.value)} /><Input className="min-w-0" aria-label="Credits" type="number" min="0.5" max="20" step="0.5" placeholder="Credits" value={course.credits ?? ""} onChange={(event) => updateCourse(index, "credits", event.target.value)} /></div><button className="flex h-10 w-10 items-center justify-center rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive" onClick={() => setCourses((current) => current.length > 1 ? current.filter((_, courseIndex) => courseIndex !== index) : current)} aria-label="Remove course"><X className="h-4 w-4" /></button></div>)}<div className="flex flex-wrap gap-2"><Button variant="outline" className="gap-2" onClick={() => setCourses((current) => [...current, makeRow()])}><Plus className="h-4 w-4" />Add course</Button><Button onClick={saveGrades} disabled={saving || !courses.some((course) => course.name.trim())}>{saving ? "Saving..." : "Save grades"}</Button></div>{result && <div className="rounded-lg border border-primary/20 bg-primary/5 p-4 text-center"><p className="text-xs text-muted-foreground">Weighted average across {result.credits} credits</p><p className="mt-1 text-4xl font-bold text-primary">{result.average.toFixed(2)}</p><p className="mt-2 text-xs text-muted-foreground">Sum of grade times credits, divided by total credits.</p></div>}</div>;
 }
 
 function GradeNeeded() {

@@ -16,6 +16,7 @@ import SocialPage from '@/pages/SocialPage';
 import StudyGroupsPage from '@/pages/StudyGroupsPage';
 import ToolsPage from '@/pages/ToolsPage';
 import ProfilePage from '@/pages/ProfilePage';
+import MePage from '@/pages/MePage';
 import AdminPage from '@/pages/AdminPage';
 import DiscoverPage from '@/pages/DiscoverPage';
 import CalendarPage from '@/pages/CalendarPage';
@@ -71,6 +72,7 @@ const AuthenticatedApp = () => {
         <Route path="/teachers" element={<Navigate to="/discover?tab=tutors" replace />} />
         <Route path="/tools" element={<ToolsPage />} />
         <Route path="/profile" element={<ProfilePage />} />
+        <Route path="/me" element={<MePage />} />
         <Route path="/admin" element={<AdminPage />} />
         <Route path="/discover" element={<DiscoverPage />} />
         <Route path="/calendar" element={<CalendarPage />} />

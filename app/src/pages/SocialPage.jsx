@@ -25,8 +25,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
-import { DEFAULT_INTERESTS, localizedOption, mergeInterestOptions } from "@/lib/onboardingOptions";
+import { DEFAULT_INTERESTS, localizedOption, mergeInterestOptions, normalizeOptionName } from "@/lib/onboardingOptions";
 import { categoryForInterest } from "@/lib/creationOptions";
+import { domainTones } from "@/lib/domainTones";
+import { toast } from "@/components/ui/use-toast";
 
 const categoryIcons = {
   social: Users,
@@ -59,6 +61,8 @@ export default function SocialPage() {
   const [selected, setSelected] = useState(null);
   const [showCreate, setShowCreate] = useState(new URLSearchParams(location.search).get("create") === "1");
   const [saving, setSaving] = useState(false);
+  const [showNewActivity, setShowNewActivity] = useState(false);
+  const [newActivity, setNewActivity] = useState({ en: "", he: "" });
   const [form, setForm] = useState({
     title: "",
     date: "",
@@ -70,6 +74,7 @@ export default function SocialPage() {
     category: "",
     max_spots: 10,
     description: "",
+    preferred_language: "",
   });
 
   useEffect(() => {
@@ -101,12 +106,10 @@ export default function SocialPage() {
   const myEventIds = new Set(myMemberships.map((item) => item.event_id));
   const memberCount = (eventId) => approvedMemberships.filter((item) => item.event_id === eventId).length;
   const visibleEvents = useMemo(() => {
-    const interests = new Set((profile?.interests || []).map((interest) => interest.toLocaleLowerCase("en")));
     return events
-      .filter((event) => !interests.size || interests.has((event.activity_name || "").toLocaleLowerCase("en")) || event.organizer_id === user?.id || myEventIds.has(event.id))
       .filter((event) => !openOnly || (event.status !== "canceled" && event.is_open))
       .sort((a, b) => `${a.date}${a.start_time || ""}`.localeCompare(`${b.date}${b.start_time || ""}`));
-  }, [events, openOnly, profile?.interests, user?.id, memberships]);
+  }, [events, openOnly]);
   const activityChoices = useMemo(() => interestOptions.map((interest) => ({
     value: interest.en,
     label: localizedOption(interest, locale),
@@ -121,6 +124,9 @@ export default function SocialPage() {
       const created = await base44.entities.SocialEvent.create({
         ...form,
         organizer_id: user.id,
+        organizer_name: profile.preferred_name || user.full_name || "Student",
+        organizer_academic_year: profile.academic_year || "",
+        organizer_field_of_study: profile.field_of_study || "",
         university_id: profile.university_id,
         is_open: true,
         status: "open",
@@ -131,7 +137,32 @@ export default function SocialPage() {
       setMemberships((current) => [...current, membership]);
       setCalendarItems((current) => [...current, calendarItem]);
       setShowCreate(false);
-      setForm({ title: "", date: "", start_time: "", end_time: "", location: "", activity_id: "", activity_name: "", category: "", max_spots: 10, description: "" });
+      setForm({ title: "", date: "", start_time: "", end_time: "", location: "", activity_id: "", activity_name: "", category: "", max_spots: 10, description: "", preferred_language: "" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const addNewActivity = async () => {
+    const english = newActivity.en.trim();
+    const hebrew = newActivity.he.trim();
+    if (!english || !hebrew || !user?.id) return;
+    setSaving(true);
+    try {
+      const existing = interestOptions.find((item) => normalizeOptionName(item.en) === normalizeOptionName(english));
+      let option = existing;
+      if (!option) {
+        const record = await base44.entities.Interest.create({ name_en: english, name_he: hebrew, normalized_key: normalizeOptionName(english), created_by: user.id, is_active: true });
+        option = { id: record.id, en: english, he: hebrew, ar: english, persisted: true };
+        setInterestOptions((current) => [...current, option]);
+      }
+      setForm((current) => ({ ...current, activity_id: option.id || "", activity_name: option.en, category: categoryForInterest(option.en) }));
+      setNewActivity({ en: "", he: "" });
+      setShowNewActivity(false);
+      toast({ title: "New activity type added" });
+    } catch (error) {
+      console.error(error);
+      toast({ variant: "destructive", title: "Activity type was not added" });
     } finally {
       setSaving(false);
     }
@@ -203,7 +234,7 @@ export default function SocialPage() {
       {loading ? (
         <div className="grid gap-3 md:grid-cols-2">{[1, 2, 3, 4].map((item) => <SkeletonCard key={item} lines={3} />)}</div>
       ) : visibleEvents.length === 0 ? (
-        <EmptyState icon={Users} title="No relevant activities yet" message="Activities linked to your profile hobbies will appear here. Add more hobbies from your profile or create one." />
+        <EmptyState icon={Users} title="No campus activities yet" message="Create the first activity for students at your university." />
       ) : (
         <div className="grid gap-3 md:grid-cols-2">
           {visibleEvents.map((event) => {
@@ -211,14 +242,15 @@ export default function SocialPage() {
             const count = memberCount(event.id);
             const full = count >= event.max_spots;
             return (
-              <button key={event.id} onClick={() => setSelected(event)} className="min-h-36 rounded-lg border border-border bg-card p-4 text-start transition-colors hover:border-primary/40">
+              <button key={event.id} onClick={() => setSelected(event)} className={cn("min-h-36 rounded-lg border border-border bg-card p-4 text-start transition-colors", domainTones.social.border)}>
                 <div className="flex items-start gap-3">
-                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary"><Icon className="h-5 w-5" /></span>
+                  <span className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-md", domainTones.social.icon)}><Icon className="h-5 w-5" /></span>
                   <div className="min-w-0 flex-1" dir="auto">
                     <div className="flex items-start justify-between gap-3"><h2 className="font-semibold text-foreground">{event.title}</h2><span className={cn("shrink-0 text-xs font-semibold", event.status === "canceled" ? "text-destructive" : full ? "text-amber-600" : "text-emerald-600")}>{event.status === "canceled" ? "Canceled" : full ? "Full" : "Open"}</span></div>
-                    <p className="mt-1 text-xs font-semibold text-primary">{event.activity_name || event.category}</p>
+                    <p className={cn("mt-1 text-xs font-semibold", domainTones.social.text)}>{event.activity_name || event.category}</p>
                     <p className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground"><CalendarClock className="h-3.5 w-3.5" />{event.date}{event.start_time ? `, ${event.start_time}` : ""}</p>
                     {event.location && <p className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground"><MapPin className="h-3.5 w-3.5" />{event.location}</p>}
+                    {event.preferred_language && <p className="mt-1 text-xs text-muted-foreground">Preferred language: {event.preferred_language}</p>}
                     <p className="mt-3 text-xs font-medium text-muted-foreground">{count} / {event.max_spots} joined{myEventIds.has(event.id) ? " · You joined" : ""}</p>
                   </div>
                 </div>
@@ -234,7 +266,8 @@ export default function SocialPage() {
         <Modal title={selected.title} onClose={() => setSelected(null)}>
           <div className="space-y-4" dir="auto">
             {selected.description && <p className="text-sm leading-relaxed text-muted-foreground">{selected.description}</p>}
-            <p className="text-xs font-semibold text-primary">{selected.activity_name || selected.category}</p>
+            <p className={cn("text-xs font-semibold", domainTones.social.text)}>{selected.activity_name || selected.category}{selected.preferred_language ? ` · ${selected.preferred_language}` : ""}</p>
+            <div className="rounded-md border border-border p-3"><p className="text-xs font-semibold text-muted-foreground">Created by</p><p className="mt-1 text-sm font-semibold text-foreground">{selected.organizer_name || (selected.organizer_id === user?.id ? profile?.preferred_name || user?.full_name : "Campus student")}</p>{(selected.organizer_academic_year || selected.organizer_field_of_study) && <p className="mt-1 text-xs text-muted-foreground">{[selected.organizer_academic_year, selected.organizer_field_of_study].filter(Boolean).join(" · ")}</p>}</div>
             <div className="rounded-md bg-muted/50 p-3 text-sm text-foreground">
               <p>{selected.date}{selected.start_time ? `, ${selected.start_time}` : ""}</p>
               {selected.location && <p className="mt-1 text-muted-foreground">{selected.location}</p>}
@@ -257,9 +290,12 @@ export default function SocialPage() {
           <div className="space-y-4">
             <Field label="Activity name"><Input value={form.title} onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))} autoFocus /></Field>
             <Field label="Related hobby or activity"><SearchableChoice value={form.activity_name} options={activityChoices} placeholder="Search football, gaming, music..." emptyLabel="No matching hobby found." onChange={(option) => setForm((current) => ({ ...current, activity_id: option?.sourceId || "", activity_name: option?.value || "", category: option ? categoryForInterest(option.value) : "" }))} /></Field>
+            <Button type="button" variant="outline" className="w-full justify-start gap-2" onClick={() => setShowNewActivity((current) => !current)}><Plus className="h-4 w-4" />+ Add a new activity</Button>
+            {showNewActivity && <div className="rounded-md border border-border p-3"><p className="mb-2 text-xs text-muted-foreground">Add English and Hebrew names so everyone can search for it.</p><div className="grid gap-2 sm:grid-cols-2"><Input value={newActivity.en} onChange={(event) => setNewActivity((current) => ({ ...current, en: event.target.value }))} placeholder="English name" /><Input dir="rtl" value={newActivity.he} onChange={(event) => setNewActivity((current) => ({ ...current, he: event.target.value }))} placeholder="Hebrew name" /></div><Button className="mt-2" disabled={saving || !newActivity.en.trim() || !newActivity.he.trim()} onClick={addNewActivity}>Add and select</Button></div>}
             <div className="grid grid-cols-2 gap-3"><Field label="Date"><Input type="date" value={form.date} onChange={(event) => setForm((current) => ({ ...current, date: event.target.value }))} /></Field><Field label="Capacity"><Input type="number" min="2" max="200" value={form.max_spots} onChange={(event) => setForm((current) => ({ ...current, max_spots: Number(event.target.value) }))} /></Field></div>
             <div className="grid grid-cols-2 gap-3"><Field label="Starts"><Input type="time" value={form.start_time} onChange={(event) => setForm((current) => ({ ...current, start_time: event.target.value }))} /></Field><Field label="Ends"><Input type="time" value={form.end_time} onChange={(event) => setForm((current) => ({ ...current, end_time: event.target.value }))} /></Field></div>
             <Field label="Location"><Input value={form.location} onChange={(event) => setForm((current) => ({ ...current, location: event.target.value }))} /></Field>
+            <Field label="Preferred language (optional)"><select className="h-11 w-full rounded-md border border-input bg-background px-3 text-sm" value={form.preferred_language} onChange={(event) => setForm((current) => ({ ...current, preferred_language: event.target.value }))}><option value="">Any language</option><option value="English">English</option><option value="Hebrew">Hebrew</option><option value="Arabic">Arabic</option></select></Field>
             <Field label="Description"><Textarea rows={3} value={form.description} onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))} /></Field>
             <Button className="w-full" disabled={saving || !form.title || !form.activity_name || !form.date || form.max_spots < 2} onClick={createEvent}>{saving ? t("common_loading") : "Create activity"}</Button>
           </div>

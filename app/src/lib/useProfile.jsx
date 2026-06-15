@@ -47,7 +47,7 @@ export function ProfileProvider({ children }) {
   }, [navigate, setLocale, setTheme]);
 
   return (
-    <ProfileContext.Provider value={{ user, profile, university, loading, setProfile }}>
+    <ProfileContext.Provider value={{ user, profile, university, loading, setProfile, setUniversity }}>
       {children}
     </ProfileContext.Provider>
   );

@@ -16,8 +16,7 @@
     "contact_value": {
       "type": "string",
       "rls": {
-        "read": { "$or": [{ "data.contact_consent": true }, { "data.owner_user_id": "{{user.id}}" }, { "user_condition": { "role": "admin" } }] },
-        "write": { "$or": [{ "data.owner_user_id": "{{user.id}}" }, { "user_condition": { "role": "admin" } }] }
+        "read": { "$or": [{ "data.contact_consent": true }, { "data.owner_user_id": "{{user.id}}" }, { "user_condition": { "role": "admin" } }] }
       }
     },
     "contact_consent": { "type": "boolean", "default": false },
@@ -26,7 +25,7 @@
   },
   "required": ["owner_user_id", "display_name", "university_id"],
   "rls": {
-    "create": { "user_condition": { "id": "{{user.id}}" } },
+    "create": { "data.owner_user_id": "{{user.id}}" },
     "read": {
       "$or": [
         { "$and": [{ "data.is_visible": true }, { "data.moderation_status": "ok" }] },

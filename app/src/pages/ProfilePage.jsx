@@ -1,336 +1,273 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useEffect, useState } from "react";
+import { Edit2, GraduationCap, HelpCircle, LogOut, Monitor, Moon, Sun } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useProfile } from "@/lib/useProfile";
 import { useLanguage } from "@/lib/LanguageContext";
 import { useTheme } from "@/lib/ThemeContext";
 import { LOCALE_NAMES, SUPPORTED_LOCALES } from "@/lib/i18n";
-import { BookOpenCheck, LogOut, Edit2, GraduationCap, HelpCircle, Sun, Moon, Monitor, Plus, Search, X } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+import { normalizeWhatsAppNumber } from "@/lib/whatsapp";
+import { productText } from "@/lib/productCopy";
 import PageLayout from "@/components/layout/PageLayout";
 import ElysiumMark from "@/components/elysium/ElysiumMark";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
+import { toast } from "@/components/ui/use-toast";
 import { cn } from "@/lib/utils";
-import { productText } from "@/lib/productCopy";
-import { DEFAULT_INTERESTS, filterLocalizedOptions, localizedOption, mergeInterestOptions, normalizeOptionName } from "@/lib/onboardingOptions";
-import { courseProfileUpdate, normalizeCourseRecords } from "@/lib/profileCourses";
+import { domainTones } from "@/lib/domainTones";
+import { demoUniversity } from "@/lib/demoData";
 
-function getInitials(name = '') {
-  return name.split(' ').filter(Boolean).map(n => n[0]).join('').toUpperCase().slice(0, 2) || 'S';
+const YEARS = ["Preparatory", "1st Year", "2nd Year", "3rd Year", "4th Year+"];
+const SPOKEN_LANGUAGES = ["English", "Hebrew", "Arabic"];
+
+function getInitials(name = "") {
+  return name.split(" ").filter(Boolean).map((part) => part[0]).join("").toUpperCase().slice(0, 2) || "S";
+}
+
+function splitList(value = "") {
+  return value.split(",").map((item) => item.trim()).filter(Boolean);
 }
 
 export default function ProfilePage() {
-  const { user, profile, university, setProfile } = useProfile();
+  const { user, profile, university, setProfile, setUniversity } = useProfile();
   const { locale, setLocale, t } = useLanguage();
+  const { preference, setTheme } = useTheme();
   const p = (key) => productText(locale, key);
-  const { preference, setTheme, isDark } = useTheme();
+  const [universities, setUniversities] = useState([]);
   const [teacherProfile, setTeacherProfile] = useState(null);
   const [peerHelper, setPeerHelper] = useState(null);
-  const [courseRecords, setCourseRecords] = useState([]);
-  const [courseDraft, setCourseDraft] = useState({ name: '', status: 'active' });
-  const [interestOptions, setInterestOptions] = useState(DEFAULT_INTERESTS);
-  const [interestSearch, setInterestSearch] = useState('');
-  const [showCustomInterest, setShowCustomInterest] = useState(false);
-  const [customInterest, setCustomInterest] = useState({ en: '', he: '' });
-  const [loading, setLoading] = useState(true);
+  const [profileForm, setProfileForm] = useState({ preferred_name: "", university_id: "", academic_year: "", field_of_study: "", preferred_language: "English" });
+  const [tutorForm, setTutorForm] = useState({ subjects_raw: "", languages_raw: "", phone_number: "", bio: "", teaching_mode: "both", price_min: "", price_max: "", availability: "", contact_consent: false });
+  const [helperForm, setHelperForm] = useState({ topics_raw: "", languages_raw: "", bio: "", availability: "", contact_value: "" });
   const [showTutorForm, setShowTutorForm] = useState(false);
   const [showHelperForm, setShowHelperForm] = useState(false);
-  const [tutorForm, setTutorForm] = useState({ subjects_raw: '', languages_raw: '', phone_number: '', bio: '', teaching_mode: 'both', price_min: '', price_max: '', availability: '', contact_consent: false });
-  const [helperForm, setHelperForm] = useState({ topics_raw: '', languages_raw: '', bio: '', availability: '', contact_method: 'whatsapp', contact_value: '', contact_consent: false });
-  const [saving, setSaving] = useState(false);
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [savingTutor, setSavingTutor] = useState(false);
   const [savingHelper, setSavingHelper] = useState(false);
 
   useEffect(() => {
-    setCourseRecords(normalizeCourseRecords(profile));
-  }, [profile]);
+    if (!profile) return;
+    setProfileForm({
+      preferred_name: profile.preferred_name || user?.full_name || "",
+      university_id: profile.university_id || "",
+      academic_year: profile.academic_year || "",
+      field_of_study: profile.field_of_study || "",
+      preferred_language: profile.preferred_language || "English",
+    });
+  }, [profile, user?.full_name]);
 
   useEffect(() => {
     if (!user?.id) return;
     Promise.all([
-      base44.entities.PrivateTeacher.filter({ user_id: user.id }),
-      base44.entities.PeerHelper.filter({ owner_user_id: user.id }),
-      base44.entities.Interest.filter({ is_active: true }),
-    ]).then(([teachers, helpers, interests]) => {
+      base44.entities.University.list().catch(() => []),
+      base44.entities.PrivateTeacher.filter({ user_id: user.id }).catch(() => []),
+      base44.entities.PeerHelper.filter({ owner_user_id: user.id }).catch(() => []),
+    ]).then(([universityRows, teachers, helpers]) => {
+      setUniversities(universityRows?.length ? universityRows : [demoUniversity]);
       if (teachers?.length) {
-        const t = teachers[0];
-        setTeacherProfile(t);
-        setTutorForm({ subjects_raw: (t.subjects || []).join(', '), languages_raw: (t.languages || []).join(', '), phone_number: t.phone_number || '', bio: t.bio || '', teaching_mode: t.teaching_mode || 'both', price_min: t.price_min ?? '', price_max: t.price_max ?? '', availability: t.availability || '', contact_consent: t.contact_consent || false });
+        const record = teachers[0];
+        setTeacherProfile(record);
+        setTutorForm({ subjects_raw: (record.subjects || []).join(", "), languages_raw: (record.languages || []).join(", "), phone_number: record.phone_number || "", bio: record.bio || "", teaching_mode: record.teaching_mode || "both", price_min: record.price_min ?? "", price_max: record.price_max ?? "", availability: record.availability || "", contact_consent: Boolean(record.contact_consent) });
       }
       if (helpers?.length) {
-        const h = helpers[0];
-        setPeerHelper(h);
-        setHelperForm({ topics_raw: (h.help_topics || []).join(', '), languages_raw: (h.languages || []).join(', '), bio: h.bio || '', availability: h.availability || '', contact_method: 'whatsapp', contact_value: h.contact_value || '', contact_consent: h.contact_consent || false });
+        const record = helpers[0];
+        setPeerHelper(record);
+        setHelperForm({ topics_raw: (record.help_topics || []).join(", "), languages_raw: (record.languages || []).join(", "), bio: record.bio || "", availability: record.availability || "", contact_value: record.contact_value || "" });
       }
-      setInterestOptions(mergeInterestOptions(interests));
-      setLoading(false);
     });
   }, [user?.id]);
 
-  const filteredInterests = useMemo(() => filterLocalizedOptions(interestOptions, interestSearch).slice(0, 24), [interestOptions, interestSearch]);
-
-  const saveProfilePatch = async (patch) => {
+  const saveProfile = async () => {
     if (!profile?.id) return;
-    await base44.entities.StudentProfile.update(profile.id, patch);
-    setProfile((current) => ({ ...current, ...patch }));
-  };
-
-  const persistCourses = async (nextCourses) => {
-    const update = courseProfileUpdate(nextCourses);
-    setCourseRecords(update.course_records);
-    await saveProfilePatch(update);
-  };
-
-  const addCourse = async () => {
-    const name = courseDraft.name.trim();
-    if (!name || courseRecords.some((course) => course.name.toLowerCase() === name.toLowerCase())) return;
-    await persistCourses([...courseRecords, { name, status: courseDraft.status, grade: '', credits: '' }]);
-    setCourseDraft({ name: '', status: 'active' });
-  };
-
-  const toggleInterest = async (name) => {
-    const current = profile?.interests || [];
-    const interests = current.includes(name) ? current.filter((item) => item !== name) : [...current, name];
-    await saveProfilePatch({ interests });
-  };
-
-  const addCustomInterest = async () => {
-    const english = customInterest.en.trim();
-    const hebrew = customInterest.he.trim();
-    if (!english || !hebrew || !user?.id) return;
-    const existing = interestOptions.find((interest) => normalizeOptionName(interest.en) === normalizeOptionName(english));
-    if (existing) {
-      if (!(profile?.interests || []).includes(existing.en)) await saveProfilePatch({ interests: [...(profile?.interests || []), existing.en] });
-    } else {
-      const record = await base44.entities.Interest.create({ name_en: english, name_he: hebrew, normalized_key: normalizeOptionName(english), created_by: user.id, is_active: true });
-      const option = { id: record.id, en: english, he: hebrew, ar: english, persisted: true };
-      setInterestOptions((current) => [...current, option]);
-      await saveProfilePatch({ interests: [...(profile?.interests || []), english] });
+    setSavingProfile(true);
+    try {
+      await base44.entities.StudentProfile.update(profile.id, profileForm);
+      setProfile((current) => ({ ...current, ...profileForm }));
+      setUniversity(universities.find((item) => item.id === profileForm.university_id) || university);
+      toast({ title: "Profile saved", description: "Your profile information is up to date." });
+    } catch (error) {
+      console.error(error);
+      toast({ variant: "destructive", title: "Profile was not saved", description: "Please try again." });
+    } finally {
+      setSavingProfile(false);
     }
-    setCustomInterest({ en: '', he: '' });
-    setShowCustomInterest(false);
-    setInterestSearch('');
   };
 
-  const handleLocaleChange = async (l) => {
-    setLocale(l);
-    if (profile?.id) await base44.entities.StudentProfile.update(profile.id, { preferred_locale: l });
+  const handleLocaleChange = async (nextLocale) => {
+    setLocale(nextLocale);
+    if (!profile?.id) return;
+    try {
+      await base44.entities.StudentProfile.update(profile.id, { preferred_locale: nextLocale });
+      setProfile((current) => ({ ...current, preferred_locale: nextLocale }));
+    } catch (error) {
+      console.error(error);
+      toast({ variant: "destructive", title: "Language was not saved" });
+    }
   };
 
-  const handleThemeChange = async (pref) => {
-    setTheme(pref);
-    if (profile?.id) await base44.entities.StudentProfile.update(profile.id, { theme_preference: pref });
+  const handleThemeChange = async (nextTheme) => {
+    setTheme(nextTheme);
+    if (!profile?.id) return;
+    try {
+      await base44.entities.StudentProfile.update(profile.id, { theme_preference: nextTheme });
+      setProfile((current) => ({ ...current, theme_preference: nextTheme }));
+    } catch (error) {
+      console.error(error);
+      toast({ variant: "destructive", title: "Theme was not saved" });
+    }
   };
 
   const handleTutorSubmit = async () => {
-    setSaving(true);
-    const subjects = tutorForm.subjects_raw.split(',').map(s => s.trim()).filter(Boolean);
-    const languages = tutorForm.languages_raw.split(',').map(s => s.trim()).filter(Boolean);
-    const data = { user_id: user.id, university_id: profile.university_id, display_name: profile?.preferred_name || user.full_name || 'Student', subjects, languages, phone_number: tutorForm.contact_consent ? tutorForm.phone_number : '', bio: tutorForm.bio, teaching_mode: tutorForm.teaching_mode, price_min: tutorForm.price_min === '' ? undefined : Number(tutorForm.price_min), price_max: tutorForm.price_max === '' ? undefined : Number(tutorForm.price_max), currency: 'ILS', availability: tutorForm.availability, contact_consent: tutorForm.contact_consent, is_approved: false, is_active: false, moderation_status: 'pending' };
-    if (teacherProfile) {
-      await base44.entities.PrivateTeacher.update(teacherProfile.id, data);
-    } else {
-      const t = await base44.entities.PrivateTeacher.create(data);
-      setTeacherProfile(t);
+    if (!user?.id || !profile?.university_id) return;
+    setSavingTutor(true);
+    try {
+      const data = {
+        user_id: user.id,
+        university_id: profile.university_id,
+        display_name: profileForm.preferred_name || user.full_name || "Student",
+        subjects: splitList(tutorForm.subjects_raw),
+        languages: splitList(tutorForm.languages_raw),
+        phone_number: tutorForm.contact_consent ? tutorForm.phone_number : "",
+        bio: tutorForm.bio,
+        teaching_mode: tutorForm.teaching_mode,
+        price_min: tutorForm.price_min === "" ? undefined : Number(tutorForm.price_min),
+        price_max: tutorForm.price_max === "" ? undefined : Number(tutorForm.price_max),
+        currency: "ILS",
+        availability: tutorForm.availability,
+        contact_consent: tutorForm.contact_consent,
+        is_approved: false,
+        is_active: false,
+        moderation_status: "pending",
+      };
+      if (teacherProfile) {
+        await base44.entities.PrivateTeacher.update(teacherProfile.id, data);
+        setTeacherProfile((current) => ({ ...current, ...data }));
+      } else {
+        setTeacherProfile(await base44.entities.PrivateTeacher.create(data));
+      }
+      setShowTutorForm(false);
+      toast({ title: "Tutoring profile saved" });
+    } catch (error) {
+      console.error(error);
+      toast({ variant: "destructive", title: "Tutoring profile was not saved" });
+    } finally {
+      setSavingTutor(false);
     }
-    setSaving(false);
-    setShowTutorForm(false);
   };
 
   const handleHelperSubmit = async () => {
-    setSavingHelper(true);
-    const topics = helperForm.topics_raw.split(',').map(s => s.trim()).filter(Boolean);
-    const languages = helperForm.languages_raw.split(',').map(s => s.trim()).filter(Boolean);
-    const data = { owner_user_id: user.id, university_id: profile.university_id, faculty_id: profile.faculty_id || '', field_of_study: profile.field_of_study || '', academic_year: profile.academic_year || '', display_name: profile?.preferred_name || user.full_name || 'Student', help_topics: topics, languages, bio: helperForm.bio, availability: helperForm.availability, contact_method: 'whatsapp', contact_value: helperForm.contact_consent ? helperForm.contact_value : '', contact_consent: helperForm.contact_consent, is_visible: true, moderation_status: 'ok' };
-    if (peerHelper) {
-      await base44.entities.PeerHelper.update(peerHelper.id, data);
-    } else {
-      const h = await base44.entities.PeerHelper.create(data);
-      setPeerHelper(h);
+    const whatsapp = normalizeWhatsAppNumber(helperForm.contact_value);
+    if (!splitList(helperForm.topics_raw).length || !splitList(helperForm.languages_raw).length || !helperForm.bio.trim() || !helperForm.availability.trim() || !whatsapp) {
+      toast({ variant: "destructive", title: "Complete every Peer Helper field", description: "A valid WhatsApp number is required." });
+      return;
     }
-    setSavingHelper(false);
-    setShowHelperForm(false);
+    setSavingHelper(true);
+    try {
+      const data = {
+        owner_user_id: user.id,
+        university_id: profile.university_id,
+        field_of_study: profileForm.field_of_study,
+        academic_year: profileForm.academic_year,
+        display_name: profileForm.preferred_name || user.full_name || "Student",
+        help_topics: splitList(helperForm.topics_raw),
+        languages: splitList(helperForm.languages_raw),
+        bio: helperForm.bio.trim(),
+        availability: helperForm.availability.trim(),
+        contact_method: "whatsapp",
+        contact_value: whatsapp,
+        contact_consent: true,
+        is_visible: true,
+        moderation_status: "ok",
+      };
+      if (peerHelper) {
+        await base44.entities.PeerHelper.update(peerHelper.id, data);
+        setPeerHelper((current) => ({ ...current, ...data }));
+      } else {
+        setPeerHelper(await base44.entities.PeerHelper.create(data));
+      }
+      setShowHelperForm(false);
+      toast({ title: "Peer Helper is on", description: "Students can now find your public helper profile." });
+    } catch (error) {
+      console.error(error);
+      toast({ variant: "destructive", title: "Peer Helper was not saved", description: "Your previous setting was kept. Please try again." });
+    } finally {
+      setSavingHelper(false);
+    }
   };
 
-  const toggleHelperVisibility = async () => {
-    if (!peerHelper) return;
-    await base44.entities.PeerHelper.update(peerHelper.id, { is_visible: !peerHelper.is_visible });
-    setPeerHelper(p => ({ ...p, is_visible: !p.is_visible }));
+  const toggleHelper = async (checked) => {
+    if (!peerHelper) {
+      if (checked) setShowHelperForm(true);
+      return;
+    }
+    setSavingHelper(true);
+    try {
+      await base44.entities.PeerHelper.update(peerHelper.id, { is_visible: checked });
+      setPeerHelper((current) => ({ ...current, is_visible: checked }));
+      toast({ title: checked ? "Peer Helper is on" : "Peer Helper is off" });
+    } catch (error) {
+      console.error(error);
+      toast({ variant: "destructive", title: "Peer Helper setting was not changed" });
+    } finally {
+      setSavingHelper(false);
+    }
   };
 
   return (
-    <PageLayout title={t('profile_title')}>
-      {/* Hero */}
-      <div className="bg-card rounded-lg border border-border p-5 mb-4">
+    <PageLayout title={t("profile_title")}>
+      <div className="mb-4 rounded-lg border border-border bg-card p-5">
         <div className="flex items-center gap-4">
-          <div className="w-14 h-14 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-bold text-lg shrink-0">
-            {getInitials(user?.full_name)}
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="font-bold text-foreground text-base">{user?.full_name || 'Student'}</p>
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-primary text-lg font-bold text-primary-foreground">{getInitials(profileForm.preferred_name || user?.full_name)}</div>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-base font-bold text-foreground">{profileForm.preferred_name || user?.full_name || "Student"}</p>
             {university && <p className="text-sm text-muted-foreground">{university.name}</p>}
-            <p className="text-xs text-muted-foreground">{profile?.academic_year} {profile?.field_of_study ? `· ${profile.field_of_study}` : ''}</p>
+            <p className="text-xs text-muted-foreground">{profileForm.academic_year}{profileForm.field_of_study ? ` · ${profileForm.field_of_study}` : ""}</p>
+          </div>
+          <div className="flex shrink-0 flex-col items-end gap-1.5">
+            <label htmlFor="peer-helper-toggle" className="text-xs font-semibold text-foreground">Peer Helper</label>
+            <Switch id="peer-helper-toggle" className="h-7 w-12 data-[state=checked]:bg-teal-600 [&>span]:h-6 [&>span]:w-6 data-[state=checked]:[&>span]:translate-x-5" checked={Boolean(peerHelper?.is_visible)} disabled={savingHelper} onCheckedChange={toggleHelper} />
+            <span className={cn("text-[11px] font-medium", peerHelper?.is_visible ? domainTones.helper.text : "text-muted-foreground")}>{peerHelper?.is_visible ? "On" : "Off"}</span>
           </div>
         </div>
-        {/* Tagline + logo small */}
-        <div className="flex items-center justify-between mt-4 pt-4 border-t border-border">
-          <p className="text-xs text-muted-foreground italic">{t('tagline')}</p>
-          <ElysiumMark size={28} />
-        </div>
+        <div className="mt-4 flex items-center justify-between border-t border-border pt-4"><p className="text-xs italic text-muted-foreground">{t("tagline")}</p><ElysiumMark size={28} /></div>
       </div>
 
-      {/* Language */}
-      <SettingsCard title={t('profile_language')}>
-        <div className="flex gap-2">
-          {SUPPORTED_LOCALES.map(l => (
-            <button key={l} onClick={() => handleLocaleChange(l)}
-              className={cn("flex-1 py-2 rounded-md border text-xs font-semibold transition-all", locale === l ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:border-primary/40")}>
-              {LOCALE_NAMES[l]}
-            </button>
-          ))}
+      <SettingsCard title="Profile information">
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Field label="Preferred name"><Input value={profileForm.preferred_name} onChange={(event) => setProfileForm((current) => ({ ...current, preferred_name: event.target.value }))} /></Field>
+          <Field label="University"><select className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm" value={profileForm.university_id} onChange={(event) => setProfileForm((current) => ({ ...current, university_id: event.target.value }))}>{universities.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></Field>
+          <Field label="Academic year"><select className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm" value={profileForm.academic_year} onChange={(event) => setProfileForm((current) => ({ ...current, academic_year: event.target.value }))}><option value="">Select year</option>{YEARS.map((year) => <option key={year} value={year}>{year}</option>)}</select></Field>
+          <Field label="Field of study"><Input value={profileForm.field_of_study} onChange={(event) => setProfileForm((current) => ({ ...current, field_of_study: event.target.value }))} /></Field>
+          <Field label="Preferred spoken language"><select className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm" value={profileForm.preferred_language} onChange={(event) => setProfileForm((current) => ({ ...current, preferred_language: event.target.value }))}>{SPOKEN_LANGUAGES.map((language) => <option key={language} value={language}>{language}</option>)}</select></Field>
         </div>
+        <Button className="mt-4 w-full sm:w-auto" disabled={savingProfile || !profileForm.preferred_name.trim() || !profileForm.university_id} onClick={saveProfile}>{savingProfile ? "Saving..." : "Save profile"}</Button>
       </SettingsCard>
 
-      {/* Theme */}
-      <SettingsCard title={t('profile_theme')}>
-        <div className="flex gap-2">
-          {[['light', t('profile_theme_light') || 'Light', Sun], ['dark', t('profile_theme_dark') || 'Dark', Moon], ['system', t('profile_theme_system') || 'System', Monitor]].map(([key, label, ThemeIcon]) => (
-            <button key={key} onClick={() => handleThemeChange(key)}
-              className={cn("flex-1 flex items-center justify-center gap-1.5 py-2 rounded-md border text-xs font-medium transition-all", preference === key ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:border-primary/40")}>
-                <ThemeIcon className="w-3.5 h-3.5" />{label}
-            </button>
-          ))}
-        </div>
+      <SettingsCard title={t("profile_language")}><div className="flex gap-2">{SUPPORTED_LOCALES.map((nextLocale) => <button key={nextLocale} onClick={() => handleLocaleChange(nextLocale)} className={cn("flex-1 rounded-md border py-2 text-xs font-semibold", locale === nextLocale ? "border-primary bg-primary text-primary-foreground" : "border-border text-muted-foreground hover:border-primary/40")}>{LOCALE_NAMES[nextLocale]}</button>)}</div></SettingsCard>
+      <SettingsCard title={t("profile_theme")}><div className="flex gap-2">{[["light", t("profile_theme_light") || "Light", Sun], ["dark", t("profile_theme_dark") || "Dark", Moon], ["system", t("profile_theme_system") || "System", Monitor]].map(([key, label, Icon]) => <button key={key} onClick={() => handleThemeChange(key)} className={cn("flex flex-1 items-center justify-center gap-1.5 rounded-md border py-2 text-xs font-medium", preference === key ? "border-primary bg-primary text-primary-foreground" : "border-border text-muted-foreground hover:border-primary/40")}><Icon className="h-3.5 w-3.5" />{label}</button>)}</div></SettingsCard>
+
+      <SettingsCard title={t("profile_offer_tutoring")} icon={<GraduationCap className={cn("h-4 w-4", domainTones.tutor.text)} />}>
+        <p className="mb-2 text-xs text-muted-foreground">{p("profile_public_note")}</p>
+        <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setShowTutorForm((current) => !current)}><Edit2 className="h-3.5 w-3.5" />{teacherProfile ? t("profile_edit") : t("profile_offer_tutoring")}</Button>
+        {showTutorForm && <div className="mt-3 space-y-2 border-t border-border pt-3"><Input placeholder={p("profile_subjects")} value={tutorForm.subjects_raw} onChange={(event) => setTutorForm((current) => ({ ...current, subjects_raw: event.target.value }))} /><Input placeholder="Languages, separated by commas" value={tutorForm.languages_raw} onChange={(event) => setTutorForm((current) => ({ ...current, languages_raw: event.target.value }))} /><div className="grid grid-cols-2 gap-2"><Input type="number" min="0" placeholder="Minimum ILS" value={tutorForm.price_min} onChange={(event) => setTutorForm((current) => ({ ...current, price_min: event.target.value }))} /><Input type="number" min="0" placeholder="Maximum ILS" value={tutorForm.price_max} onChange={(event) => setTutorForm((current) => ({ ...current, price_max: event.target.value }))} /></div><select className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm" value={tutorForm.teaching_mode} onChange={(event) => setTutorForm((current) => ({ ...current, teaching_mode: event.target.value }))}><option value="both">Online or in person</option><option value="online">Online</option><option value="in_person">In person</option></select><Input placeholder="Availability" value={tutorForm.availability} onChange={(event) => setTutorForm((current) => ({ ...current, availability: event.target.value }))} /><Input placeholder={p("profile_phone")} value={tutorForm.phone_number} onChange={(event) => setTutorForm((current) => ({ ...current, phone_number: event.target.value }))} /><Textarea rows={2} placeholder={p("profile_tutor_bio")} value={tutorForm.bio} onChange={(event) => setTutorForm((current) => ({ ...current, bio: event.target.value }))} /><label className="flex items-center gap-2"><input type="checkbox" checked={tutorForm.contact_consent} onChange={(event) => setTutorForm((current) => ({ ...current, contact_consent: event.target.checked }))} /><span className="text-xs text-muted-foreground">{p("profile_contact_consent")}</span></label><div className="flex gap-2"><Button size="sm" className="flex-1" disabled={!tutorForm.subjects_raw.trim() || savingTutor} onClick={handleTutorSubmit}>{savingTutor ? t("profile_saving") : t("profile_save")}</Button><Button size="sm" variant="outline" onClick={() => setShowTutorForm(false)}>{t("common_cancel")}</Button></div></div>}
       </SettingsCard>
 
-      <SettingsCard title="My courses" icon={<BookOpenCheck className="h-4 w-4 text-primary" />}>
-        <p className="mb-3 text-xs leading-relaxed text-muted-foreground">Active courses are used for study-group matching. Finished courses stay available in your grade tools.</p>
-        <div className="space-y-2">
-          {courseRecords.map((course) => (
-            <div key={course.name} className="flex min-w-0 items-center gap-2 rounded-md border border-border p-2">
-              <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">{course.name}</span>
-              <select aria-label={`${course.name} status`} value={course.status} onChange={(event) => persistCourses(courseRecords.map((item) => item.name === course.name ? { ...item, status: event.target.value } : item))} className="h-10 rounded-md border border-input bg-background px-2 text-xs">
-                <option value="active">Active</option>
-                <option value="finished">Finished</option>
-              </select>
-              <button onClick={() => persistCourses(courseRecords.filter((item) => item.name !== course.name))} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive" aria-label={`Remove ${course.name}`}><X className="h-4 w-4" /></button>
-            </div>
-          ))}
-        </div>
-        <div className="mt-3 grid gap-2 sm:grid-cols-[minmax(0,1fr)_130px_auto]">
-          <Input value={courseDraft.name} onChange={(event) => setCourseDraft((current) => ({ ...current, name: event.target.value }))} placeholder="Add a course" />
-          <select aria-label="New course status" value={courseDraft.status} onChange={(event) => setCourseDraft((current) => ({ ...current, status: event.target.value }))} className="h-10 rounded-md border border-input bg-background px-3 text-sm"><option value="active">Active</option><option value="finished">Finished</option></select>
-          <Button variant="outline" className="gap-2" disabled={!courseDraft.name.trim()} onClick={addCourse}><Plus className="h-4 w-4" />Add</Button>
-        </div>
+      <SettingsCard title="Peer Helper details" icon={<HelpCircle className={cn("h-4 w-4", domainTones.helper.text)} />}>
+        <p className="mb-2 text-xs text-muted-foreground">Turn Peer Helper on in the profile header. The first time, complete these public details. Your WhatsApp number is required and is only shown while Peer Helper is on.</p>
+        {peerHelper && <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setShowHelperForm((current) => !current)}><Edit2 className="h-3.5 w-3.5" />Edit helper details</Button>}
+        {showHelperForm && <div className="mt-3 space-y-2 border-t border-border pt-3"><Field label="Topics you can help with"><Input placeholder="First week, Moodle, course registration" value={helperForm.topics_raw} onChange={(event) => setHelperForm((current) => ({ ...current, topics_raw: event.target.value }))} /></Field><Field label="Languages"><Input placeholder="Arabic, Hebrew, English" value={helperForm.languages_raw} onChange={(event) => setHelperForm((current) => ({ ...current, languages_raw: event.target.value }))} /></Field><Field label="Short introduction"><Textarea rows={3} value={helperForm.bio} onChange={(event) => setHelperForm((current) => ({ ...current, bio: event.target.value }))} /></Field><Field label="Availability"><Input placeholder="Weekdays after 18:00" value={helperForm.availability} onChange={(event) => setHelperForm((current) => ({ ...current, availability: event.target.value }))} /></Field><Field label="WhatsApp number (required)"><Input inputMode="tel" placeholder="050-000-0000" value={helperForm.contact_value} onChange={(event) => setHelperForm((current) => ({ ...current, contact_value: event.target.value }))} /></Field><p className="text-xs text-muted-foreground">Saving confirms that this WhatsApp number may be shown on your public Peer Helper card while the switch is on.</p><div className="flex gap-2"><Button className="flex-1" disabled={savingHelper} onClick={handleHelperSubmit}>{savingHelper ? "Saving..." : "Save and turn on"}</Button><Button variant="outline" onClick={() => setShowHelperForm(false)}>Cancel</Button></div></div>}
       </SettingsCard>
 
-      <SettingsCard title="Interests and hobbies">
-        <p className="mb-3 text-xs leading-relaxed text-muted-foreground">Your interests decide which social activities are relevant to you.</p>
-        <div className="relative"><Search className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><Input className="ps-9" value={interestSearch} onChange={(event) => setInterestSearch(event.target.value)} placeholder="Search hobbies" /></div>
-        <div className="mt-3 flex max-h-48 flex-wrap gap-2 overflow-y-auto pe-1">
-          {filteredInterests.map((interest) => {
-            const selected = (profile?.interests || []).includes(interest.en);
-            return <button key={interest.id} type="button" onClick={() => toggleInterest(interest.en)} className={cn("min-h-10 rounded-full border px-3 py-1.5 text-xs font-semibold", selected ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card text-muted-foreground hover:border-primary/40 hover:text-foreground")}>{localizedOption(interest, locale)}</button>;
-          })}
-        </div>
-        <Button type="button" variant="outline" className="mt-3 gap-2" onClick={() => setShowCustomInterest((current) => !current)}><Plus className="h-4 w-4" />Add a hobby</Button>
-        {showCustomInterest && <div className="mt-3 rounded-md border border-border p-3"><p className="mb-2 text-xs text-muted-foreground">New hobbies require an English and Hebrew name so other students can find them.</p><div className="grid gap-2 sm:grid-cols-2"><Input value={customInterest.en} onChange={(event) => setCustomInterest((current) => ({ ...current, en: event.target.value }))} placeholder="English name" /><Input dir="rtl" value={customInterest.he} onChange={(event) => setCustomInterest((current) => ({ ...current, he: event.target.value }))} placeholder="Hebrew name" /></div><Button className="mt-3" disabled={!customInterest.en.trim() || !customInterest.he.trim()} onClick={addCustomInterest}>Add hobby</Button></div>}
-      </SettingsCard>
-
-      {/* Offer tutoring */}
-      <SettingsCard title={t('profile_offer_tutoring')} icon={<GraduationCap className="w-4 h-4 text-purple-600" />}>
-        {teacherProfile && (
-          <div className="mb-3">
-            <div className="flex items-center gap-2 mb-2">
-              <span className={cn("text-xs font-semibold px-2 py-0.5 rounded", teacherProfile.is_active ? "bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400" : "bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400")}>
-                {teacherProfile.is_active ? p('profile_active') : p('profile_pending')}
-              </span>
-            </div>
-            <div className="flex flex-wrap gap-1">
-              {(teacherProfile.subjects || []).map(s => <span key={s} className="text-xs bg-muted px-2 py-0.5 rounded">{s}</span>)}
-            </div>
-          </div>
-        )}
-        <p className="text-xs text-muted-foreground mb-2">{p('profile_public_note')}</p>
-        <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setShowTutorForm(f => !f)}>
-          <Edit2 className="w-3.5 h-3.5" />{teacherProfile ? t('profile_edit') : t('profile_offer_tutoring')}
-        </Button>
-        {showTutorForm && (
-          <div className="mt-3 pt-3 border-t border-border space-y-2 animate-fade-in">
-            <Input className="text-sm" placeholder={p('profile_subjects')} value={tutorForm.subjects_raw} onChange={e => setTutorForm(f => ({ ...f, subjects_raw: e.target.value }))} />
-            <Input className="text-sm" placeholder="Languages, separated by commas" value={tutorForm.languages_raw} onChange={e => setTutorForm(f => ({ ...f, languages_raw: e.target.value }))} />
-            <div className="grid grid-cols-2 gap-2">
-              <Input className="text-sm" type="number" min="0" placeholder="Minimum ILS" value={tutorForm.price_min} onChange={e => setTutorForm(f => ({ ...f, price_min: e.target.value }))} />
-              <Input className="text-sm" type="number" min="0" placeholder="Maximum ILS" value={tutorForm.price_max} onChange={e => setTutorForm(f => ({ ...f, price_max: e.target.value }))} />
-            </div>
-            <select className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm" value={tutorForm.teaching_mode} onChange={e => setTutorForm(f => ({ ...f, teaching_mode: e.target.value }))}>
-              <option value="both">Online or in person</option><option value="online">Online</option><option value="in_person">In person</option>
-            </select>
-            <Input className="text-sm" placeholder="Availability" value={tutorForm.availability} onChange={e => setTutorForm(f => ({ ...f, availability: e.target.value }))} />
-            <Input className="text-sm" placeholder={p('profile_phone')} value={tutorForm.phone_number} onChange={e => setTutorForm(f => ({ ...f, phone_number: e.target.value }))} />
-            <Textarea className="text-sm resize-none" rows={2} placeholder={p('profile_tutor_bio')} value={tutorForm.bio} onChange={e => setTutorForm(f => ({ ...f, bio: e.target.value }))} />
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input type="checkbox" checked={tutorForm.contact_consent} onChange={e => setTutorForm(f => ({ ...f, contact_consent: e.target.checked }))} className="w-4 h-4" />
-              <span className="text-xs text-muted-foreground">{p('profile_contact_consent')}</span>
-            </label>
-            <div className="flex gap-2">
-              <Button size="sm" className="flex-1" disabled={!tutorForm.subjects_raw || saving} onClick={handleTutorSubmit}>{saving ? t('profile_saving') : t('profile_save')}</Button>
-              <Button size="sm" variant="outline" onClick={() => setShowTutorForm(false)}>{t('common_cancel')}</Button>
-            </div>
-          </div>
-        )}
-      </SettingsCard>
-
-      {/* Peer Helper */}
-      <SettingsCard title={t('profile_peer_helper')} icon={<HelpCircle className="w-4 h-4 text-primary" />}>
-        {peerHelper && (
-          <div className="mb-3 flex items-center gap-2">
-            <span className={cn("text-xs font-semibold px-2 py-0.5 rounded", peerHelper.is_visible ? "bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400" : "bg-muted text-muted-foreground")}>
-              {peerHelper.is_visible ? p('profile_visible') : p('profile_hidden')}
-            </span>
-            <button onClick={toggleHelperVisibility} className="text-xs text-primary hover:underline">{peerHelper.is_visible ? p('profile_hide') : p('profile_show')}</button>
-          </div>
-        )}
-        <p className="text-xs text-muted-foreground mb-2">{p('profile_helper_note')}</p>
-        <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setShowHelperForm(f => !f)}>
-          <Edit2 className="w-3.5 h-3.5" />{peerHelper ? t('profile_edit') : p('profile_setup_helper')}
-        </Button>
-        {showHelperForm && (
-          <div className="mt-3 pt-3 border-t border-border space-y-2 animate-fade-in">
-            <Input className="text-sm" placeholder={p('profile_help_topics')} value={helperForm.topics_raw} onChange={e => setHelperForm(f => ({ ...f, topics_raw: e.target.value }))} />
-            <Input className="text-sm" placeholder="Languages, separated by commas" value={helperForm.languages_raw} onChange={e => setHelperForm(f => ({ ...f, languages_raw: e.target.value }))} />
-            <Textarea className="text-sm resize-none" rows={2} placeholder={p('profile_helper_bio')} value={helperForm.bio} onChange={e => setHelperForm(f => ({ ...f, bio: e.target.value }))} />
-            <Input className="text-sm" placeholder={p('profile_availability')} value={helperForm.availability} onChange={e => setHelperForm(f => ({ ...f, availability: e.target.value }))} />
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input type="checkbox" checked={helperForm.contact_consent} onChange={e => setHelperForm(f => ({ ...f, contact_consent: e.target.checked }))} className="w-4 h-4" />
-              <span className="text-xs text-muted-foreground">{p('profile_public_contact')}</span>
-            </label>
-            {helperForm.contact_consent && (
-              <Input className="text-sm" placeholder={p('profile_contact')} value={helperForm.contact_value} onChange={e => setHelperForm(f => ({ ...f, contact_value: e.target.value }))} />
-            )}
-            <div className="flex gap-2">
-              <Button size="sm" className="flex-1" disabled={!helperForm.topics_raw || savingHelper} onClick={handleHelperSubmit}>{savingHelper ? t('profile_saving') : t('profile_save')}</Button>
-              <Button size="sm" variant="outline" onClick={() => setShowHelperForm(false)}>{t('common_cancel')}</Button>
-            </div>
-          </div>
-        )}
-      </SettingsCard>
-
-      {/* Sign out */}
-      <button onClick={() => base44.auth.logout('/')} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-destructive transition-colors mt-2 pb-4">
-        <LogOut className="w-4 h-4" /> {t('profile_signout')}
-      </button>
+      <button onClick={() => base44.auth.logout("/")} className="mt-2 flex items-center gap-2 pb-4 text-sm text-muted-foreground hover:text-destructive"><LogOut className="h-4 w-4" />{t("profile_signout")}</button>
     </PageLayout>
   );
 }
 
 function SettingsCard({ title, icon, children }) {
-  return (
-    <div className="bg-card rounded-lg border border-border p-4 mb-3">
-      <div className="flex items-center gap-2 mb-3">
-        {icon}
-        <p className="text-sm font-semibold text-foreground">{title}</p>
-      </div>
-      {children}
-    </div>
-  );
+  return <section className="mb-3 rounded-lg border border-border bg-card p-4"><div className="mb-3 flex items-center gap-2">{icon}<h2 className="text-sm font-semibold text-foreground">{title}</h2></div>{children}</section>;
+}
+
+function Field({ label, children }) {
+  return <label className="block"><span className="mb-1.5 block text-xs font-semibold text-muted-foreground">{label}</span>{children}</label>;
 }

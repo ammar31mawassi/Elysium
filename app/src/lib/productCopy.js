@@ -9,7 +9,7 @@ const copy = {
     discover_title: "Discover campus", discover_body: "Find people, study groups, and activities that match how you want to spend your week.",
     discover_search: "Search by subject, activity, course, or person", discover_social: "Social", discover_sessions: "Study groups",
     discover_groups: "Study groups", discover_tutors: "Tutors", discover_helpers: "Peer helpers", discover_empty: "Nothing matches this search yet.",
-    create_social: "Create social activity", create_session: "Create study group", add_deadline: "Add deadline", ask_elysium: "Ely",
+    create_social: "Create social event", create_session: "Create study group", add_deadline: "Add deadline", ask_elysium: "Ely",
     calendar_title: "My calendar", calendar_body: "Deadlines and the activities you joined, in one timeline.", calendar_upcoming: "Upcoming",
     calendar_past: "Past", calendar_empty: "Nothing is scheduled yet.", tools_title: "Student toolkit",
     tools_body: "Calculate, revise, find trusted help, and reach official university resources.", tutors: "Private tutors", helpers: "Peer helpers",

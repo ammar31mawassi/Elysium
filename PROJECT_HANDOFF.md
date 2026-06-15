@@ -872,9 +872,9 @@ Deploying the site updates:
 https://elysium-nexus-flow.base44.app/
 ```
 
-### Approval rule
+### Deployment rule
 
-Work locally and verify first. Treat schema push, Agent push, and live site deployment as explicit production actions. Do them only when Ammar's request authorizes deployment or after receiving his approval.
+Work locally and verify first. After an implementation passes the appropriate validation, deploy the applicable changes to the live Base44 application unless Ammar explicitly says not to deploy that work. Push entity schemas or Agent definitions only when those files changed, after reviewing the full synchronization impact.
 
 ## 18. Recommended Engineering Workflow
 
@@ -888,8 +888,8 @@ Work locally and verify first. Treat schema push, Agent push, and live site depl
 8. Run test, lint, typecheck, and build.
 9. Start or use the local app for UI verification.
 10. Test desktop/mobile and English/Hebrew/Arabic where the change affects UI.
-11. Push Base44 schemas/Agent only if those files changed and deployment is authorized.
-12. Deploy the site only after approval/authorization.
+11. Push Base44 schemas/Agent only if those files changed, after reviewing synchronization impact.
+12. Deploy completed, validated implementations unless Ammar explicitly says not to deploy them.
 13. Browser-test the live site after deployment.
 14. Stage exact files, never all untracked root assets.
 15. Commit to a `codex/...` feature branch.
@@ -1166,13 +1166,13 @@ When a new chat receives this file, it should begin with:
 7. Inspect the specific files relevant to Ammar's new request.
 8. Work locally first.
 9. Run focused and full validation appropriate to the change.
-10. Ask before a destructive migration, asset substitution, or unrequested live deployment.
+10. Ask before a destructive migration or asset substitution. Deploy validated implementations by default unless Ammar explicitly opts out.
 
 ## 28. Compact Handoff Prompt
 
 The following can be pasted alongside this file:
 
-> You are continuing the Elysium project in `C:\Users\ammar\OneDrive\Desktop\Dalili`. Read `AGENTS.md` and `PROJECT_HANDOFF.md` completely before doing anything. The live product is a Base44-hosted React/Vite app. The current implementation is on `codex/elysium-product-flow-fixes`, not stale `main`. Preserve all user-provided assets exactly. Work locally, keep English/Hebrew/Arabic and RTL parity, run tests/lint/typecheck/build, and do not push Base44 schemas, Agents, or the live site unless the current request authorizes it. Do not stage unrelated untracked root files.
+> You are continuing the Elysium project in `C:\Users\ammar\OneDrive\Desktop\Dalili`. Read `AGENTS.md` and `PROJECT_HANDOFF.md` completely before doing anything. The live product is a Base44-hosted React/Vite app. Preserve all user-provided assets exactly. Work locally, keep English/Hebrew/Arabic and RTL parity, run tests/lint/typecheck/build, and deploy completed validated implementations unless Ammar explicitly says not to. Push Base44 schemas or Agents only when those definitions changed and their synchronization impact has been reviewed. Do not stage unrelated untracked root files.
 
 ## 29. Final Product Principle
 

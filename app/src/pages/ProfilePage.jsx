@@ -257,14 +257,25 @@ export default function ProfilePage() {
 
       <SettingsCard title={t("profile_offer_tutoring")} icon={<GraduationCap className={cn("h-4 w-4", domainTones.tutor.text)} />}>
         <p className="mb-2 text-xs text-muted-foreground">{p("profile_public_note")}</p>
-        <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setShowTutorForm((current) => !current)}><Edit2 className="h-3.5 w-3.5" />{teacherProfile ? t("profile_edit") : t("profile_offer_tutoring")}</Button>
-        {showTutorForm && <div className="mt-3 space-y-2 border-t border-border pt-3"><Input placeholder={p("profile_subjects")} value={tutorForm.subjects_raw} onChange={(event) => setTutorForm((current) => ({ ...current, subjects_raw: event.target.value }))} /><Input placeholder="Languages, separated by commas" value={tutorForm.languages_raw} onChange={(event) => setTutorForm((current) => ({ ...current, languages_raw: event.target.value }))} /><div className="grid grid-cols-2 gap-2"><Input type="number" min="0" placeholder="Minimum ILS" value={tutorForm.price_min} onChange={(event) => setTutorForm((current) => ({ ...current, price_min: event.target.value }))} /><Input type="number" min="0" placeholder="Maximum ILS" value={tutorForm.price_max} onChange={(event) => setTutorForm((current) => ({ ...current, price_max: event.target.value }))} /></div><select className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm" value={tutorForm.teaching_mode} onChange={(event) => setTutorForm((current) => ({ ...current, teaching_mode: event.target.value }))}><option value="both">Online or in person</option><option value="online">Online</option><option value="in_person">In person</option></select><Input placeholder="Availability" value={tutorForm.availability} onChange={(event) => setTutorForm((current) => ({ ...current, availability: event.target.value }))} /><Input placeholder={p("profile_phone")} value={tutorForm.phone_number} onChange={(event) => setTutorForm((current) => ({ ...current, phone_number: event.target.value }))} /><Textarea rows={2} placeholder={p("profile_tutor_bio")} value={tutorForm.bio} onChange={(event) => setTutorForm((current) => ({ ...current, bio: event.target.value }))} /><label className="flex items-center gap-2"><input type="checkbox" checked={tutorForm.contact_consent} onChange={(event) => setTutorForm((current) => ({ ...current, contact_consent: event.target.checked }))} /><span className="text-xs text-muted-foreground">{p("profile_contact_consent")}</span></label><div className="flex gap-2"><Button size="sm" className="flex-1" disabled={!tutorForm.subjects_raw.trim() || savingTutor} onClick={handleTutorSubmit}>{savingTutor ? t("profile_saving") : t("profile_save")}</Button><Button size="sm" variant="outline" onClick={() => setShowTutorForm(false)}>{t("common_cancel")}</Button></div></div>}
+        <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setShowTutorForm(true)}><Edit2 className="h-3.5 w-3.5" />{teacherProfile ? t("profile_edit") : t("profile_offer_tutoring")}</Button>
       </SettingsCard>
 
       <SettingsCard title="Peer Helper details" icon={<HelpCircle className={cn("h-4 w-4", domainTones.helper.text)} />}>
         <p className="mb-2 text-xs text-muted-foreground">Turn Peer Helper on in the profile header. The first time, complete these public details. Your WhatsApp number is required and is only shown while Peer Helper is on.</p>
         <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setShowHelperForm(true)}><Edit2 className="h-3.5 w-3.5" />{peerHelper ? "Edit helper details" : "Sign up as Peer Helper"}</Button>
       </SettingsCard>
+
+      <TutorDialog
+        open={showTutorForm}
+        onOpenChange={setShowTutorForm}
+        teacherProfile={teacherProfile}
+        tutorForm={tutorForm}
+        setTutorForm={setTutorForm}
+        savingTutor={savingTutor}
+        onSubmit={handleTutorSubmit}
+        p={p}
+        t={t}
+      />
 
       <PeerHelperDialog
         open={showHelperForm}
@@ -277,6 +288,114 @@ export default function ProfilePage() {
 
       <button onClick={() => base44.auth.logout("/")} className="mt-2 flex items-center gap-2 pb-4 text-sm text-muted-foreground hover:text-destructive"><LogOut className="h-4 w-4" />{t("profile_signout")}</button>
     </PageLayout>
+  );
+}
+
+function TutorDialog({ open, onOpenChange, teacherProfile, tutorForm, setTutorForm, savingTutor, onSubmit, p, t }) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-h-[calc(100vh-2rem)] overflow-y-auto sm:max-w-lg">
+        <form
+          className="space-y-4"
+          onSubmit={(event) => {
+            event.preventDefault();
+            onSubmit();
+          }}
+        >
+          <DialogHeader>
+            <DialogTitle>{teacherProfile ? "Edit tutoring profile" : "Offer tutoring"}</DialogTitle>
+            <DialogDescription>
+              Share the subjects, languages, and contact details students can use to request help.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3">
+            <Field label={p("profile_subjects")}>
+              <Input
+                placeholder="Calculus, Data Structures"
+                value={tutorForm.subjects_raw}
+                onChange={(event) => setTutorForm((current) => ({ ...current, subjects_raw: event.target.value }))}
+              />
+            </Field>
+            <Field label="Languages">
+              <Input
+                placeholder="Arabic, Hebrew, English"
+                value={tutorForm.languages_raw}
+                onChange={(event) => setTutorForm((current) => ({ ...current, languages_raw: event.target.value }))}
+              />
+            </Field>
+            <div className="grid grid-cols-2 gap-2">
+              <Field label="Minimum ILS">
+                <Input
+                  type="number"
+                  min="0"
+                  value={tutorForm.price_min}
+                  onChange={(event) => setTutorForm((current) => ({ ...current, price_min: event.target.value }))}
+                />
+              </Field>
+              <Field label="Maximum ILS">
+                <Input
+                  type="number"
+                  min="0"
+                  value={tutorForm.price_max}
+                  onChange={(event) => setTutorForm((current) => ({ ...current, price_max: event.target.value }))}
+                />
+              </Field>
+            </div>
+            <Field label="Teaching mode">
+              <select
+                className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                value={tutorForm.teaching_mode}
+                onChange={(event) => setTutorForm((current) => ({ ...current, teaching_mode: event.target.value }))}
+              >
+                <option value="both">Online or in person</option>
+                <option value="online">Online</option>
+                <option value="in_person">In person</option>
+              </select>
+            </Field>
+            <Field label="Availability">
+              <Input
+                placeholder="Weekdays after 18:00"
+                value={tutorForm.availability}
+                onChange={(event) => setTutorForm((current) => ({ ...current, availability: event.target.value }))}
+              />
+            </Field>
+            <Field label={p("profile_phone")}>
+              <Input
+                inputMode="tel"
+                placeholder="050-000-0000"
+                value={tutorForm.phone_number}
+                onChange={(event) => setTutorForm((current) => ({ ...current, phone_number: event.target.value }))}
+              />
+            </Field>
+            <Field label={p("profile_tutor_bio")}>
+              <Textarea
+                rows={3}
+                value={tutorForm.bio}
+                onChange={(event) => setTutorForm((current) => ({ ...current, bio: event.target.value }))}
+              />
+            </Field>
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={tutorForm.contact_consent}
+                onChange={(event) => setTutorForm((current) => ({ ...current, contact_consent: event.target.checked }))}
+              />
+              <span className="text-xs text-muted-foreground">{p("profile_contact_consent")}</span>
+            </label>
+          </div>
+
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              {t("common_cancel")}
+            </Button>
+            <Button type="submit" disabled={!tutorForm.subjects_raw.trim() || savingTutor}>
+              {savingTutor ? t("profile_saving") : t("profile_save")}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }
 

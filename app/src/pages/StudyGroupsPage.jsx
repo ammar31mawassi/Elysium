@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { BookOpenCheck, CalendarClock, MapPin, Plus, X } from "lucide-react";
+import { BookOpenCheck, CalendarClock, Check, MapPin, Plus, X } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useProfile } from "@/lib/useProfile";
 import { useLanguage } from "@/lib/LanguageContext";
@@ -17,6 +17,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
+import {
+  PARTICIPATION_FILTERS,
+  countParticipants,
+  filterByParticipation,
+  joinedIdsFromState,
+  mergeRecordsById,
+} from "@/lib/communityMatching";
 
 const emptyForm = { title: "", course_name: "", preferred_language: "", session_date: "", end_time: "", location: "", notes: "", max_spots: 8, is_marathon: false };
 
@@ -39,6 +46,7 @@ export default function StudyGroupsPage() {
   const [saving, setSaving] = useState(false);
   const [selected, setSelected] = useState(null);
   const [showForm, setShowForm] = useState(false);
+  const [participationFilter, setParticipationFilter] = useState(PARTICIPATION_FILTERS.all);
   const [form, setForm] = useState(emptyForm);
 
   useEffect(() => {
@@ -48,11 +56,12 @@ export default function StudyGroupsPage() {
     Promise.all([
       safeQuery(base44.entities.StudySession.filter({ university_id: profile.university_id })),
       safeQuery(base44.entities.StudySessionMember.list()),
+      safeQuery(base44.entities.StudySessionMember.filter({ user_id: user.id })),
       safeQuery(base44.entities.CalendarItem.filter({ owner_user_id: user.id, source_type: "study_session" })),
-    ]).then(([sessionRows, memberRows, calendarRows]) => {
+    ]).then(([sessionRows, memberRows, ownMemberRows, calendarRows]) => {
       if (!active) return;
       setSessions(withDemoFallback(sessionRows, demoContent.sessions));
-      setMembers(memberRows || []);
+      setMembers(mergeRecordsById(memberRows, ownMemberRows));
       setCalendarItems(calendarRows || []);
       setLoading(false);
     });
@@ -61,15 +70,22 @@ export default function StudyGroupsPage() {
 
   const activeCourses = useMemo(() => activeCourseNames(profile), [profile]);
   const courseOptions = useMemo(() => buildCourseOptions(activeCourses), [activeCourses]);
-  const myMemberships = members.filter((item) => item.user_id === user?.id);
-  const mySessionIds = new Set(myMemberships.map((item) => item.session_id));
-  const memberCount = (sessionId) => members.filter((item) => item.session_id === sessionId).length;
+  const myMemberships = useMemo(() => members.filter((item) => item.user_id === user?.id), [members, user?.id]);
+  const mySessionIds = useMemo(() => joinedIdsFromState({
+    memberships: members,
+    calendarItems,
+    idField: "session_id",
+    userId: user?.id,
+    sourceType: "study_session",
+  }), [members, calendarItems, user?.id]);
+  const memberCount = (sessionId) => countParticipants(members, "session_id", sessionId, mySessionIds);
   const visibleSessions = useMemo(() => {
     const activeSet = new Set(activeCourses.map((course) => course.toLocaleLowerCase("en")));
-    return sessions
-      .filter((session) => session.host_id === user?.id || mySessionIds.has(session.id) || activeSet.has((session.course_name || "").toLocaleLowerCase("en")))
+    const filtered = sessions
+      .filter((session) => session.host_id === user?.id || mySessionIds.has(session.id) || activeSet.has((session.course_name || "").toLocaleLowerCase("en")));
+    return filterByParticipation(filtered, mySessionIds, participationFilter)
       .sort((a, b) => new Date(a.session_date) - new Date(b.session_date));
-  }, [activeCourses, sessions, user?.id, members]);
+  }, [activeCourses, sessions, user?.id, mySessionIds, participationFilter]);
 
   useEffect(() => {
     const requested = ["1", "session"].includes(new URLSearchParams(location.search).get("create"));
@@ -94,8 +110,8 @@ export default function StudyGroupsPage() {
       const membership = await base44.entities.StudySessionMember.create({ session_id: session.id, user_id: user.id });
       const calendarItem = await base44.entities.CalendarItem.create({ owner_user_id: user.id, source_type: "study_session", source_id: session.id, course_name: session.course_name, title: session.title, starts_at: session.session_date, ends_at: session.end_time, notes: session.location || "", status: "active" });
       setSessions((current) => [session, ...current.filter((item) => !String(item.id).startsWith("demo-"))]);
-      setMembers((current) => [...current, membership]);
-      setCalendarItems((current) => [...current, calendarItem]);
+      setMembers((current) => mergeRecordsById(current, [membership]));
+      setCalendarItems((current) => mergeRecordsById(current, [calendarItem]));
       setShowForm(false);
       setForm(emptyForm);
     } finally {
@@ -109,8 +125,8 @@ export default function StudyGroupsPage() {
     try {
       const membership = await base44.entities.StudySessionMember.create({ session_id: session.id, user_id: user.id });
       const calendarItem = await base44.entities.CalendarItem.create({ owner_user_id: user.id, source_type: "study_session", source_id: session.id, course_name: session.course_name, title: session.title, starts_at: session.session_date, ends_at: session.end_time, notes: session.location || "", status: "active" });
-      setMembers((current) => [...current, membership]);
-      setCalendarItems((current) => [...current, calendarItem]);
+      setMembers((current) => mergeRecordsById(current, [membership]));
+      setCalendarItems((current) => mergeRecordsById(current, [calendarItem]));
       setSelected(null);
     } finally {
       setSaving(false);
@@ -119,14 +135,14 @@ export default function StudyGroupsPage() {
 
   const leaveGroup = async (session) => {
     const membership = myMemberships.find((item) => item.session_id === session.id);
-    if (!membership || session.host_id === user?.id) return;
+    const calendarItem = calendarItems.find((item) => item.source_id === session.id);
+    if (session.host_id === user?.id || (!membership && !calendarItem)) return;
     setSaving(true);
     try {
-      await base44.entities.StudySessionMember.delete(membership.id);
-      const calendarItem = calendarItems.find((item) => item.source_id === session.id);
+      if (membership) await base44.entities.StudySessionMember.delete(membership.id);
       if (calendarItem) await base44.entities.CalendarItem.delete(calendarItem.id);
-      setMembers((current) => current.filter((item) => item.id !== membership.id));
-      setCalendarItems((current) => current.filter((item) => item.id !== calendarItem?.id));
+      setMembers((current) => current.filter((item) => item.id !== membership?.id && !(item.session_id === session.id && item.user_id === user?.id)));
+      setCalendarItems((current) => current.filter((item) => item.source_id !== session.id));
       setSelected(null);
     } finally {
       setSaving(false);
@@ -147,7 +163,7 @@ export default function StudyGroupsPage() {
 
   return (
     <PageLayout wide>
-      <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between"><div><h1 className="text-2xl font-bold text-foreground sm:text-3xl">Study groups</h1><p className="mt-2 text-sm text-muted-foreground">One-time groups and marathons matched to your active courses.</p></div><Button className="min-h-11 gap-2 self-start" onClick={() => setShowForm(true)} disabled={!activeCourses.length}><Plus className="h-4 w-4" />Create study group</Button></header>
+      <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between"><div><h1 className="text-2xl font-bold text-foreground sm:text-3xl">Study groups</h1><p className="mt-2 text-sm text-muted-foreground">One-time groups and marathons matched to your active courses.</p></div><div className="flex flex-wrap items-center gap-2"><ParticipationFilter value={participationFilter} onChange={setParticipationFilter} /><Button className="min-h-11 gap-2 self-start" onClick={() => setShowForm(true)} disabled={!activeCourses.length}><Plus className="h-4 w-4" />Create study group</Button></div></header>
 
       {!activeCourses.length && <div className="mb-5 rounded-lg border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-foreground">Add an active course in <Link to="/me" className="font-semibold text-primary underline">Me</Link> before creating or discovering study groups.</div>}
 
@@ -166,4 +182,27 @@ export default function StudyGroupsPage() {
 
 function Field({ label, children }) {
   return <label className="block"><span className="mb-1.5 block text-xs font-semibold text-muted-foreground">{label}</span>{children}</label>;
+}
+
+function ParticipationFilter({ value, onChange }) {
+  const options = [
+    [PARTICIPATION_FILTERS.all, "All", BookOpenCheck],
+    [PARTICIPATION_FILTERS.joined, "Joined", Check],
+    [PARTICIPATION_FILTERS.notJoined, "Not joined", Plus],
+  ];
+  return (
+    <div className="flex max-w-full gap-1 overflow-x-auto rounded-md bg-muted p-1" role="group" aria-label="Study participation filter">
+      {options.map(([key, label, Icon]) => (
+        <button
+          key={key}
+          type="button"
+          onClick={() => onChange(key)}
+          className={cn("flex min-h-10 shrink-0 items-center gap-1.5 rounded-md px-3 text-xs font-semibold", value === key ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}
+        >
+          <Icon className="h-3.5 w-3.5" />
+          {label}
+        </button>
+      ))}
+    </div>
+  );
 }

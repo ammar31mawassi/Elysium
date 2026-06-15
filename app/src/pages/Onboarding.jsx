@@ -8,10 +8,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import ElysiumLogo from "@/components/elysium/ElysiumLogo";
 import { cn } from "@/lib/utils";
-import { demoUniversity } from "@/lib/demoData";
 import { isOnboardingStepValid, localizedField } from "@/lib/productUtils";
 import { courseProfileUpdate } from "@/lib/profileCourses";
 import { registerCourses } from "@/lib/courseCatalog";
+import { withDefaultUniversities } from "@/lib/universities";
 import {
   DEFAULT_INTERESTS,
   FIELD_OPTIONS,
@@ -73,7 +73,7 @@ export default function Onboarding() {
 
   useEffect(() => { setLocale("en"); }, [setLocale]);
   useEffect(() => {
-    safeQuery(base44.entities.University.list(), [demoUniversity]).then((rows) => setUniversities(rows.length ? rows : [demoUniversity]));
+    safeQuery(base44.entities.University.list(), []).then((rows) => setUniversities(withDefaultUniversities(rows)));
     const interestQuery = base44.entities.Interest?.filter
       ? base44.entities.Interest.filter({ is_active: true })
       : Promise.resolve([]);

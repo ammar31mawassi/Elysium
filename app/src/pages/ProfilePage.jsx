@@ -7,7 +7,9 @@ import { useTheme } from "@/lib/ThemeContext";
 import { LOCALE_NAMES, SUPPORTED_LOCALES } from "@/lib/i18n";
 import { normalizeWhatsAppNumber } from "@/lib/whatsapp";
 import { buildTutorProfilePayload, emptyTutorForm, splitCommaList, tutorFormFromProfile, tutorStatus } from "@/lib/tutorProfile";
+import { withDefaultUniversities } from "@/lib/universities";
 import { productText } from "@/lib/productCopy";
+import { localizedField } from "@/lib/productUtils";
 import PageLayout from "@/components/layout/PageLayout";
 import ElysiumMark from "@/components/elysium/ElysiumMark";
 import { Button } from "@/components/ui/button";
@@ -25,7 +27,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/use-toast";
 import { cn } from "@/lib/utils";
 import { domainTones } from "@/lib/domainTones";
-import { demoUniversity } from "@/lib/demoData";
 
 const YEARS = ["Preparatory", "1st Year", "2nd Year", "3rd Year", "4th Year+"];
 const SPOKEN_LANGUAGES = ["English", "Hebrew", "Arabic"];
@@ -69,7 +70,7 @@ export default function ProfilePage() {
       base44.entities.PrivateTeacher.filter({ user_id: user.id }).catch(() => []),
       base44.entities.PeerHelper.filter({ owner_user_id: user.id }).catch(() => []),
     ]).then(([universityRows, teachers, helpers]) => {
-      setUniversities(universityRows?.length ? universityRows : [demoUniversity]);
+      setUniversities(withDefaultUniversities(universityRows));
       if (teachers?.length) {
         const record = teachers[0];
         setTeacherProfile(record);
@@ -237,7 +238,7 @@ export default function ProfilePage() {
       <SettingsCard title="Profile information">
         <div className="grid gap-3 sm:grid-cols-2">
           <Field label="Preferred name"><Input value={profileForm.preferred_name} onChange={(event) => setProfileForm((current) => ({ ...current, preferred_name: event.target.value }))} /></Field>
-          <Field label="University"><select className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm" value={profileForm.university_id} onChange={(event) => setProfileForm((current) => ({ ...current, university_id: event.target.value }))}>{universities.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></Field>
+          <Field label="University"><select className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm" value={profileForm.university_id} onChange={(event) => setProfileForm((current) => ({ ...current, university_id: event.target.value }))}>{universities.map((item) => <option key={item.id} value={item.id}>{localizedField(item, "name", locale)}</option>)}</select></Field>
           <Field label="Academic year"><select className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm" value={profileForm.academic_year} onChange={(event) => setProfileForm((current) => ({ ...current, academic_year: event.target.value }))}><option value="">Select year</option>{YEARS.map((year) => <option key={year} value={year}>{year}</option>)}</select></Field>
           <Field label="Field of study"><Input value={profileForm.field_of_study} onChange={(event) => setProfileForm((current) => ({ ...current, field_of_study: event.target.value }))} /></Field>
           <Field label="Preferred spoken language"><select className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm" value={profileForm.preferred_language} onChange={(event) => setProfileForm((current) => ({ ...current, preferred_language: event.target.value }))}>{SPOKEN_LANGUAGES.map((language) => <option key={language} value={language}>{language}</option>)}</select></Field>

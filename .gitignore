@@ -29,9 +29,37 @@ Thumbs.db
 .idea/
 .vscode/
 
+# Local AI coding-assistant context
+AGENTS.md
+**/AGENTS.md
+CLAUDE.md
+**/CLAUDE.md
+GEMINI.md
+**/GEMINI.md
+PROJECT_HANDOFF.md
+**/*_HANDOFF.md
+**/*-handoff.md
+**/*_handoff.md
+**/*-build-prompt.md
+.codex/
+**/.codex/
+.claude/
+**/.claude/
+.cursor/
+**/.cursor/
+.continue/
+**/.continue/
+.windsurf/
+**/.windsurf/
+.aider*
+**/.aider*
+.github/copilot-instructions.md
+
+# Accidental root package metadata
+/package-lock.json
+
 # Python cache from old experiments
 __pycache__/
 *.py[cod]
 venv/
 .venv/
-

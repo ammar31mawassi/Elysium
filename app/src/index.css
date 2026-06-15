@@ -42,27 +42,27 @@
 
 @layer base {
   .dark {
-    --background: 160 9% 9%;
-    --foreground: 140 23% 98%;
-    --card: 160 10% 12%;
-    --card-foreground: 140 23% 98%;
-    --surface-elevated: 158 11% 15%;
-    --popover: 158 11% 15%;
-    --popover-foreground: 140 23% 98%;
+    --background: 220 8% 8%;
+    --foreground: 0 0% 98%;
+    --card: 220 7% 11%;
+    --card-foreground: 0 0% 98%;
+    --surface-elevated: 220 7% 14%;
+    --popover: 220 7% 14%;
+    --popover-foreground: 0 0% 98%;
     --primary: 176 63% 55%;
-    --primary-foreground: 165 35% 8%;
+    --primary-foreground: 220 15% 8%;
     --secondary: 76 100% 65%;
-    --secondary-foreground: 165 35% 8%;
-    --muted: 158 11% 16%;
-    --muted-foreground: 145 8% 70%;
+    --secondary-foreground: 220 15% 8%;
+    --muted: 220 6% 16%;
+    --muted-foreground: 220 5% 70%;
     --accent: 205 100% 65%;
-    --accent-foreground: 165 35% 8%;
+    --accent-foreground: 220 15% 8%;
     --destructive: 0 72% 62%;
     --destructive-foreground: 0 0% 100%;
     --success: 139 69% 68%;
-    --success-foreground: 165 35% 8%;
-    --border: 153 10% 23%;
-    --input: 153 10% 25%;
+    --success-foreground: 220 15% 8%;
+    --border: 220 6% 23%;
+    --input: 220 6% 25%;
     --ring: 176 63% 55%;
     --featured-surface: 204 52% 23%;
     --featured-surface-hover: 202 52% 27%;
@@ -151,7 +151,7 @@ html.theme-transitioning select {
 .dark .shadow-lg,
 .dark .shadow-xl,
 .dark .shadow-2xl {
-  box-shadow: 0 12px 36px hsl(160 20% 3% / 0.22);
+  box-shadow: 0 12px 36px hsl(220 20% 3% / 0.22);
 }
 
 @media (prefers-reduced-motion: reduce) {

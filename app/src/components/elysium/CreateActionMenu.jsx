@@ -20,16 +20,24 @@ export const createActionIcons = {
   other: FileQuestion,
 };
 
-export default function CreateActionMenu({ className, compact = false, label, iconOnly = false }) {
+export default function CreateActionMenu({ className, compact = false, label, iconOnly = false, variant = "featured" }) {
   const navigate = useNavigate();
   const { locale, t } = useLanguage();
   const menu = createActionCopy(locale);
+  const isFeatured = variant === "featured";
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button className={cn("featured-surface featured-action flex h-11 items-center gap-2 rounded-md px-3 text-sm font-semibold", className)} aria-label={label || menu.title}>
-          <Plus className="h-4 w-4" />
+        <button
+          className={cn(
+            "flex items-center gap-2 rounded-md px-3 text-sm font-semibold",
+            isFeatured ? "featured-surface featured-action h-11" : "border border-border bg-card text-foreground hover:border-primary/40",
+            className,
+          )}
+          aria-label={label || menu.title}
+        >
+          <Plus className={cn("h-4 w-4", !isFeatured && "text-primary")} />
           {!iconOnly && (label || (compact ? t("nav_add") : menu.title))}
         </button>
       </DropdownMenuTrigger>

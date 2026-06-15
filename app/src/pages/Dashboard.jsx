@@ -101,7 +101,7 @@ export default function Dashboard() {
               <span className="mt-5 flex items-center gap-2 text-sm font-semibold">{model.next ? p("see_all") : p("add_deadline")}<ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1 rtl:rotate-180 rtl:group-hover:-translate-x-1" /></span>
             </Link>
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-1">
-              <CreateActionMenu className="min-h-14 w-full justify-start border border-border bg-card px-3 text-foreground" label={locale === "he" ? "הוספת פריט" : locale === "ar" ? "إضافة عنصر" : "Add something"} />
+              <CreateActionMenu className="h-full min-h-14 w-full justify-start rounded-lg" label={locale === "he" ? "הוספת פריט" : locale === "ar" ? "إضافة عنصر" : "Add something"} variant="standard" />
               <QuickAction icon={BookOpenCheck} label="Create study group" to="/groups?create=1" />
               <QuickAction icon={Flag} label={p("add_deadline")} to="/calendar?create=1" className="col-span-2 sm:col-span-1" />
             </div>

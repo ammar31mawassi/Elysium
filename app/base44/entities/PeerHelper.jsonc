@@ -21,7 +21,7 @@
     },
     "contact_consent": { "type": "boolean", "default": false },
     "is_visible": { "type": "boolean", "default": false },
-    "moderation_status": { "type": "string", "enum": ["ok", "under_review", "suspended"], "default": "ok" }
+    "moderation_status": { "type": "string", "enum": ["ok", "under_review", "suspended"], "default": "ok", "rls": { "write": { "user_condition": { "role": "admin" } } } }
   },
   "required": ["owner_user_id", "display_name", "university_id"],
   "rls": {

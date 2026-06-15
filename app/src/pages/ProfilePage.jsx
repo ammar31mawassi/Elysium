@@ -144,9 +144,6 @@ export default function ProfilePage() {
         currency: "ILS",
         availability: tutorForm.availability,
         contact_consent: tutorForm.contact_consent,
-        is_approved: false,
-        is_active: false,
-        moderation_status: "pending",
       };
       if (teacherProfile) {
         await base44.entities.PrivateTeacher.update(teacherProfile.id, data);
@@ -186,7 +183,6 @@ export default function ProfilePage() {
         contact_value: whatsapp,
         contact_consent: true,
         is_visible: true,
-        moderation_status: "ok",
       };
       if (peerHelper) {
         await base44.entities.PeerHelper.update(peerHelper.id, data);

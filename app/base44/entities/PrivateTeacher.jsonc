@@ -16,20 +16,19 @@
     "phone_number": {
       "type": "string",
       "rls": {
-        "read": { "$or": [{ "data.contact_consent": true }, { "data.user_id": "{{user.id}}" }, { "user_condition": { "role": "admin" } }] },
-        "write": { "$or": [{ "data.user_id": "{{user.id}}" }, { "user_condition": { "role": "admin" } }] }
+        "read": { "$or": [{ "data.contact_consent": true }, { "data.user_id": "{{user.id}}" }, { "user_condition": { "role": "admin" } }] }
       }
     },
     "contact_consent": { "type": "boolean", "default": false },
-    "rating_avg": { "type": "number", "default": 0 },
-    "rating_count": { "type": "number", "default": 0 },
-    "is_approved": { "type": "boolean", "default": false },
-    "is_active": { "type": "boolean", "default": false },
-    "moderation_status": { "type": "string", "enum": ["pending", "approved", "suspended"], "default": "pending" }
+    "rating_avg": { "type": "number", "default": 0, "rls": { "write": { "user_condition": { "role": "admin" } } } },
+    "rating_count": { "type": "number", "default": 0, "rls": { "write": { "user_condition": { "role": "admin" } } } },
+    "is_approved": { "type": "boolean", "default": false, "rls": { "write": { "user_condition": { "role": "admin" } } } },
+    "is_active": { "type": "boolean", "default": false, "rls": { "write": { "user_condition": { "role": "admin" } } } },
+    "moderation_status": { "type": "string", "enum": ["pending", "approved", "suspended"], "default": "pending", "rls": { "write": { "user_condition": { "role": "admin" } } } }
   },
   "required": ["user_id", "university_id", "display_name"],
   "rls": {
-    "create": { "user_condition": { "id": "{{user.id}}" } },
+    "create": { "data.user_id": "{{user.id}}" },
     "read": {
       "$or": [
         { "$and": [{ "data.is_approved": true }, { "data.is_active": true }, { "data.moderation_status": "approved" }] },

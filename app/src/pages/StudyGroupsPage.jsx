@@ -23,6 +23,7 @@ import {
   filterByParticipation,
   joinedIdsFromState,
   mergeRecordsById,
+  participantSnapshot,
 } from "@/lib/communityMatching";
 
 const emptyForm = { title: "", course_name: "", preferred_language: "", session_date: "", end_time: "", location: "", notes: "", max_spots: 8, is_marathon: false };
@@ -120,7 +121,7 @@ export default function StudyGroupsPage() {
         host_field_of_study: profile.field_of_study || "",
         status: "open",
       });
-      const membership = await base44.entities.StudySessionMember.create({ session_id: session.id, university_id: profile.university_id, user_id: user.id });
+      const membership = await base44.entities.StudySessionMember.create({ session_id: session.id, university_id: profile.university_id, owner_user_id: user.id, user_id: user.id, ...participantSnapshot({ profile, user }) });
       const calendarItem = await base44.entities.CalendarItem.create({ owner_user_id: user.id, source_type: "study_session", source_id: session.id, course_name: session.course_name, title: session.title, starts_at: session.session_date, ends_at: session.end_time, notes: session.location || "", status: "active" });
       setSessions((current) => [session, ...current.filter((item) => !String(item.id).startsWith("demo-"))]);
       setMembers((current) => mergeRecordsById(current, [membership]));
@@ -136,7 +137,7 @@ export default function StudyGroupsPage() {
     if (!user?.id || mySessionIds.has(session.id) || memberCount(session.id) >= session.max_spots || String(session.id).startsWith("demo-")) return;
     setSaving(true);
     try {
-      const membership = await base44.entities.StudySessionMember.create({ session_id: session.id, university_id: profile.university_id, user_id: user.id });
+      const membership = await base44.entities.StudySessionMember.create({ session_id: session.id, university_id: profile.university_id, owner_user_id: session.host_id, user_id: user.id, ...participantSnapshot({ profile, user }) });
       const calendarItem = await base44.entities.CalendarItem.create({ owner_user_id: user.id, source_type: "study_session", source_id: session.id, course_name: session.course_name, title: session.title, starts_at: session.session_date, ends_at: session.end_time, notes: session.location || "", status: "active" });
       setMembers((current) => mergeRecordsById(current, [membership]));
       setCalendarItems((current) => mergeRecordsById(current, [calendarItem]));

@@ -4,6 +4,25 @@
   "properties": {
     "session_id": { "type": "string" },
     "university_id": { "type": "string" },
+    "owner_user_id": { "type": "string" },
+    "participant_name": {
+      "type": "string",
+      "rls": {
+        "read": { "$or": [{ "data.owner_user_id": "{{user.id}}" }, { "data.user_id": "{{user.id}}" }, { "user_condition": { "role": "admin" } }] }
+      }
+    },
+    "participant_academic_year": {
+      "type": "string",
+      "rls": {
+        "read": { "$or": [{ "data.owner_user_id": "{{user.id}}" }, { "data.user_id": "{{user.id}}" }, { "user_condition": { "role": "admin" } }] }
+      }
+    },
+    "participant_field_of_study": {
+      "type": "string",
+      "rls": {
+        "read": { "$or": [{ "data.owner_user_id": "{{user.id}}" }, { "data.user_id": "{{user.id}}" }, { "user_condition": { "role": "admin" } }] }
+      }
+    },
     "user_id": { "type": "string" }
   },
   "required": ["session_id", "university_id", "user_id"],

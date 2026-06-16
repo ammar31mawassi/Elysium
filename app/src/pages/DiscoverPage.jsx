@@ -35,6 +35,7 @@ import {
   filterMembershipsForUniversity,
   joinedIdsFromState,
   mergeRecordsById,
+  participantSnapshot,
   sortSocialEventsByInterests,
 } from "@/lib/communityMatching";
 import PageLayout from "@/components/layout/PageLayout";
@@ -199,7 +200,7 @@ export default function DiscoverPage() {
     if (myEventIds.has(event.id) || approved >= (event.max_spots || Infinity) || event.status === "canceled") return;
     setSaving(true);
     try {
-      const membership = await base44.entities.SocialEventMember.create({ event_id: event.id, university_id: profile.university_id, user_id: user.id, status: "approved" });
+      const membership = await base44.entities.SocialEventMember.create({ event_id: event.id, university_id: profile.university_id, owner_user_id: event.organizer_id, user_id: user.id, status: "approved", ...participantSnapshot({ profile, user }) });
       const calendarItem = await addCalendar("social_activity", event.id, event.title, `${event.date}T${event.start_time || "12:00"}`, event.location);
       setData((current) => ({ ...current, eventMembers: mergeRecordsById(current.eventMembers, [membership]), calendarItems: mergeRecordsById(current.calendarItems, [calendarItem]) }));
       setSelected(null);
@@ -244,7 +245,7 @@ export default function DiscoverPage() {
     if (mySessionIds.has(session.id) || session.status === "canceled") return;
     setSaving(true);
     try {
-      const membership = await base44.entities.StudySessionMember.create({ session_id: session.id, university_id: profile.university_id, user_id: user.id });
+      const membership = await base44.entities.StudySessionMember.create({ session_id: session.id, university_id: profile.university_id, owner_user_id: session.host_id, user_id: user.id, ...participantSnapshot({ profile, user }) });
       const calendarItem = await addCalendar("study_session", session.id, session.title || session.course_name || "Study group", session.session_date, session.location, session.course_name);
       setData((current) => ({ ...current, sessionMembers: mergeRecordsById(current.sessionMembers, [membership]), calendarItems: mergeRecordsById(current.calendarItems, [calendarItem]) }));
       setSelected(null);

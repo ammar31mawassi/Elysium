@@ -33,6 +33,7 @@ import {
   filterByParticipation,
   joinedIdsFromState,
   mergeRecordsById,
+  participantSnapshot,
   sortSocialEventsByInterests,
 } from "@/lib/communityMatching";
 import { domainTones } from "@/lib/domainTones";
@@ -161,7 +162,7 @@ export default function SocialPage() {
         is_open: true,
         status: "open",
       });
-      const membership = await base44.entities.SocialEventMember.create({ event_id: created.id, university_id: profile.university_id, user_id: user.id, status: "approved" });
+      const membership = await base44.entities.SocialEventMember.create({ event_id: created.id, university_id: profile.university_id, owner_user_id: user.id, user_id: user.id, status: "approved", ...participantSnapshot({ profile, user }) });
       const calendarItem = await base44.entities.CalendarItem.create({ owner_user_id: user.id, source_type: "social_activity", source_id: created.id, title: created.title, starts_at: calendarStart(created), ends_at: created.end_time ? new Date(`${created.date}T${created.end_time}:00`).toISOString() : undefined, notes: created.location || "", status: "active" });
       setEvents((current) => [created, ...current.filter((item) => !String(item.id).startsWith("demo-") )]);
       setMemberships((current) => mergeRecordsById(current, [membership]));
@@ -202,7 +203,7 @@ export default function SocialPage() {
     if (!user?.id || myEventIds.has(event.id) || memberCount(event.id) >= event.max_spots || String(event.id).startsWith("demo-")) return;
     setSaving(true);
     try {
-      const membership = await base44.entities.SocialEventMember.create({ event_id: event.id, university_id: profile.university_id, user_id: user.id, status: "approved" });
+      const membership = await base44.entities.SocialEventMember.create({ event_id: event.id, university_id: profile.university_id, owner_user_id: event.organizer_id, user_id: user.id, status: "approved", ...participantSnapshot({ profile, user }) });
       const calendarItem = await base44.entities.CalendarItem.create({
         owner_user_id: user.id,
         source_type: "social_activity",

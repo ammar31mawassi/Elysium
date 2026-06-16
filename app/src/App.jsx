@@ -9,6 +9,7 @@ import { ProfileProvider } from '@/lib/useProfile';
 import { ThemeProvider } from '@/lib/ThemeContext';
 import { LanguageProvider } from '@/lib/LanguageContext';
 import ElysiumMark from '@/components/elysium/ElysiumMark';
+import { CreateActionProvider } from '@/components/elysium/CreateActionProvider';
 
 import Onboarding from '@/pages/Onboarding';
 import Dashboard from '@/pages/Dashboard';
@@ -17,6 +18,7 @@ import StudyGroupsPage from '@/pages/StudyGroupsPage';
 import ToolsPage from '@/pages/ToolsPage';
 import ProfilePage from '@/pages/ProfilePage';
 import MePage from '@/pages/MePage';
+import MyCommunitiesPage from '@/pages/MyCommunitiesPage';
 import AdminPage from '@/pages/AdminPage';
 import DiscoverPage from '@/pages/DiscoverPage';
 import CalendarPage from '@/pages/CalendarPage';
@@ -73,6 +75,7 @@ const AuthenticatedApp = () => {
         <Route path="/tools" element={<ToolsPage />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/me" element={<MePage />} />
+        <Route path="/communities" element={<MyCommunitiesPage />} />
         <Route path="/admin" element={<AdminPage />} />
         <Route path="/discover" element={<DiscoverPage />} />
         <Route path="/calendar" element={<CalendarPage />} />
@@ -87,7 +90,9 @@ import { Outlet } from 'react-router-dom';
 function ProfileWrapper() {
   return (
     <ProfileProvider>
-      <Outlet />
+      <CreateActionProvider>
+        <Outlet />
+      </CreateActionProvider>
     </ProfileProvider>
   );
 }

@@ -51,6 +51,25 @@ export function filterMembershipsForUniversity(memberships = [], universityId) {
   return (memberships || []).filter((item) => !item.university_id || item.university_id === universityId);
 }
 
+export function participantSnapshot({ profile, user } = {}) {
+  return {
+    participant_name: profile?.preferred_name || user?.full_name || "Student",
+    participant_academic_year: profile?.academic_year || "",
+    participant_field_of_study: profile?.field_of_study || "",
+  };
+}
+
+export function uniqueParticipants(memberships = [], idField, itemId) {
+  const participants = new Map();
+  (memberships || [])
+    .filter((item) => item[idField] === itemId && item.status !== "rejected")
+    .forEach((item) => {
+      const key = item.user_id || item.id || `${item[idField]}:${participants.size}`;
+      if (!participants.has(key)) participants.set(key, item);
+    });
+  return [...participants.values()];
+}
+
 export function filterByParticipation(items = [], joinedIds = new Set(), filter = PARTICIPATION_FILTERS.all) {
   if (filter === PARTICIPATION_FILTERS.joined) return items.filter((item) => joinedIds.has(item.id));
   if (filter === PARTICIPATION_FILTERS.notJoined) return items.filter((item) => !joinedIds.has(item.id));

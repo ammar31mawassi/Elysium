@@ -5,6 +5,7 @@ import { useLanguage } from "@/lib/LanguageContext";
 import { useProfile } from "@/lib/useProfile";
 import { activeCourseNames, normalizeCourseRecords } from "@/lib/profileCourses";
 import { buildCourseOptions, categoryForInterest } from "@/lib/creationOptions";
+import { participantSnapshot } from "@/lib/communityMatching";
 import { DEFAULT_INTERESTS, localizedOption, mergeInterestOptions, normalizeOptionName } from "@/lib/onboardingOptions";
 import { createActionCopy } from "@/lib/createActions";
 import SearchableChoice from "@/components/elysium/SearchableChoice";
@@ -175,7 +176,7 @@ function CreateActionDialog({ action, onClose }) {
         is_open: true,
         status: "open",
       });
-      const membership = await base44.entities.SocialEventMember.create({ event_id: created.id, university_id: profile.university_id, user_id: user.id, status: "approved" });
+      const membership = await base44.entities.SocialEventMember.create({ event_id: created.id, university_id: profile.university_id, owner_user_id: user.id, user_id: user.id, status: "approved", ...participantSnapshot({ profile, user }) });
       const calendarItem = await base44.entities.CalendarItem.create({
         owner_user_id: user.id,
         source_type: "social_activity",
@@ -214,7 +215,7 @@ function CreateActionDialog({ action, onClose }) {
         host_field_of_study: profile.field_of_study || "",
         status: "open",
       });
-      const membership = await base44.entities.StudySessionMember.create({ session_id: session.id, university_id: profile.university_id, user_id: user.id });
+      const membership = await base44.entities.StudySessionMember.create({ session_id: session.id, university_id: profile.university_id, owner_user_id: user.id, user_id: user.id, ...participantSnapshot({ profile, user }) });
       const calendarItem = await base44.entities.CalendarItem.create({
         owner_user_id: user.id,
         source_type: "study_session",

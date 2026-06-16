@@ -118,7 +118,7 @@ export default function MePage() {
 
       <div className="mb-6 grid gap-3 sm:grid-cols-3">
         <PersonalLink to="/calendar" icon={CalendarDays} label="My calendar" detail="Deadlines and joined plans" tone="calendar" />
-        <PersonalLink to="/discover" icon={Users} label="My communities" detail="Activities and study groups" tone="social" />
+        <PersonalLink to="/communities" icon={Users} label="My communities" detail="Created activities and study groups" tone="social" />
         <PersonalLink to="/tools" icon={Wrench} label="My tools" detail="Grades, GPA, and flashcards" tone="study" />
       </div>
 

@@ -6,8 +6,10 @@ import {
   filterMembershipsForUniversity,
   filterByParticipation,
   joinedIdsFromState,
+  participantSnapshot,
   sortOptionsBySelectedInterests,
   sortSocialEventsByInterests,
+  uniqueParticipants,
 } from "./communityMatching";
 
 describe("community matching helpers", () => {
@@ -44,6 +46,18 @@ describe("community matching helpers", () => {
     const sameUniversity = filterMembershipsForUniversity(memberships, "uni-1");
 
     expect(countParticipants(sameUniversity, "event_id", "event-1")).toBe(2);
+    expect(uniqueParticipants(sameUniversity, "event_id", "event-1").map((item) => item.user_id)).toEqual(["user-1", "user-2"]);
+  });
+
+  it("builds participant display fields from the profile without exposing profile records", () => {
+    expect(participantSnapshot({
+      profile: { preferred_name: "Ammar", academic_year: "3rd Year", field_of_study: "Computer Science" },
+      user: { full_name: "Fallback User" },
+    })).toEqual({
+      participant_name: "Ammar",
+      participant_academic_year: "3rd Year",
+      participant_field_of_study: "Computer Science",
+    });
   });
 
   it("prioritizes social events that match the user's selected interests", () => {

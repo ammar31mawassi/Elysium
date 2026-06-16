@@ -7,13 +7,14 @@ describe("default universities", () => {
   it("includes the requested universities with English and Hebrew names only", () => {
     expect(defaultUniversities).toEqual(expect.arrayContaining([
       expect.objectContaining({ id: "tel-aviv-university", name: "Tel Aviv University", name_he: "אוניברסיטת תל אביב" }),
+      expect.objectContaining({ id: "hebrew-university-of-jerusalem", name: "Hebrew University of Jerusalem", name_he: "האוניברסיטה העברית בירושלים" }),
       expect.objectContaining({ id: "technion", name: "Technion - Israel Institute of Technology", name_he: "הטכניון - מכון טכנולוגי לישראל" }),
       expect.objectContaining({ id: "university-of-haifa", name: "University of Haifa", name_he: "אוניברסיטת חיפה" }),
       expect.objectContaining({ id: "bar-ilan-university", name: "Bar-Ilan University", name_he: "אוניברסיטת בר-אילן" }),
       expect.objectContaining({ id: "shamoon-college-of-engineering", name: "Shamoon College of Engineering", name_he: "המכללה האקדמית להנדסה ע״ש סמי שמעון" }),
     ]));
 
-    const added = defaultUniversities.filter((university) => university.id !== "demo-bgu");
+    const added = defaultUniversities.filter((university) => university.id !== "bgu");
     expect(added.every((university) => !university.name_ar)).toBe(true);
   });
 
@@ -28,10 +29,20 @@ describe("default universities", () => {
     const merged = withDefaultUniversities([
       { id: "custom-university", name: "Custom University", is_active: true },
       { id: "inactive-university", name: "Inactive University", is_active: false },
+      { id: "private-university", name: "Private University", is_active: true, is_public: false },
     ]);
 
     expect(merged.map((university) => university.id)).toContain("technion");
     expect(merged.map((university) => university.id)).toContain("custom-university");
     expect(merged.map((university) => university.id)).not.toContain("inactive-university");
+    expect(merged.map((university) => university.id)).not.toContain("private-university");
+  });
+
+  it("can include a private university for an existing test profile", () => {
+    const merged = withDefaultUniversities([
+      { id: "test-uni", name: "TEST-UNI", is_active: true, is_public: false },
+    ], { includePrivateIds: ["test-uni"] });
+
+    expect(merged.map((university) => university.id)).toContain("test-uni");
   });
 });

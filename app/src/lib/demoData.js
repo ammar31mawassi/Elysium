@@ -1,4 +1,4 @@
-const bguId = "demo-bgu";
+const bguId = "bgu";
 
 function futureDate(days, hour = 17) {
   const date = new Date();

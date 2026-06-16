@@ -15,7 +15,6 @@ import {
 import { base44 } from "@/api/base44Client";
 import { useProfile } from "@/lib/useProfile";
 import { useLanguage } from "@/lib/LanguageContext";
-import { demoContent, withDemoFallback } from "@/lib/demoData";
 import PageLayout from "@/components/layout/PageLayout";
 import SkeletonCard from "@/components/ui/SkeletonCard";
 import EmptyState from "@/components/ui/EmptyState";
@@ -30,6 +29,7 @@ import { categoryForInterest } from "@/lib/creationOptions";
 import {
   PARTICIPATION_FILTERS,
   countParticipants,
+  filterMembershipsForUniversity,
   filterByParticipation,
   joinedIdsFromState,
   mergeRecordsById,
@@ -96,14 +96,14 @@ export default function SocialPage() {
     setLoading(true);
     Promise.all([
       safeQuery(base44.entities.SocialEvent.filter({ university_id: profile.university_id })),
-      safeQuery(base44.entities.SocialEventMember.list()),
+      safeQuery(base44.entities.SocialEventMember.filter({ university_id: profile.university_id })),
       safeQuery(base44.entities.SocialEventMember.filter({ user_id: user.id })),
       safeQuery(base44.entities.CalendarItem.filter({ owner_user_id: user.id, source_type: "social_activity" })),
       safeQuery(base44.entities.Interest.filter({ is_active: true })),
     ]).then(([eventRows, memberRows, ownMemberRows, calendarRows, interestRows]) => {
       if (!active) return;
-      setEvents(withDemoFallback(eventRows, demoContent.events));
-      setMemberships(mergeRecordsById(memberRows, ownMemberRows));
+      setEvents(eventRows || []);
+      setMemberships(filterMembershipsForUniversity(mergeRecordsById(memberRows, ownMemberRows), profile.university_id));
       setCalendarItems(calendarRows || []);
       setInterestOptions(mergeInterestOptions(interestRows));
       setLoading(false);
@@ -148,7 +148,7 @@ export default function SocialPage() {
         is_open: true,
         status: "open",
       });
-      const membership = await base44.entities.SocialEventMember.create({ event_id: created.id, user_id: user.id, status: "approved" });
+      const membership = await base44.entities.SocialEventMember.create({ event_id: created.id, university_id: profile.university_id, user_id: user.id, status: "approved" });
       const calendarItem = await base44.entities.CalendarItem.create({ owner_user_id: user.id, source_type: "social_activity", source_id: created.id, title: created.title, starts_at: calendarStart(created), ends_at: created.end_time ? new Date(`${created.date}T${created.end_time}:00`).toISOString() : undefined, notes: created.location || "", status: "active" });
       setEvents((current) => [created, ...current.filter((item) => !String(item.id).startsWith("demo-") )]);
       setMemberships((current) => mergeRecordsById(current, [membership]));
@@ -189,7 +189,7 @@ export default function SocialPage() {
     if (!user?.id || myEventIds.has(event.id) || memberCount(event.id) >= event.max_spots || String(event.id).startsWith("demo-")) return;
     setSaving(true);
     try {
-      const membership = await base44.entities.SocialEventMember.create({ event_id: event.id, user_id: user.id, status: "approved" });
+      const membership = await base44.entities.SocialEventMember.create({ event_id: event.id, university_id: profile.university_id, user_id: user.id, status: "approved" });
       const calendarItem = await base44.entities.CalendarItem.create({
         owner_user_id: user.id,
         source_type: "social_activity",
@@ -248,6 +248,9 @@ export default function SocialPage() {
           <Button variant="outline" className="min-h-11" onClick={() => setOpenOnly((current) => !current)}>
             {openOnly ? <Check className="me-2 h-4 w-4" /> : null}Open only
           </Button>
+          <Button className="min-h-11 gap-2" onClick={() => setShowCreate(true)}>
+            <Plus className="h-4 w-4" />Create activity
+          </Button>
         </div>
       </header>
 
@@ -280,7 +283,7 @@ export default function SocialPage() {
         </div>
       )}
 
-      <button onClick={() => setShowCreate(true)} className="fixed bottom-24 end-5 z-30 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-transform hover:scale-105" aria-label="Create activity"><Plus className="h-6 w-6" /></button>
+      <button onClick={() => setShowCreate(true)} className="fixed bottom-[calc(156px+env(safe-area-inset-bottom))] end-5 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-transform hover:scale-105 md:bottom-24" aria-label="Create activity"><Plus className="h-6 w-6" /></button>
 
       {selected && (
         <Modal title={selected.title} onClose={() => setSelected(null)}>

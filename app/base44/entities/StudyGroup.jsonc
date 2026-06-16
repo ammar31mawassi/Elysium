@@ -15,7 +15,7 @@
   "required": ["name", "university_id", "created_by"],
   "rls": {
     "create": { "data.created_by": "{{user.id}}" },
-    "read": { "user_condition": { "id": "{{user.id}}" } },
+    "read": true,
     "update": { "$or": [{ "data.created_by": "{{user.id}}" }, { "user_condition": { "role": "admin" } }] },
     "delete": { "$or": [{ "data.created_by": "{{user.id}}" }, { "user_condition": { "role": "admin" } }] }
   }

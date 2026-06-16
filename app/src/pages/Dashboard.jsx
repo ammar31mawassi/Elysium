@@ -65,9 +65,9 @@ export default function Dashboard() {
       const allowBguDemo = !university?.name || /Ben-Gurion|בן-גוריון|بن غوريون/i.test(university.name);
       setData({
         calendar: calendar || [],
-        events: allowBguDemo ? withDemoFallback(events, demoContent.events) : events || [],
+        events: events || [],
         eventMembers: eventMembers || [],
-        sessions: allowBguDemo ? withDemoFallback(sessions, demoContent.sessions) : sessions || [],
+        sessions: sessions || [],
         sessionMembers: sessionMembers || [],
         tutors: allowBguDemo ? withDemoFallback(tutors, demoContent.tutors) : tutors || [],
         helpers: allowBguDemo ? withDemoFallback(helpers, demoContent.helpers) : helpers || [],

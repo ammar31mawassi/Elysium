@@ -38,8 +38,17 @@ export function joinedIdsFromState({ memberships = [], calendarItems = [], idFie
 }
 
 export function countParticipants(memberships = [], idField, itemId, joinedIds = new Set()) {
-  const count = memberships.filter((item) => item[idField] === itemId && item.status !== "rejected").length;
-  return joinedIds.has(itemId) ? Math.max(1, count) : count;
+  const participantKeys = new Set();
+  memberships
+    .filter((item) => item[idField] === itemId && item.status !== "rejected")
+    .forEach((item) => {
+      participantKeys.add(item.user_id || item.id || `${item[idField]}:${participantKeys.size}`);
+    });
+  return joinedIds.has(itemId) ? Math.max(1, participantKeys.size) : participantKeys.size;
+}
+
+export function filterMembershipsForUniversity(memberships = [], universityId) {
+  return (memberships || []).filter((item) => !item.university_id || item.university_id === universityId);
 }
 
 export function filterByParticipation(items = [], joinedIds = new Set(), filter = PARTICIPATION_FILTERS.all) {

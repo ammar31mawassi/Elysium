@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   PARTICIPATION_FILTERS,
   countParticipants,
+  filterMembershipsForUniversity,
   filterByParticipation,
   joinedIdsFromState,
   sortOptionsBySelectedInterests,
@@ -30,6 +31,19 @@ describe("community matching helpers", () => {
     expect(filterByParticipation(items, joinedIds).map((item) => item.id)).toEqual(["joined", "open"]);
     expect(filterByParticipation(items, joinedIds, PARTICIPATION_FILTERS.joined).map((item) => item.id)).toEqual(["joined"]);
     expect(filterByParticipation(items, joinedIds, PARTICIPATION_FILTERS.notJoined).map((item) => item.id)).toEqual(["open"]);
+  });
+
+  it("counts unique participants for the current university", () => {
+    const memberships = [
+      { event_id: "event-1", user_id: "user-1", university_id: "uni-1", status: "approved" },
+      { event_id: "event-1", user_id: "user-1", university_id: "uni-1", status: "approved" },
+      { event_id: "event-1", user_id: "user-2", university_id: "uni-1", status: "approved" },
+      { event_id: "event-1", user_id: "user-3", university_id: "uni-2", status: "approved" },
+      { event_id: "event-1", user_id: "user-4", university_id: "uni-1", status: "rejected" },
+    ];
+    const sameUniversity = filterMembershipsForUniversity(memberships, "uni-1");
+
+    expect(countParticipants(sameUniversity, "event_id", "event-1")).toBe(2);
   });
 
   it("prioritizes social events that match the user's selected interests", () => {

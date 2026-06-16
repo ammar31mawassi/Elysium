@@ -3,12 +3,13 @@
   "type": "object",
   "properties": {
     "session_id": { "type": "string" },
+    "university_id": { "type": "string" },
     "user_id": { "type": "string" }
   },
-  "required": ["session_id", "user_id"],
+  "required": ["session_id", "university_id", "user_id"],
   "rls": {
     "create": { "data.user_id": "{{user.id}}" },
-    "read": { "user_condition": { "id": "{{user.id}}" } },
+    "read": true,
     "update": { "$or": [{ "data.user_id": "{{user.id}}" }, { "user_condition": { "role": "admin" } }] },
     "delete": { "$or": [{ "data.user_id": "{{user.id}}" }, { "user_condition": { "role": "admin" } }] }
   }

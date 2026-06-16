@@ -24,7 +24,7 @@
   "required": ["title", "organizer_id", "university_id", "date", "category", "activity_name"],
   "rls": {
     "create": { "data.organizer_id": "{{user.id}}" },
-    "read": { "user_condition": { "id": "{{user.id}}" } },
+    "read": true,
     "update": { "$or": [{ "data.organizer_id": "{{user.id}}" }, { "user_condition": { "role": "admin" } }] },
     "delete": { "$or": [{ "data.organizer_id": "{{user.id}}" }, { "user_condition": { "role": "admin" } }] }
   }

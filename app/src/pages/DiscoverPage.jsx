@@ -13,6 +13,7 @@ import { buildWhatsAppUrl } from "@/lib/whatsapp";
 import { domainTones } from "@/lib/domainTones";
 import {
   countParticipants,
+  filterMembershipsForUniversity,
   joinedIdsFromState,
   mergeRecordsById,
   sortSocialEventsByInterests,
@@ -52,10 +53,10 @@ export default function DiscoverPage() {
     setLoading(true);
     Promise.all([
       safeQuery(base44.entities.SocialEvent.filter({ university_id: profile.university_id })),
-      safeQuery(base44.entities.SocialEventMember.list("-created_date", 500)),
+      safeQuery(base44.entities.SocialEventMember.filter({ university_id: profile.university_id })),
       safeQuery(base44.entities.SocialEventMember.filter({ user_id: user.id })),
       safeQuery(base44.entities.StudySession.filter({ university_id: profile.university_id })),
-      safeQuery(base44.entities.StudySessionMember.list("-created_date", 500)),
+      safeQuery(base44.entities.StudySessionMember.filter({ university_id: profile.university_id })),
       safeQuery(base44.entities.StudySessionMember.filter({ user_id: user.id })),
       safeQuery(base44.entities.CalendarItem.filter({ owner_user_id: user.id })),
       safeQuery(base44.entities.PrivateTeacher.filter({ university_id: profile.university_id, is_active: true, is_approved: true })),
@@ -67,10 +68,10 @@ export default function DiscoverPage() {
       const allowBguDemo = !university?.name || /Ben-Gurion/i.test(university.name);
       const forUniversity = (items) => (items || []).filter((item) => !item.university_id || item.university_id === profile.university_id);
       setData({
-        events: allowBguDemo ? withDemoFallback(events, demoContent.events) : events || [],
-        eventMembers: mergeRecordsById(eventMembers, ownEventMembers),
-        sessions: allowBguDemo ? withDemoFallback(sessions, demoContent.sessions) : sessions || [],
-        sessionMembers: mergeRecordsById(sessionMembers, ownSessionMembers),
+        events: events || [],
+        eventMembers: filterMembershipsForUniversity(mergeRecordsById(eventMembers, ownEventMembers), profile.university_id),
+        sessions: sessions || [],
+        sessionMembers: filterMembershipsForUniversity(mergeRecordsById(sessionMembers, ownSessionMembers), profile.university_id),
         calendarItems: calendarItems || [],
         tutors: allowBguDemo ? withDemoFallback(tutors, demoContent.tutors) : tutors || [],
         helpers: allowBguDemo ? withDemoFallback(helpers, demoContent.helpers) : helpers || [],
@@ -119,9 +120,9 @@ export default function DiscoverPage() {
     return base44.entities.CalendarItem.create({ owner_user_id: user.id, source_type: sourceType, source_id: sourceId, course_name: courseName, title, starts_at: startsAt, notes, status: "active", completed: false });
   }
   async function removeCalendar(sourceId) { const items = await safeQuery(base44.entities.CalendarItem.filter({ owner_user_id: user.id, source_id: sourceId })); await Promise.all(items.map((item) => base44.entities.CalendarItem.delete(item.id))); return items; }
-  async function joinEvent(event) { const approved = countParticipants(data.eventMembers, "event_id", event.id, myEventIds); if (myEventIds.has(event.id) || approved >= (event.max_spots || Infinity)) return; const membership = await base44.entities.SocialEventMember.create({ event_id: event.id, user_id: user.id, status: "approved" }); const calendarItem = await addCalendar("social_activity", event.id, event.title, `${event.date}T${event.start_time || "12:00"}`, event.location); setData((current) => ({ ...current, eventMembers: mergeRecordsById(current.eventMembers, [membership]), calendarItems: mergeRecordsById(current.calendarItems, [calendarItem]) })); }
+  async function joinEvent(event) { const approved = countParticipants(data.eventMembers, "event_id", event.id, myEventIds); if (myEventIds.has(event.id) || approved >= (event.max_spots || Infinity)) return; const membership = await base44.entities.SocialEventMember.create({ event_id: event.id, university_id: profile.university_id, user_id: user.id, status: "approved" }); const calendarItem = await addCalendar("social_activity", event.id, event.title, `${event.date}T${event.start_time || "12:00"}`, event.location); setData((current) => ({ ...current, eventMembers: mergeRecordsById(current.eventMembers, [membership]), calendarItems: mergeRecordsById(current.calendarItems, [calendarItem]) })); }
   async function leaveEvent(eventId) { const membership = data.eventMembers.find((item) => item.event_id === eventId && item.user_id === user.id); const calendarItem = data.calendarItems.find((item) => item.source_id === eventId); if (!membership && !calendarItem) return; if (membership) await base44.entities.SocialEventMember.delete(membership.id); await removeCalendar(eventId); setData((current) => ({ ...current, eventMembers: current.eventMembers.filter((item) => item.id !== membership?.id && !(item.event_id === eventId && item.user_id === user.id)), calendarItems: current.calendarItems.filter((item) => item.source_id !== eventId) })); }
-  async function joinSession(session) { if (mySessionIds.has(session.id)) return; const membership = await base44.entities.StudySessionMember.create({ session_id: session.id, user_id: user.id }); const calendarItem = await addCalendar("study_session", session.id, session.title || session.course_name || "Study group", session.session_date, session.location, session.course_name); setData((current) => ({ ...current, sessionMembers: mergeRecordsById(current.sessionMembers, [membership]), calendarItems: mergeRecordsById(current.calendarItems, [calendarItem]) })); }
+  async function joinSession(session) { if (mySessionIds.has(session.id)) return; const membership = await base44.entities.StudySessionMember.create({ session_id: session.id, university_id: profile.university_id, user_id: user.id }); const calendarItem = await addCalendar("study_session", session.id, session.title || session.course_name || "Study group", session.session_date, session.location, session.course_name); setData((current) => ({ ...current, sessionMembers: mergeRecordsById(current.sessionMembers, [membership]), calendarItems: mergeRecordsById(current.calendarItems, [calendarItem]) })); }
   async function leaveSession(sessionId) { const membership = data.sessionMembers.find((item) => item.session_id === sessionId && item.user_id === user.id); const calendarItem = data.calendarItems.find((item) => item.source_id === sessionId); if (!membership && !calendarItem) return; if (membership) await base44.entities.StudySessionMember.delete(membership.id); await removeCalendar(sessionId); setData((current) => ({ ...current, sessionMembers: current.sessionMembers.filter((item) => item.id !== membership?.id && !(item.session_id === sessionId && item.user_id === user.id)), calendarItems: current.calendarItems.filter((item) => item.source_id !== sessionId) })); }
 
   const activeItems = view[tab] || [];

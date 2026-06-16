@@ -3,13 +3,14 @@
   "type": "object",
   "properties": {
     "event_id": { "type": "string" },
+    "university_id": { "type": "string" },
     "user_id": { "type": "string" },
     "status": { "type": "string", "enum": ["pending", "approved", "rejected"], "default": "approved" }
   },
-  "required": ["event_id", "user_id"],
+  "required": ["event_id", "university_id", "user_id"],
   "rls": {
     "create": { "data.user_id": "{{user.id}}" },
-    "read": { "user_condition": { "id": "{{user.id}}" } },
+    "read": true,
     "update": { "$or": [{ "data.user_id": "{{user.id}}" }, { "user_condition": { "role": "admin" } }] },
     "delete": { "$or": [{ "data.user_id": "{{user.id}}" }, { "user_condition": { "role": "admin" } }] }
   }

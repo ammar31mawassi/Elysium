@@ -7,7 +7,7 @@ const profile = { university_id: "uni-1" };
 const profileForm = { preferred_name: "Ammar" };
 
 describe("tutor profile helpers", () => {
-  it("builds an active tutor profile for self-save", () => {
+  it("builds a tutor profile without user-controlled moderation fields", () => {
     const { data, error } = buildTutorProfilePayload({
       user,
       profile,
@@ -35,19 +35,18 @@ describe("tutor profile helpers", () => {
       phone_number: "050-123-4567",
       bio: "Patient exam prep.",
       price_min: 70,
-      is_approved: true,
-      is_active: true,
-      moderation_status: "approved",
     }));
+    expect(data).not.toHaveProperty("is_approved");
+    expect(data).not.toHaveProperty("is_active");
+    expect(data).not.toHaveProperty("moderation_status");
     expect(data).not.toHaveProperty("price_max");
   });
 
-  it("resubmits suspended profiles for review instead of immediately publishing them", () => {
+  it("keeps suspended-profile moderation controlled by admin fields", () => {
     const { data } = buildTutorProfilePayload({
       user,
       profile,
       profileForm,
-      existingProfile: { moderation_status: "suspended" },
       tutorForm: {
         subjects_raw: "Algorithms",
         languages_raw: "",
@@ -61,11 +60,9 @@ describe("tutor profile helpers", () => {
       },
     });
 
-    expect(data).toEqual(expect.objectContaining({
-      is_approved: false,
-      is_active: false,
-      moderation_status: "pending",
-    }));
+    expect(data).not.toHaveProperty("is_approved");
+    expect(data).not.toHaveProperty("is_active");
+    expect(data).not.toHaveProperty("moderation_status");
   });
 
   it("rejects incomplete or invalid tutor forms before calling Base44", () => {

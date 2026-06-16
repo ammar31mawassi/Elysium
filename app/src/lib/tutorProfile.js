@@ -39,7 +39,7 @@ function optionalPrice(value, label) {
   return { value: parsed };
 }
 
-export function buildTutorProfilePayload({ user, profile, profileForm, tutorForm, existingProfile }) {
+export function buildTutorProfilePayload({ user, profile, profileForm, tutorForm }) {
   if (!user?.id || !profile?.university_id) {
     return { error: "Your profile is still loading. Please try again in a moment." };
   }
@@ -55,7 +55,6 @@ export function buildTutorProfilePayload({ user, profile, profileForm, tutorForm
     return { error: "Maximum price must be greater than or equal to minimum price." };
   }
 
-  const wasSuspended = existingProfile?.moderation_status === "suspended";
   const data = {
     user_id: user.id,
     university_id: profile.university_id,
@@ -68,9 +67,6 @@ export function buildTutorProfilePayload({ user, profile, profileForm, tutorForm
     currency: "ILS",
     availability: tutorForm.availability.trim(),
     contact_consent: Boolean(tutorForm.contact_consent),
-    is_approved: !wasSuspended,
-    is_active: !wasSuspended,
-    moderation_status: wasSuspended ? "pending" : "approved",
   };
 
   if (min.value !== undefined) data.price_min = min.value;

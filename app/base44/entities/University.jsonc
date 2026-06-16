@@ -8,12 +8,13 @@
     "city": { "type": "string" },
     "website": { "type": "string", "format": "uri" },
     "supported_languages": { "type": "array", "items": { "type": "string" } },
-    "is_active": { "type": "boolean", "default": true }
+    "is_active": { "type": "boolean", "default": true },
+    "is_public": { "type": "boolean", "default": true }
   },
   "required": ["name"],
   "rls": {
     "create": { "user_condition": { "role": "admin" } },
-    "read": { "user_condition": { "id": "{{user.id}}" } },
+    "read": true,
     "update": { "user_condition": { "role": "admin" } },
     "delete": { "user_condition": { "role": "admin" } }
   }

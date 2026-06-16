@@ -1,6 +1,6 @@
 export const defaultUniversities = [
   {
-    id: "demo-bgu",
+    id: "bgu",
     name: "Ben-Gurion University of the Negev",
     name_he: "אוניברסיטת בן-גוריון בנגב",
     name_ar: "جامعة بن غوريون في النقب",
@@ -8,6 +8,7 @@ export const defaultUniversities = [
     website: "https://www.bgu.ac.il/",
     supported_languages: ["en", "he", "ar"],
     is_active: true,
+    is_public: true,
   },
   {
     id: "tel-aviv-university",
@@ -17,6 +18,17 @@ export const defaultUniversities = [
     website: "https://english.tau.ac.il/",
     supported_languages: ["en", "he"],
     is_active: true,
+    is_public: true,
+  },
+  {
+    id: "hebrew-university-of-jerusalem",
+    name: "Hebrew University of Jerusalem",
+    name_he: "האוניברסיטה העברית בירושלים",
+    city: "Jerusalem",
+    website: "https://www.huji.ac.il/",
+    supported_languages: ["en", "he"],
+    is_active: true,
+    is_public: true,
   },
   {
     id: "technion",
@@ -26,6 +38,7 @@ export const defaultUniversities = [
     website: "https://www.technion.ac.il/en/",
     supported_languages: ["en", "he"],
     is_active: true,
+    is_public: true,
   },
   {
     id: "university-of-haifa",
@@ -35,6 +48,7 @@ export const defaultUniversities = [
     website: "https://www.haifa.ac.il/",
     supported_languages: ["en", "he"],
     is_active: true,
+    is_public: true,
   },
   {
     id: "bar-ilan-university",
@@ -44,6 +58,7 @@ export const defaultUniversities = [
     website: "https://www.biu.ac.il/en",
     supported_languages: ["en", "he"],
     is_active: true,
+    is_public: true,
   },
   {
     id: "shamoon-college-of-engineering",
@@ -53,20 +68,29 @@ export const defaultUniversities = [
     website: "https://en.sce.ac.il/",
     supported_languages: ["en", "he"],
     is_active: true,
+    is_public: true,
   },
 ];
 
-export function mergeUniversities(...collections) {
+function normalizedUniversityKey(university) {
+  const website = university.website?.trim().toLocaleLowerCase("en").replace(/\/+$/, "");
+  if (website) return `site:${website}`;
+  return `name:${university.name?.trim().toLocaleLowerCase("en") || university.id}`;
+}
+
+export function mergeUniversities(collections = [], { includePrivateIds = [] } = {}) {
+  const privateIds = new Set(includePrivateIds.filter(Boolean));
   const universities = new Map();
   collections.flat().filter(Boolean).forEach((university) => {
     if (!university.id || university.is_active === false) return;
-    universities.set(university.id, university);
+    if (university.is_public === false && !privateIds.has(university.id)) return;
+    universities.set(normalizedUniversityKey(university), university);
   });
   return [...universities.values()].sort((a, b) => a.name.localeCompare(b.name));
 }
 
-export function withDefaultUniversities(universities = []) {
-  return mergeUniversities(defaultUniversities, universities);
+export function withDefaultUniversities(universities = [], options) {
+  return mergeUniversities([defaultUniversities, universities], options);
 }
 
 export function findDefaultUniversity(id) {

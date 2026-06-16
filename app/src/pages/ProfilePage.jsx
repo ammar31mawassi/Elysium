@@ -70,7 +70,7 @@ export default function ProfilePage() {
       base44.entities.PrivateTeacher.filter({ user_id: user.id }).catch(() => []),
       base44.entities.PeerHelper.filter({ owner_user_id: user.id }).catch(() => []),
     ]).then(([universityRows, teachers, helpers]) => {
-      setUniversities(withDefaultUniversities(universityRows));
+      setUniversities(withDefaultUniversities(universityRows, { includePrivateIds: [profile?.university_id] }));
       if (teachers?.length) {
         const record = teachers[0];
         setTeacherProfile(record);
@@ -82,7 +82,7 @@ export default function ProfilePage() {
         setHelperForm({ topics_raw: (record.help_topics || []).join(", "), languages_raw: (record.languages || []).join(", "), bio: record.bio || "", availability: record.availability || "", contact_value: record.contact_value || "" });
       }
     });
-  }, [user?.id]);
+  }, [profile?.university_id, user?.id]);
 
   const saveProfile = async () => {
     if (!profile?.id) return;
@@ -146,7 +146,7 @@ export default function ProfilePage() {
       setShowTutorForm(false);
       toast({
         title: "Tutoring profile saved",
-        description: data.is_active ? "Students can now find you in private tutors." : "Your tutor profile was resubmitted for review.",
+        description: "Your tutor profile was saved and is waiting for review.",
       });
     } catch (error) {
       console.error(error);
@@ -178,7 +178,6 @@ export default function ProfilePage() {
         contact_value: whatsapp,
         contact_consent: true,
         is_visible: true,
-        moderation_status: "ok",
       };
       if (peerHelper) {
         await base44.entities.PeerHelper.update(peerHelper.id, data);

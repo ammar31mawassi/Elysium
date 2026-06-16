@@ -4,7 +4,6 @@ import { BookOpenCheck, CalendarClock, Check, MapPin, Plus, X } from "lucide-rea
 import { base44 } from "@/api/base44Client";
 import { useProfile } from "@/lib/useProfile";
 import { useLanguage } from "@/lib/LanguageContext";
-import { demoContent, withDemoFallback } from "@/lib/demoData";
 import { activeCourseNames } from "@/lib/profileCourses";
 import { buildCourseOptions } from "@/lib/creationOptions";
 import { domainTones } from "@/lib/domainTones";
@@ -20,6 +19,7 @@ import { cn } from "@/lib/utils";
 import {
   PARTICIPATION_FILTERS,
   countParticipants,
+  filterMembershipsForUniversity,
   filterByParticipation,
   joinedIdsFromState,
   mergeRecordsById,
@@ -55,13 +55,13 @@ export default function StudyGroupsPage() {
     setLoading(true);
     Promise.all([
       safeQuery(base44.entities.StudySession.filter({ university_id: profile.university_id })),
-      safeQuery(base44.entities.StudySessionMember.list()),
+      safeQuery(base44.entities.StudySessionMember.filter({ university_id: profile.university_id })),
       safeQuery(base44.entities.StudySessionMember.filter({ user_id: user.id })),
       safeQuery(base44.entities.CalendarItem.filter({ owner_user_id: user.id, source_type: "study_session" })),
     ]).then(([sessionRows, memberRows, ownMemberRows, calendarRows]) => {
       if (!active) return;
-      setSessions(withDemoFallback(sessionRows, demoContent.sessions));
-      setMembers(mergeRecordsById(memberRows, ownMemberRows));
+      setSessions(sessionRows || []);
+      setMembers(filterMembershipsForUniversity(mergeRecordsById(memberRows, ownMemberRows), profile.university_id));
       setCalendarItems(calendarRows || []);
       setLoading(false);
     });
@@ -107,7 +107,7 @@ export default function StudyGroupsPage() {
         host_field_of_study: profile.field_of_study || "",
         status: "open",
       });
-      const membership = await base44.entities.StudySessionMember.create({ session_id: session.id, user_id: user.id });
+      const membership = await base44.entities.StudySessionMember.create({ session_id: session.id, university_id: profile.university_id, user_id: user.id });
       const calendarItem = await base44.entities.CalendarItem.create({ owner_user_id: user.id, source_type: "study_session", source_id: session.id, course_name: session.course_name, title: session.title, starts_at: session.session_date, ends_at: session.end_time, notes: session.location || "", status: "active" });
       setSessions((current) => [session, ...current.filter((item) => !String(item.id).startsWith("demo-"))]);
       setMembers((current) => mergeRecordsById(current, [membership]));
@@ -123,7 +123,7 @@ export default function StudyGroupsPage() {
     if (!user?.id || mySessionIds.has(session.id) || memberCount(session.id) >= session.max_spots || String(session.id).startsWith("demo-")) return;
     setSaving(true);
     try {
-      const membership = await base44.entities.StudySessionMember.create({ session_id: session.id, user_id: user.id });
+      const membership = await base44.entities.StudySessionMember.create({ session_id: session.id, university_id: profile.university_id, user_id: user.id });
       const calendarItem = await base44.entities.CalendarItem.create({ owner_user_id: user.id, source_type: "study_session", source_id: session.id, course_name: session.course_name, title: session.title, starts_at: session.session_date, ends_at: session.end_time, notes: session.location || "", status: "active" });
       setMembers((current) => mergeRecordsById(current, [membership]));
       setCalendarItems((current) => mergeRecordsById(current, [calendarItem]));

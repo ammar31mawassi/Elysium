@@ -22,7 +22,7 @@
   "required": ["university_id", "course_name", "session_date", "host_id"],
   "rls": {
     "create": { "data.host_id": "{{user.id}}" },
-    "read": { "user_condition": { "id": "{{user.id}}" } },
+    "read": true,
     "update": { "$or": [{ "data.host_id": "{{user.id}}" }, { "user_condition": { "role": "admin" } }] },
     "delete": { "$or": [{ "data.host_id": "{{user.id}}" }, { "user_condition": { "role": "admin" } }] }
   }

@@ -2,7 +2,8 @@
 import { useState, useEffect } from "react";
 
 const TOAST_LIMIT = 20;
-const TOAST_REMOVE_DELAY = 350;
+const TOAST_VISIBLE_DURATION = 3000;
+const TOAST_REMOVE_DELAY = 2000;
 
 const actionTypes = {
   ADD_TOAST: "ADD_TOAST",
@@ -127,6 +128,7 @@ function dispatch(action) {
 function toast({ ...props }) {
   const id = genId();
   const { duration, ...toastProps } = props;
+  const visibleDuration = typeof duration === "number" ? duration : TOAST_VISIBLE_DURATION;
 
   const update = (props) =>
     dispatch({
@@ -149,8 +151,8 @@ function toast({ ...props }) {
     },
   });
 
-  if (typeof duration === "number" && duration > 0) {
-    autoDismissTimeouts.set(id, setTimeout(dismiss, duration));
+  if (visibleDuration > 0) {
+    autoDismissTimeouts.set(id, setTimeout(dismiss, visibleDuration));
   }
 
   return {
@@ -180,4 +182,4 @@ function useToast() {
   };
 }
 
-export { useToast, toast }; 
+export { useToast, toast, TOAST_VISIBLE_DURATION, TOAST_REMOVE_DELAY }; 

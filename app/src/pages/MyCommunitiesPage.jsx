@@ -49,6 +49,7 @@ export default function MyCommunitiesPage() {
   const [loading, setLoading] = useState(true);
   const [savingId, setSavingId] = useState("");
   const [selected, setSelected] = useState(null);
+  const [showCanceled, setShowCanceled] = useState(false);
 
   useEffect(() => {
     if (!user?.id || !profile?.university_id) {
@@ -91,8 +92,13 @@ export default function MyCommunitiesPage() {
     return () => window.removeEventListener("elysium:create-action-complete", handleCreated);
   }, []);
 
-  const sortedEvents = useMemo(() => [...events].sort((a, b) => `${b.date || ""}${b.start_time || ""}`.localeCompare(`${a.date || ""}${a.start_time || ""}`)), [events]);
-  const sortedSessions = useMemo(() => [...sessions].sort((a, b) => (b.session_date || "").localeCompare(a.session_date || "")), [sessions]);
+  const openEvents = useMemo(() => events.filter((event) => event.status !== "canceled" && event.is_open !== false), [events]);
+  const openSessions = useMemo(() => sessions.filter((session) => session.status !== "canceled"), [sessions]);
+  const visibleEvents = showCanceled ? events : openEvents;
+  const visibleSessions = showCanceled ? sessions : openSessions;
+  const hiddenCanceledCount = (events.length - openEvents.length) + (sessions.length - openSessions.length);
+  const sortedEvents = useMemo(() => [...visibleEvents].sort((a, b) => `${b.date || ""}${b.start_time || ""}`.localeCompare(`${a.date || ""}${a.start_time || ""}`)), [visibleEvents]);
+  const sortedSessions = useMemo(() => [...visibleSessions].sort((a, b) => (b.session_date || "").localeCompare(a.session_date || "")), [visibleSessions]);
 
   const participantsFor = (type, id) => uniqueParticipants(type === "social" ? eventMembers : sessionMembers, type === "social" ? "event_id" : "session_id", id);
 
@@ -129,6 +135,10 @@ export default function MyCommunitiesPage() {
           <p className="mt-2 max-w-2xl text-sm text-muted-foreground">Manage activities and study groups you created, cancel plans, and see who joined.</p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <Button variant={showCanceled ? "default" : "outline"} className="gap-2" onClick={() => setShowCanceled((current) => !current)}>
+            {showCanceled ? "Only open" : "Show canceled"}
+            {!showCanceled && hiddenCanceledCount > 0 ? ` (${hiddenCanceledCount})` : ""}
+          </Button>
           <Button variant="outline" className="gap-2" onClick={() => openCreateAction("study")}><Plus className="h-4 w-4" />Study group</Button>
           <Button className="gap-2" onClick={() => openCreateAction("social")}><Plus className="h-4 w-4" />Activity</Button>
         </div>
@@ -140,7 +150,8 @@ export default function MyCommunitiesPage() {
         <div className="grid gap-5 lg:grid-cols-2">
           <CommunitySection
             title="Activities I created"
-            emptyTitle="No activities created yet"
+            emptyTitle={events.length && !showCanceled ? "No open activities" : "No activities created yet"}
+            emptyMessage={events.length && !showCanceled ? "Canceled or closed activities are hidden. Use Show canceled to review them." : "Create one when you are ready to bring students together."}
             emptyAction={<Button size="sm" onClick={() => openCreateAction("social")}>Create activity</Button>}
             icon={Users}
             tone="social"
@@ -167,7 +178,8 @@ export default function MyCommunitiesPage() {
 
           <CommunitySection
             title="Study groups I created"
-            emptyTitle="No study groups created yet"
+            emptyTitle={sessions.length && !showCanceled ? "No open study groups" : "No study groups created yet"}
+            emptyMessage={sessions.length && !showCanceled ? "Canceled study groups are hidden. Use Show canceled to review them." : "Create one when you are ready to bring students together."}
             emptyAction={<Button size="sm" onClick={() => openCreateAction("study")}>Create study group</Button>}
             icon={BookOpenCheck}
             tone="study"
@@ -209,7 +221,7 @@ export default function MyCommunitiesPage() {
   );
 }
 
-function CommunitySection({ title, emptyTitle, emptyAction, icon: Icon, tone, items, renderItem }) {
+function CommunitySection({ title, emptyTitle, emptyMessage, emptyAction, icon: Icon, tone, items, renderItem }) {
   return (
     <section className="rounded-lg border border-border bg-card p-4">
       <div className="mb-4 flex items-start gap-3">
@@ -219,7 +231,7 @@ function CommunitySection({ title, emptyTitle, emptyAction, icon: Icon, tone, it
           <p className="mt-1 text-xs text-muted-foreground">Only you can see the joined-student list for items you created.</p>
         </div>
       </div>
-      {items.length ? <div className="space-y-3">{items.map(renderItem)}</div> : <EmptyState icon={Icon} title={emptyTitle} message="Create one when you are ready to bring students together." action={emptyAction} />}
+      {items.length ? <div className="space-y-3">{items.map(renderItem)}</div> : <EmptyState icon={Icon} title={emptyTitle} message={emptyMessage} action={emptyAction} />}
     </section>
   );
 }

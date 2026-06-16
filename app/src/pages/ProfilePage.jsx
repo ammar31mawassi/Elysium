@@ -186,7 +186,7 @@ export default function ProfilePage() {
         setPeerHelper(await base44.entities.PeerHelper.create(data));
       }
       setShowHelperForm(false);
-      toast({ title: "Peer Helper is on", description: "Students can now find your public helper profile.", duration: 5000 });
+      toast({ title: "Peer Helper is on", description: "Students can now find your public helper profile." });
     } catch (error) {
       console.error(error);
       toast({ variant: "destructive", title: "Peer Helper was not saved", description: "Your previous setting was kept. Please try again." });
@@ -204,7 +204,7 @@ export default function ProfilePage() {
     try {
       await base44.entities.PeerHelper.update(peerHelper.id, { is_visible: checked });
       setPeerHelper((current) => ({ ...current, is_visible: checked }));
-      toast({ title: checked ? "Peer Helper is on" : "Peer Helper is off", duration: checked ? 5000 : undefined });
+      toast({ title: checked ? "Peer Helper is on" : "Peer Helper is off" });
     } catch (error) {
       console.error(error);
       toast({ variant: "destructive", title: "Peer Helper setting was not changed" });

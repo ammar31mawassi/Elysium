@@ -38,6 +38,46 @@ export function calculateRequiredGrade(currentGrade, completedWeight, targetGrad
   return (target - current * (weight / 100)) / (1 - weight / 100);
 }
 
+export function calculateNeededRequirementAverage(requirements, targetGrade) {
+  if (targetGrade === "" || targetGrade === null || targetGrade === undefined) return null;
+  const target = Number(targetGrade);
+  if (!Number.isFinite(target)) return null;
+
+  const validRequirements = requirements
+    .map((requirement) => {
+      const weight = Number(requirement.weight);
+      const hasGrade = requirement.grade !== "" && requirement.grade !== null && requirement.grade !== undefined;
+      const grade = hasGrade ? Number(requirement.grade) : null;
+      return {
+        ...requirement,
+        weight,
+        grade,
+        hasGrade,
+        validWeight: Number.isFinite(weight) && weight > 0,
+        validGrade: !hasGrade || (Number.isFinite(grade) && grade >= 0),
+      };
+    })
+    .filter((requirement) => requirement.validWeight && requirement.validGrade);
+
+  if (!validRequirements.length) return null;
+
+  const totalWeight = validRequirements.reduce((total, requirement) => total + requirement.weight, 0);
+  const completedWeight = validRequirements.reduce((total, requirement) => total + (requirement.hasGrade ? requirement.weight : 0), 0);
+  const missingWeight = validRequirements.reduce((total, requirement) => total + (!requirement.hasGrade ? requirement.weight : 0), 0);
+  const earnedPoints = validRequirements.reduce((total, requirement) => total + (requirement.hasGrade ? requirement.grade * requirement.weight : 0), 0);
+  const targetPoints = target * 100;
+  const neededAverage = missingWeight > 0 ? (targetPoints - earnedPoints) / missingWeight : null;
+  const finalGrade = missingWeight === 0 ? earnedPoints / 100 : null;
+
+  return {
+    completedWeight,
+    finalGrade,
+    missingWeight,
+    neededAverage,
+    totalWeight,
+  };
+}
+
 export function directionForLocale(locale) {
   return locale === "he" || locale === "ar" ? "rtl" : "ltr";
 }

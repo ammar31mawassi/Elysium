@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { BookOpenCheck, CalendarClock, Languages, MapPin, Plus, Users, X } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useProfile } from "@/lib/useProfile";
@@ -18,6 +19,32 @@ import { domainTones } from "@/lib/domainTones";
 
 function safeQuery(promise) {
   return promise.catch(() => []);
+}
+
+const COMMUNITY_FILTERS = [
+  ["all", "All"],
+  ["social", "Social events"],
+  ["study", "Study groups"],
+];
+
+const PAGE_COPY = {
+  all: {
+    title: "My communities",
+    description: "Manage activities and study groups you created, cancel plans, and see who joined.",
+  },
+  social: {
+    title: "My social events",
+    description: "See the social events you created, who joined them, and whether they are still open.",
+  },
+  study: {
+    title: "My study groups",
+    description: "See the study groups you created, who joined them, and whether they are still open.",
+  },
+};
+
+function communityFilterFromParams(params) {
+  const type = params.get("type");
+  return type === "social" || type === "study" ? type : "all";
 }
 
 function socialDate(event) {
@@ -40,6 +67,7 @@ function participantMeta(member) {
 }
 
 export default function MyCommunitiesPage() {
+  const [params, setParams] = useSearchParams();
   const { user, profile } = useProfile();
   const { openCreateAction } = useCreateAction();
   const [events, setEvents] = useState([]);
@@ -50,6 +78,17 @@ export default function MyCommunitiesPage() {
   const [savingId, setSavingId] = useState("");
   const [selected, setSelected] = useState(null);
   const [showCanceled, setShowCanceled] = useState(false);
+  const activeFilter = communityFilterFromParams(params);
+  const showSocial = activeFilter !== "study";
+  const showStudy = activeFilter !== "social";
+  const copy = PAGE_COPY[activeFilter];
+
+  const setCommunityFilter = (nextFilter) => {
+    const nextParams = new URLSearchParams(params);
+    if (nextFilter === "all") nextParams.delete("type");
+    else nextParams.set("type", nextFilter);
+    setParams(nextParams, { replace: true });
+  };
 
   useEffect(() => {
     if (!user?.id || !profile?.university_id) {
@@ -131,24 +170,38 @@ export default function MyCommunitiesPage() {
       <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-xs font-bold uppercase tracking-wide text-primary">My Elysium</p>
-          <h1 className="mt-1 text-2xl font-bold text-foreground sm:text-3xl">My communities</h1>
-          <p className="mt-2 max-w-2xl text-sm text-muted-foreground">Manage activities and study groups you created, cancel plans, and see who joined.</p>
+          <h1 className="mt-1 text-2xl font-bold text-foreground sm:text-3xl">{copy.title}</h1>
+          <p className="mt-2 max-w-2xl text-sm text-muted-foreground">{copy.description}</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button variant={showCanceled ? "default" : "outline"} className="gap-2" onClick={() => setShowCanceled((current) => !current)}>
             {showCanceled ? "Only open" : "Show canceled"}
             {!showCanceled && hiddenCanceledCount > 0 ? ` (${hiddenCanceledCount})` : ""}
           </Button>
-          <Button variant="outline" className="gap-2" onClick={() => openCreateAction("study")}><Plus className="h-4 w-4" />Study group</Button>
-          <Button className="gap-2" onClick={() => openCreateAction("social")}><Plus className="h-4 w-4" />Activity</Button>
+          {showStudy && <Button variant="outline" className="gap-2" onClick={() => openCreateAction("study")}><Plus className="h-4 w-4" />Study group</Button>}
+          {showSocial && <Button className="gap-2" onClick={() => openCreateAction("social")}><Plus className="h-4 w-4" />Activity</Button>}
         </div>
       </header>
+
+      <div role="group" aria-label="Community filter" className="mb-5 grid max-w-md grid-cols-3 gap-1 rounded-md bg-muted p-1">
+        {COMMUNITY_FILTERS.map(([key, label]) => (
+          <button
+            key={key}
+            type="button"
+            aria-pressed={activeFilter === key}
+            onClick={() => setCommunityFilter(key)}
+            className={cn("min-h-10 rounded-md px-2 text-sm font-semibold transition-colors", activeFilter === key ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
 
       {loading ? (
         <div className="grid gap-4 md:grid-cols-2">{[1, 2, 3, 4].map((item) => <SkeletonCard key={item} lines={3} />)}</div>
       ) : (
-        <div className="grid gap-5 lg:grid-cols-2">
-          <CommunitySection
+        <div className={cn("grid gap-5", showSocial && showStudy ? "lg:grid-cols-2" : "max-w-3xl")}>
+          {showSocial && <CommunitySection
             title="Activities I created"
             emptyTitle={events.length && !showCanceled ? "No open activities" : "No activities created yet"}
             emptyMessage={events.length && !showCanceled ? "Canceled or closed activities are hidden. Use Show canceled to review them." : "Create one when you are ready to bring students together."}
@@ -174,9 +227,9 @@ export default function MyCommunitiesPage() {
                 onOpen={() => setSelected({ type: "social", item: event })}
               />
             )}
-          />
+          />}
 
-          <CommunitySection
+          {showStudy && <CommunitySection
             title="Study groups I created"
             emptyTitle={sessions.length && !showCanceled ? "No open study groups" : "No study groups created yet"}
             emptyMessage={sessions.length && !showCanceled ? "Canceled study groups are hidden. Use Show canceled to review them." : "Create one when you are ready to bring students together."}
@@ -202,7 +255,7 @@ export default function MyCommunitiesPage() {
                 onOpen={() => setSelected({ type: "study", item: session })}
               />
             )}
-          />
+          />}
         </div>
       )}
 

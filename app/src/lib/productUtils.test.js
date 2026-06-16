@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   calculateGpa,
+  calculateNeededRequirementAverage,
   calculateRequiredGrade,
   directionForLocale,
   extractInternalPaths,
@@ -15,6 +16,32 @@ describe("student planning utilities", () => {
 
   it("calculates the grade needed on remaining coursework", () => {
     expect(calculateRequiredGrade(70, 60, 80)).toBeCloseTo(95);
+  });
+
+  it("calculates the average needed across unfilled requirements", () => {
+    const result = calculateNeededRequirementAverage([
+      { name: "Quiz", weight: 10, grade: 50 },
+      { name: "Midterm", weight: 50, grade: 100 },
+      { name: "Final", weight: 40, grade: "" },
+    ], 80);
+
+    expect(result).toEqual(expect.objectContaining({
+      completedWeight: 60,
+      missingWeight: 40,
+      totalWeight: 100,
+    }));
+    expect(result.neededAverage).toBeCloseTo(62.5);
+  });
+
+  it("spreads the needed grade across multiple missing requirements by weighted average", () => {
+    const result = calculateNeededRequirementAverage([
+      { name: "Homework", weight: 20, grade: 70 },
+      { name: "Project", weight: 30, grade: "" },
+      { name: "Final", weight: 50, grade: "" },
+    ], 85);
+
+    expect(result.missingWeight).toBe(80);
+    expect(result.neededAverage).toBeCloseTo(88.75);
   });
 
   it("orders urgent future items before normal items", () => {

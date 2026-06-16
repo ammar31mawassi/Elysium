@@ -29,7 +29,7 @@ import ForgotPassword from '@/pages/ForgotPassword';
 import ResetPassword from '@/pages/ResetPassword';
 
 const AuthenticatedApp = () => {
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
   const { isAuthenticated, isLoadingAuth, isLoadingPublicSettings, authError } = useAuth();
   const authPaths = ['/login', '/register', '/forgot-password', '/reset-password'];
   const isAuthPath = authPaths.includes(pathname);
@@ -75,7 +75,8 @@ const AuthenticatedApp = () => {
         <Route path="/tools" element={<ToolsPage />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/me" element={<MePage />} />
-        <Route path="/communities" element={<MyCommunitiesPage />} />
+        <Route path="/me/communities" element={<MyCommunitiesPage />} />
+        <Route path="/communities" element={<Navigate to={`/me/communities${search}`} replace />} />
         <Route path="/admin" element={<AdminPage />} />
         <Route path="/discover" element={<DiscoverPage />} />
         <Route path="/calendar" element={<CalendarPage />} />

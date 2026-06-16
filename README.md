@@ -146,6 +146,8 @@ A focused demo can be completed without exposing private data:
 
 The Base44 project configuration is stored in `app/base44/config.jsonc`. Schema and agent changes should be reviewed before synchronizing because entity pushes affect the linked Base44 application.
 
+Deployment rule: before deploying the website, commit and merge the intended project changes into `main`, switch to `main`, pull the latest `origin/main`, and confirm the worktree is clean. Do not deploy from a feature branch or with uncommitted changes.
+
 ```bash
 cd app
 npx base44 whoami

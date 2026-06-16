@@ -197,3 +197,4 @@ A task is done when:
 - Relevant English, Hebrew, and Arabic behavior is checked.
 - Relevant RTL and LTR behavior is checked.
 - The PR is merged into `main`.
+- Deployment, when needed, happens only after the project changes are committed and merged into `main`, with a clean `main` checkout.

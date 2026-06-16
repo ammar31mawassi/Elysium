@@ -24,7 +24,7 @@ import { base44 } from "@/api/base44Client";
 import { useProfile } from "@/lib/useProfile";
 import { useLanguage } from "@/lib/LanguageContext";
 import { productText } from "@/lib/productCopy";
-import { calculateGpa, calculateRequiredGrade, localizedField } from "@/lib/productUtils";
+import { calculateGpa, calculateNeededRequirementAverage, localizedField } from "@/lib/productUtils";
 import { demoContent, withDemoFallback } from "@/lib/demoData";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -47,6 +47,10 @@ const plannedFeatures = [
   [Map, "Campus maps"],
   [Sparkles, "Advanced Ely automation"],
 ];
+
+function makeRequirementRow(requirement = {}) {
+  return { name: "", weight: "", grade: "", ...requirement, _rowId: `${Date.now()}-${Math.random()}` };
+}
 
 function safeQuery(promise) {
   return promise.catch(() => []);
@@ -151,11 +155,105 @@ function GpaCalculator() {
 }
 
 function GradeNeeded() {
-  const [current, setCurrent] = useState("");
-  const [completedWeight, setCompletedWeight] = useState("");
   const [target, setTarget] = useState("60");
-  const needed = useMemo(() => calculateRequiredGrade(current, completedWeight, target), [current, completedWeight, target]);
-  return <div className="space-y-4"><div className="grid gap-3 sm:grid-cols-3"><Field label="Current average"><Input type="number" min="0" max="100" value={current} onChange={(event) => setCurrent(event.target.value)} /></Field><Field label="Coursework completed (%)"><Input type="number" min="0" max="99" value={completedWeight} onChange={(event) => setCompletedWeight(event.target.value)} /></Field><Field label="Target final grade"><Input type="number" min="0" max="100" value={target} onChange={(event) => setTarget(event.target.value)} /></Field></div>{needed !== null && <div className={cn("rounded-lg border p-4 text-center", needed > 100 ? "border-destructive/30 bg-destructive/5" : "border-primary/20 bg-primary/5")}><p className="text-xs text-muted-foreground">Required average on the remaining work</p><p className={cn("mt-1 text-4xl font-bold", needed > 100 ? "text-destructive" : "text-primary")}>{needed <= 0 ? "Target reached" : needed > 100 ? "Above 100" : needed.toFixed(1)}</p></div>}</div>;
+  const [requirements, setRequirements] = useState(() => [
+    makeRequirementRow({ name: "Requirement 1", weight: "", grade: "" }),
+    makeRequirementRow({ name: "Requirement 2", weight: "", grade: "" }),
+    makeRequirementRow({ name: "Requirement 3", weight: "", grade: "" }),
+  ]);
+  const result = useMemo(() => calculateNeededRequirementAverage(requirements, target), [requirements, target]);
+  const totalWeight = result?.totalWeight ?? 0;
+  const weightsComplete = Math.abs(totalWeight - 100) < 0.01;
+  const hasMissingRequirements = result ? result.missingWeight > 0 : false;
+
+  const updateRequirement = (index, field, value) => {
+    setRequirements((current) => current.map((requirement, requirementIndex) => (
+      requirementIndex === index ? { ...requirement, [field]: value } : requirement
+    )));
+  };
+
+  const addRequirement = () => {
+    setRequirements((current) => [...current, makeRequirementRow({ name: `Requirement ${current.length + 1}` })]);
+  };
+
+  const removeRequirement = (index) => {
+    setRequirements((current) => current.length > 1 ? current.filter((_, requirementIndex) => requirementIndex !== index) : current);
+  };
+
+  return (
+    <div className="flex flex-col gap-4">
+      <Field label="Target final grade">
+        <Input type="number" min="0" max="100" value={target} onChange={(event) => setTarget(event.target.value)} />
+      </Field>
+
+      <div className="flex flex-col gap-3">
+        {requirements.map((requirement, index) => (
+          <div key={requirement._rowId} className="grid min-w-0 gap-2 rounded-md border border-border p-2 sm:grid-cols-[minmax(0,2fr)_minmax(88px,1fr)_minmax(88px,1fr)_44px] sm:border-0 sm:p-0">
+            <Input
+              className="min-w-0"
+              aria-label={`Requirement ${index + 1} name`}
+              placeholder="Requirement name"
+              value={requirement.name}
+              onChange={(event) => updateRequirement(index, "name", event.target.value)}
+            />
+            <div className="grid grid-cols-2 gap-2 sm:contents">
+              <Input
+                className="min-w-0"
+                aria-label={`Requirement ${index + 1} percentage`}
+                type="number"
+                min="0"
+                max="100"
+                step="0.1"
+                placeholder="%"
+                value={requirement.weight}
+                onChange={(event) => updateRequirement(index, "weight", event.target.value)}
+              />
+              <Input
+                className="min-w-0"
+                aria-label={`Requirement ${index + 1} grade`}
+                type="number"
+                min="0"
+                max="100"
+                step="0.1"
+                placeholder="Grade"
+                value={requirement.grade}
+                onChange={(event) => updateRequirement(index, "grade", event.target.value)}
+              />
+            </div>
+            <button className="flex h-10 w-10 items-center justify-center rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive" onClick={() => removeRequirement(index)} aria-label={`Remove requirement ${index + 1}`}>
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        ))}
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2">
+        <Button variant="outline" className="gap-2" onClick={addRequirement}><Plus className="h-4 w-4" />Add requirement</Button>
+        <span className={cn("text-xs font-semibold", weightsComplete ? "text-primary" : "text-muted-foreground")}>Weights entered: {totalWeight.toFixed(1)}%</span>
+      </div>
+
+      {result && !weightsComplete && (
+        <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-foreground">
+          Add requirements until the weights total 100%.
+        </div>
+      )}
+
+      {result && weightsComplete && hasMissingRequirements && (
+        <div className={cn("rounded-lg border p-4 text-center", result.neededAverage > 100 ? "border-destructive/30 bg-destructive/5" : "border-primary/20 bg-primary/5")}>
+          <p className="text-xs text-muted-foreground">Average needed on blank requirements</p>
+          <p className={cn("mt-1 text-4xl font-bold", result.neededAverage > 100 ? "text-destructive" : "text-primary")}>{result.neededAverage <= 0 ? "Target reached" : result.neededAverage > 100 ? "Above 100" : result.neededAverage.toFixed(1)}</p>
+          <p className="mt-2 text-xs text-muted-foreground">Across the remaining {result.missingWeight.toFixed(1)}% of the course.</p>
+        </div>
+      )}
+
+      {result && weightsComplete && !hasMissingRequirements && (
+        <div className="rounded-lg border border-primary/20 bg-primary/5 p-4 text-center">
+          <p className="text-xs text-muted-foreground">Final grade from entered requirements</p>
+          <p className="mt-1 text-4xl font-bold text-primary">{result.finalGrade.toFixed(1)}</p>
+        </div>
+      )}
+    </div>
+  );
 }
 
 function FlashcardsSection() {

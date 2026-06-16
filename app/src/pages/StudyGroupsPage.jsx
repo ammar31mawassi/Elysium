@@ -26,6 +26,7 @@ import {
 } from "@/lib/communityMatching";
 
 const emptyForm = { title: "", course_name: "", preferred_language: "", session_date: "", end_time: "", location: "", notes: "", max_spots: 8, is_marathon: false };
+const FIND_PROMPT = "didn't find what you are loking for? why not make one your self!";
 
 function safeQuery(promise) {
   return promise.catch(() => []);
@@ -67,6 +68,18 @@ export default function StudyGroupsPage() {
     });
     return () => { active = false; };
   }, [profile?.university_id, user?.id]);
+
+  useEffect(() => {
+    const handleCreated = (event) => {
+      const detail = event.detail;
+      if (detail?.type !== "study") return;
+      setSessions((current) => [detail.session, ...current.filter((item) => item.id !== detail.session.id && !String(item.id).startsWith("demo-"))]);
+      if (detail.membership) setMembers((current) => mergeRecordsById(current, [detail.membership]));
+      if (detail.calendarItem) setCalendarItems((current) => mergeRecordsById(current, [detail.calendarItem]));
+    };
+    window.addEventListener("elysium:create-action-complete", handleCreated);
+    return () => window.removeEventListener("elysium:create-action-complete", handleCreated);
+  }, []);
 
   const activeCourses = useMemo(() => activeCourseNames(profile), [profile]);
   const courseOptions = useMemo(() => buildCourseOptions(activeCourses), [activeCourses]);
@@ -167,11 +180,11 @@ export default function StudyGroupsPage() {
 
       {!activeCourses.length && <div className="mb-5 rounded-lg border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-foreground">Add an active course in <Link to="/me" className="font-semibold text-primary underline">Me</Link> before creating or discovering study groups.</div>}
 
-      {loading ? <div className="grid gap-3 md:grid-cols-2">{[1, 2, 3, 4].map((item) => <SkeletonCard key={item} lines={3} />)}</div> : visibleSessions.length === 0 ? <EmptyState icon={BookOpenCheck} title="No relevant study groups yet" message="Groups for your active courses will appear here." /> : <div className="grid gap-3 md:grid-cols-2">{visibleSessions.map((session) => {
+      {loading ? <div className="grid gap-3 md:grid-cols-2">{[1, 2, 3, 4].map((item) => <SkeletonCard key={item} lines={3} />)}</div> : visibleSessions.length === 0 ? <EmptyState icon={BookOpenCheck} title="No study groups yet." message="Why not be the first to start one." action={<Button size="sm" onClick={() => setShowForm(true)}>Start a study group</Button>} /> : <div className="grid gap-3 md:grid-cols-2">{visibleSessions.map((session) => {
         const joined = mySessionIds.has(session.id);
         const count = memberCount(session.id);
         return <button key={session.id} onClick={() => setSelected(session)} className={cn("rounded-lg border border-border bg-card p-4 text-start", domainTones.study.border)}><div className="flex items-start gap-3"><span className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-md", domainTones.study.icon)}><BookOpenCheck className="h-5 w-5" /></span><div className="min-w-0 flex-1" dir="auto"><div className="flex justify-between gap-3"><h2 className="font-semibold text-foreground">{session.title}</h2><span className={cn("shrink-0 text-xs font-semibold", session.status === "canceled" ? "text-destructive" : "text-emerald-600")}>{session.status === "canceled" ? "Canceled" : joined ? "Joined" : "Open"}</span></div><p className={cn("mt-1 text-xs font-semibold", domainTones.study.text)}>{session.is_marathon ? "Study marathon" : "Study group"} · {session.course_name}</p><p className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground"><CalendarClock className="h-3.5 w-3.5" />{new Date(session.session_date).toLocaleString()}</p>{session.location && <p className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground"><MapPin className="h-3.5 w-3.5" />{session.location}</p>}{session.preferred_language && <p className="mt-1 text-xs text-muted-foreground">Preferred language: {session.preferred_language}</p>}<p className="mt-2 text-xs text-muted-foreground">{count} / {session.max_spots} joined</p></div></div></button>;
-      })}</div>}
+      })}<CreateStudyPrompt onClick={() => setShowForm(true)} /></div>}
 
       {selected && <Modal title={selected.title} onClose={() => setSelected(null)}><div className="space-y-4" dir="auto"><p className={cn("text-xs font-semibold", domainTones.study.text)}>{selected.is_marathon ? "Study marathon" : "Study group"} · {selected.course_name}{selected.preferred_language ? ` · ${selected.preferred_language}` : ""}</p><p className="text-sm text-muted-foreground">{selected.notes || "Bring the material you want to work on."}</p><div className="rounded-md border border-border p-3"><p className="text-xs font-semibold text-muted-foreground">Hosted by</p><p className="mt-1 text-sm font-semibold text-foreground">{selected.host_name || (selected.host_id === user?.id ? profile?.preferred_name || user?.full_name : "Campus student")}</p>{(selected.host_academic_year || selected.host_field_of_study) && <p className="mt-1 text-xs text-muted-foreground">{[selected.host_academic_year, selected.host_field_of_study].filter(Boolean).join(" · ")}</p>}</div><div className="rounded-md bg-muted/50 p-3 text-sm"><p>{new Date(selected.session_date).toLocaleString()}</p>{selected.location && <p className="mt-1 text-muted-foreground">{selected.location}</p>}<p className="mt-1 text-muted-foreground">{memberCount(selected.id)} of {selected.max_spots} spots</p></div>{selected.host_id === user?.id ? <Button variant="destructive" className="w-full" disabled={saving || selected.status === "canceled"} onClick={() => cancelGroup(selected)}><X className="me-2 h-4 w-4" />Cancel group</Button> : mySessionIds.has(selected.id) ? <Button variant="outline" className="w-full" disabled={saving} onClick={() => leaveGroup(selected)}>Leave group</Button> : <Button className="w-full" disabled={saving || selected.status === "canceled" || memberCount(selected.id) >= selected.max_spots || String(selected.id).startsWith("demo-")} onClick={() => joinGroup(selected)}>Join group</Button>}{String(selected.id).startsWith("demo-") && <p className="text-center text-xs text-muted-foreground">Demo preview. Seed it to Base44 before the live demo to enable joining.</p>}</div></Modal>}
 
@@ -182,6 +195,22 @@ export default function StudyGroupsPage() {
 
 function Field({ label, children }) {
   return <label className="block"><span className="mb-1.5 block text-xs font-semibold text-muted-foreground">{label}</span>{children}</label>;
+}
+
+function CreateStudyPrompt({ onClick }) {
+  return (
+    <article className={cn("rounded-lg border border-dashed bg-card p-4 text-start", domainTones.study.border)}>
+      <div className="flex items-start gap-3">
+        <span className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-md", domainTones.study.icon)}>
+          <BookOpenCheck className="h-5 w-5" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <h2 className="font-semibold text-foreground">{FIND_PROMPT}</h2>
+          <Button size="sm" className="mt-4" onClick={onClick}>Start a study group</Button>
+        </div>
+      </div>
+    </article>
+  );
 }
 
 function ParticipationFilter({ value, onChange }) {

@@ -88,16 +88,16 @@ describe("Dashboard", () => {
       </MemoryRouter>
     );
 
-    const study = await screen.findByRole("link", { name: "Create study group" });
-    const social = screen.getByRole("link", { name: "Create social event" });
-    const deadline = screen.getAllByRole("link", { name: "Add deadline" })[0];
+    const study = await screen.findByRole("button", { name: "Create study group" });
+    const social = screen.getByRole("button", { name: "Create social event" });
+    const deadline = screen.getAllByRole("button", { name: "Add deadline" })[0];
 
     expect(screen.queryByText("Add something")).not.toBeInTheDocument();
     expect(study.compareDocumentPosition(social) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(social.compareDocumentPosition(deadline) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(study).toHaveAttribute("href", "/groups?create=1");
-    expect(social).toHaveAttribute("href", "/social?create=1");
-    expect(deadline).toHaveAttribute("href", "/calendar?create=1");
+    expect(study).not.toHaveAttribute("href");
+    expect(social).not.toHaveAttribute("href");
+    expect(deadline).not.toHaveAttribute("href");
     expect(study.className).toContain("bg-primary/10");
     expect(social.className).toContain("bg-emerald-500/10");
     expect(deadline.className).toContain("bg-amber-500/10");

@@ -1,16 +1,17 @@
 import React, { useState } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { CalendarDays, Compass, Home, Plus, UserRound, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/lib/LanguageContext";
 import { createActionCopy } from "@/lib/createActions";
 import { createActionIcons } from "@/components/elysium/CreateActionMenu";
+import { useCreateAction } from "@/components/elysium/CreateActionProvider";
 import { domainTones } from "@/lib/domainTones";
 
 export default function BottomNav() {
   const { pathname } = useLocation();
-  const navigate = useNavigate();
   const { t, locale } = useLanguage();
+  const { openCreateAction } = useCreateAction();
   const createMenu = createActionCopy(locale);
   const [showAdd, setShowAdd] = useState(false);
   const nav = [
@@ -31,8 +32,8 @@ export default function BottomNav() {
             <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-border" />
             <h2 className="mx-auto mb-3 max-w-lg text-base font-bold text-foreground">{createMenu.title}</h2>
             <div className="mx-auto grid max-w-lg grid-cols-2 gap-2">
-              {actions.map(({ key, label, description, icon: Icon, path }) => (
-                <button key={path} onClick={() => { navigate(path); setShowAdd(false); }} className="flex min-h-24 flex-col items-start justify-between rounded-lg border border-border bg-card p-3 text-start hover:border-primary/40 hover:bg-primary/5">
+              {actions.map(({ key, label, description, icon: Icon }) => (
+                <button key={key} onClick={() => { openCreateAction(key); setShowAdd(false); }} className="flex min-h-24 flex-col items-start justify-between rounded-lg border border-border bg-card p-3 text-start hover:border-primary/40 hover:bg-primary/5">
                   <span className={cn("flex h-9 w-9 items-center justify-center rounded-md", key === "social" ? domainTones.social.icon : key === "study" ? domainTones.study.icon : domainTones.calendar.icon)}><Icon className="h-[18px] w-[18px]" /></span>
                   <span><span className="block text-sm font-semibold text-foreground">{label}</span><span className="mt-1 block text-[11px] leading-snug text-muted-foreground">{description}</span></span>
                 </button>

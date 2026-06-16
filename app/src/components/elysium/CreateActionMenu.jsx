@@ -1,8 +1,8 @@
 import React from "react";
-import { useNavigate } from "react-router-dom";
 import { BookOpenCheck, ClipboardList, FileQuestion, Plus, Trophy, Users } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
 import { createActionCopy } from "@/lib/createActions";
+import { useCreateAction } from "@/components/elysium/CreateActionProvider";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,8 +22,8 @@ export const createActionIcons = {
 };
 
 export default function CreateActionMenu({ className, compact = false, label, iconOnly = false, variant = "featured" }) {
-  const navigate = useNavigate();
   const { locale, t } = useLanguage();
+  const { openCreateAction } = useCreateAction();
   const menu = createActionCopy(locale);
   const isFeatured = variant === "featured";
 
@@ -47,7 +47,7 @@ export default function CreateActionMenu({ className, compact = false, label, ic
         {menu.actions.map((action) => {
           const Icon = createActionIcons[action.key];
           return (
-            <DropdownMenuItem key={action.key} onSelect={() => navigate(action.path)} className="min-h-14 cursor-pointer items-start rounded-md p-2.5">
+            <DropdownMenuItem key={action.key} onSelect={() => openCreateAction(action.key)} className="min-h-14 cursor-pointer items-start rounded-md p-2.5">
               <span className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-md", action.key === "social" ? domainTones.social.icon : action.key === "study" ? domainTones.study.icon : domainTones.calendar.icon)}><Icon className="h-4 w-4" /></span>
               <span className="min-w-0"><span className="block text-sm font-semibold text-foreground">{action.label}</span><span className="mt-0.5 block text-xs leading-relaxed text-muted-foreground">{action.description}</span></span>
             </DropdownMenuItem>

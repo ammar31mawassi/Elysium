@@ -1,11 +1,12 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useLocation } from "react-router-dom";
-import { CalendarDays, Check, Circle, MapPin, Pencil, Plus, Trash2 } from "lucide-react";
+import { BookOpenCheck, CalendarDays, Check, Circle, MapPin, Pencil, Plus, Trash2, Users } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useProfile } from "@/lib/useProfile";
 import { useLanguage } from "@/lib/LanguageContext";
 import { productText } from "@/lib/productCopy";
 import PageLayout from "@/components/layout/PageLayout";
+import { useCreateAction } from "@/components/elysium/CreateActionProvider";
 import SkeletonCard from "@/components/ui/SkeletonCard";
 import EmptyState from "@/components/ui/EmptyState";
 import Modal from "@/components/ui/Modal";
@@ -17,6 +18,14 @@ import { normalizeCourseRecords } from "@/lib/profileCourses";
 
 const PERSONAL_KINDS = ["homework", "exam", "other"];
 const PRIORITIES = ["normal", "important", "urgent"];
+const DEADLINE_KINDS = new Set(["homework", "exam"]);
+const FIND_PROMPT = "didn't find what you are loking for? why not make one your self!";
+const CATEGORY_FILTERS = [
+  ["all", "All events"],
+  ["deadlines", "Deadlines"],
+  ["social_activity", "Social events"],
+  ["study_session", "Study groups"],
+];
 
 function safeQuery(promise) {
   return promise.catch(() => []);
@@ -66,8 +75,29 @@ function typeLabel(item) {
   return item.source_type === "personal" ? item.personal_kind || "other" : item.source_type.replaceAll("_", " ");
 }
 
+function isDeadlineItem(item) {
+  return item.source_type === "personal" && DEADLINE_KINDS.has(item.personal_kind);
+}
+
+function matchesCategory(item, category) {
+  if (category === "all") return true;
+  if (category === "deadlines") return isDeadlineItem(item);
+  return item.source_type === category;
+}
+
+function sourceIsCanceled(item, events = [], sessions = []) {
+  if (item.source_type === "social_activity") {
+    return events.some((event) => event.id === item.source_id && event.status === "canceled");
+  }
+  if (item.source_type === "study_session") {
+    return sessions.some((session) => session.id === item.source_id && session.status === "canceled");
+  }
+  return false;
+}
+
 export default function CalendarPage() {
   const location = useLocation();
+  const { openCreateAction } = useCreateAction();
   const { user, profile } = useProfile();
   const { locale, t } = useLanguage();
   const p = (key) => productText(locale, key);
@@ -75,6 +105,7 @@ export default function CalendarPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [tab, setTab] = useState("upcoming");
+  const [categoryFilter, setCategoryFilter] = useState("all");
   const initialParams = new URLSearchParams(location.search);
   const initialKind = PERSONAL_KINDS.includes(initialParams.get("type")) ? initialParams.get("type") : "other";
   const [showEditor, setShowEditor] = useState(initialParams.get("create") === "1");
@@ -96,16 +127,32 @@ export default function CalendarPage() {
     if (!user?.id) return;
     let active = true;
     setLoading(true);
-    safeQuery(base44.entities.CalendarItem.filter({ owner_user_id: user.id })).then((rows) => {
+    Promise.all([
+      safeQuery(base44.entities.CalendarItem.filter({ owner_user_id: user.id })),
+      profile?.university_id ? safeQuery(base44.entities.SocialEvent.filter({ university_id: profile.university_id })) : Promise.resolve([]),
+      profile?.university_id ? safeQuery(base44.entities.StudySession.filter({ university_id: profile.university_id })) : Promise.resolve([]),
+    ]).then(async ([rows, events, sessions]) => {
+      const staleItems = (rows || []).filter((item) => sourceIsCanceled(item, events, sessions));
+      await Promise.all(staleItems.map((item) => base44.entities.CalendarItem.delete(item.id).catch(() => null)));
       if (active) {
-        setItems(rows || []);
+        setItems((rows || []).filter((item) => !staleItems.some((stale) => stale.id === item.id)));
         setLoading(false);
       }
     });
     return () => { active = false; };
-  }, [user?.id]);
+  }, [user?.id, profile?.university_id]);
 
-  const displayed = useMemo(() => {
+  useEffect(() => {
+    const handleCreated = (event) => {
+      const item = event.detail?.calendarItem;
+      if (!item) return;
+      setItems((current) => current.some((row) => row.id === item.id) ? current.map((row) => row.id === item.id ? item : row) : [...current, item]);
+    };
+    window.addEventListener("elysium:create-action-complete", handleCreated);
+    return () => window.removeEventListener("elysium:create-action-complete", handleCreated);
+  }, []);
+
+  const timeFilteredItems = useMemo(() => {
     const now = new Date();
     return items
       .filter((item) => item.status !== "canceled")
@@ -113,11 +160,49 @@ export default function CalendarPage() {
       .sort((a, b) => new Date(a.starts_at) - new Date(b.starts_at));
   }, [items, tab]);
 
+  const displayed = useMemo(() => (
+    timeFilteredItems.filter((item) => matchesCategory(item, categoryFilter))
+  ), [timeFilteredItems, categoryFilter]);
+
   const openCreate = (kind = "other") => {
     setEditingItem(null);
     setForm(makeEmptyForm(kind));
     setShowEditor(true);
   };
+
+  const emptyContent = (() => {
+    if (categoryFilter === "deadlines") {
+      return {
+        icon: CalendarDays,
+        title: "no upcoming deadlines, want to add a new one",
+        action: <Button size="sm" onClick={() => openCreate("homework")}>Add deadline</Button>,
+      };
+    }
+    if (categoryFilter === "social_activity") {
+      return {
+        icon: Users,
+        title: "No social groups yet.",
+        message: "Why not make one and connect with your peers.",
+        action: <Button size="sm" onClick={() => openCreateAction("social")}>Create social group</Button>,
+      };
+    }
+    if (categoryFilter === "study_session") {
+      return {
+        icon: BookOpenCheck,
+        title: "No study groups yet.",
+        message: "Why not be the first to start one.",
+        action: <Button size="sm" onClick={() => openCreateAction("study")}>Start a study group</Button>,
+      };
+    }
+    return {
+      icon: CalendarDays,
+      title: tab === "past" ? "No past events yet." : "No upcoming events yet.",
+      message: "Use the filters above or add a new deadline when something comes up.",
+      action: <Button size="sm" onClick={() => openCreate("homework")}>Add deadline</Button>,
+    };
+  })();
+
+  const showCreatePrompt = displayed.length > 0 && ["social_activity", "study_session"].includes(categoryFilter);
 
   const openEdit = (item) => {
     if (item.source_type !== "personal") return;
@@ -189,16 +274,35 @@ export default function CalendarPage() {
         </Button>
       </header>
 
-      <div className="mb-5 flex max-w-sm rounded-md bg-muted p-1">
-        {[["upcoming", p("calendar_upcoming")], ["past", p("calendar_past")]].map(([key, label]) => (
-          <button key={key} onClick={() => setTab(key)} className={cn("h-10 flex-1 rounded-md text-sm font-semibold", tab === key ? "bg-background text-foreground shadow-sm" : "text-muted-foreground")}>{label}</button>
-        ))}
+      <div className="mb-5 flex flex-col gap-3 lg:flex-row lg:items-center">
+        <div className="flex max-w-sm rounded-md bg-muted p-1">
+          {[["upcoming", p("calendar_upcoming")], ["past", p("calendar_past")]].map(([key, label]) => (
+            <button key={key} onClick={() => setTab(key)} className={cn("h-10 flex-1 rounded-md px-3 text-sm font-semibold", tab === key ? "bg-background text-foreground shadow-sm" : "text-muted-foreground")}>{label}</button>
+          ))}
+        </div>
+        <div className="flex max-w-full gap-1 overflow-x-auto rounded-md bg-muted p-1" role="group" aria-label="Calendar event category filter">
+          {CATEGORY_FILTERS.map(([key, label]) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setCategoryFilter(key)}
+              className={cn("min-h-10 shrink-0 rounded-md px-3 text-xs font-semibold", categoryFilter === key ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {loading ? (
         <div className="grid gap-3 md:grid-cols-2">{[1, 2, 3, 4].map((item) => <SkeletonCard key={item} lines={2} />)}</div>
       ) : displayed.length === 0 ? (
-        <EmptyState icon={CalendarDays} title={p("calendar_empty")} message="Your personal deadlines and joined sessions will appear here." action={<Button size="sm" onClick={() => openCreate()}>{p("add_deadline")}</Button>} />
+        <EmptyState
+          icon={emptyContent.icon}
+          title={emptyContent.title}
+          message={emptyContent.message}
+          action={emptyContent.action}
+        />
       ) : (
         <div className="overflow-hidden rounded-lg border border-border bg-card">
           {displayed.map((item, index) => (
@@ -226,6 +330,14 @@ export default function CalendarPage() {
               </div>
             </article>
           ))}
+          {showCreatePrompt && (
+            <CalendarCreatePrompt
+              icon={categoryFilter === "study_session" ? BookOpenCheck : Users}
+              tone={categoryFilter === "study_session" ? "study" : "social"}
+              buttonLabel={categoryFilter === "study_session" ? "Start a study group" : "Create social group"}
+              onClick={() => openCreateAction(categoryFilter === "study_session" ? "study" : "social")}
+            />
+          )}
         </div>
       )}
 
@@ -242,6 +354,23 @@ export default function CalendarPage() {
         </Modal>
       )}
     </PageLayout>
+  );
+}
+
+function CalendarCreatePrompt({ icon: Icon, tone, buttonLabel, onClick }) {
+  const toneClass = tone === "study" ? "bg-primary/10 text-primary" : "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300";
+  return (
+    <article className="flex items-start gap-3 border-t border-dashed border-border bg-muted/20 p-4 sm:p-5">
+      <span className={cn("flex h-11 w-11 shrink-0 items-center justify-center rounded-md", toneClass)}>
+        <Icon className="h-5 w-5" />
+      </span>
+      <div className="min-w-0 flex-1">
+        <h2 className="text-sm font-semibold text-foreground">{FIND_PROMPT}</h2>
+        <div className="mt-3">
+          <Button size="sm" onClick={onClick}>{buttonLabel}</Button>
+        </div>
+      </div>
+    </article>
   );
 }
 

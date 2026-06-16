@@ -7,7 +7,7 @@ export default function EmptyState({ emoji, icon: Icon, title, message, action }
         {Icon ? <Icon className="w-6 h-6" /> : emoji}
       </div>
       <h3 className="font-semibold text-foreground text-base mb-1">{title}</h3>
-      <p className="text-muted-foreground text-sm max-w-xs leading-relaxed">{message}</p>
+      {message && <p className="text-muted-foreground text-sm max-w-xs leading-relaxed">{message}</p>}
       {action && <div className="mt-5">{action}</div>}
     </div>
   );

@@ -13,6 +13,7 @@ import SkeletonCard from "@/components/ui/SkeletonCard";
 import { cn } from "@/lib/utils";
 import { activeCourseNames } from "@/lib/profileCourses";
 import { domainTones } from "@/lib/domainTones";
+import { useCreateAction } from "@/components/elysium/CreateActionProvider";
 
 const itemMeta = {
   personal: { icon: Flag, tone: domainTones.calendar.icon, path: "/calendar" },
@@ -36,6 +37,18 @@ function timelineTone(item, fallbackTone) {
 
 function safeQuery(promise, fallback = []) {
   return Promise.race([promise.catch(() => fallback), new Promise((resolve) => setTimeout(() => resolve(fallback), 7000))]);
+}
+
+function calendarSourceIsActive(item, events, sessions) {
+  if (item.source_type === "social_activity") {
+    const source = events.find((event) => event.id === item.source_id);
+    return !source || source.status !== "canceled";
+  }
+  if (item.source_type === "study_session") {
+    const source = sessions.find((session) => session.id === item.source_id);
+    return !source || source.status !== "canceled";
+  }
+  return true;
 }
 
 export default function Dashboard() {
@@ -76,6 +89,23 @@ export default function Dashboard() {
     return () => { active = false; };
   }, [user?.id, profile?.university_id, profileLoading, university?.name]);
 
+  useEffect(() => {
+    const handleCreated = (event) => {
+      const detail = event.detail;
+      if (!detail) return;
+      setData((current) => ({
+        ...current,
+        calendar: detail.calendarItem ? [...current.calendar.filter((item) => item.id !== detail.calendarItem.id), detail.calendarItem] : current.calendar,
+        events: detail.type === "social" ? [detail.event, ...current.events.filter((item) => item.id !== detail.event.id)] : current.events,
+        eventMembers: detail.type === "social" && detail.membership ? [detail.membership, ...current.eventMembers.filter((item) => item.id !== detail.membership.id)] : current.eventMembers,
+        sessions: detail.type === "study" ? [detail.session, ...current.sessions.filter((item) => item.id !== detail.session.id)] : current.sessions,
+        sessionMembers: detail.type === "study" && detail.membership ? [detail.membership, ...current.sessionMembers.filter((item) => item.id !== detail.membership.id)] : current.sessionMembers,
+      }));
+    };
+    window.addEventListener("elysium:create-action-complete", handleCreated);
+    return () => window.removeEventListener("elysium:create-action-complete", handleCreated);
+  }, []);
+
   const model = useMemo(() => {
     const joinedEvents = new Set(data.eventMembers.filter((member) => member.status !== "rejected").map((member) => member.event_id));
     const joinedSessions = new Set(data.sessionMembers.map((member) => member.session_id));
@@ -83,7 +113,7 @@ export default function Dashboard() {
     const courseSet = new Set(activeCourseNames(profile).map((course) => course.toLocaleLowerCase("en")));
     const calendarSourceIds = new Set(data.calendar.map((item) => item.source_id).filter(Boolean));
     const timeline = sortByUrgency([
-      ...data.calendar.filter((item) => item.status === "active" && !item.completed).map((item) => ({ ...item, type: item.source_type === "social_activity" ? "social" : item.source_type === "study_session" ? "session" : item.source_type === "tutor_request" ? "tutor" : "personal", date: item.starts_at, detail: item.notes })),
+      ...data.calendar.filter((item) => item.status === "active" && !item.completed && calendarSourceIsActive(item, data.events, data.sessions)).map((item) => ({ ...item, type: item.source_type === "social_activity" ? "social" : item.source_type === "study_session" ? "session" : item.source_type === "tutor_request" ? "tutor" : "personal", date: item.starts_at, detail: item.notes })),
       ...data.events.filter((event) => joinedEvents.has(event.id) && !calendarSourceIds.has(event.id) && event.status !== "canceled").map((event) => ({ id: event.id, type: "social", title: event.title, date: `${event.date}T${event.start_time || "12:00"}`, detail: event.location })),
       ...data.sessions.filter((session) => joinedSessions.has(session.id) && !calendarSourceIds.has(session.id) && session.status !== "canceled").map((session) => ({ id: session.id, type: "session", title: session.title || session.course_name, date: session.session_date, detail: session.location })),
     ], new Date());
@@ -131,9 +161,9 @@ export default function Dashboard() {
             </Link>
 
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-1">
-              <QuickAction icon={BookOpenCheck} label={p("create_session")} to="/groups?create=1" tone="study" />
-              <QuickAction icon={Users} label={p("create_social")} to="/social?create=1" tone="social" />
-              <QuickAction icon={Flag} label={p("add_deadline")} to="/calendar?create=1" tone="deadline" className="col-span-2 sm:col-span-1" />
+              <QuickAction icon={BookOpenCheck} label={p("create_session")} createKey="study" tone="study" />
+              <QuickAction icon={Users} label={p("create_social")} createKey="social" tone="social" />
+              <QuickAction icon={Flag} label={p("add_deadline")} createKey="homework" tone="deadline" className="col-span-2 sm:col-span-1" />
             </div>
           </section>
 
@@ -169,7 +199,7 @@ export default function Dashboard() {
             <SectionTitle title={p("home_tools")} />
             <div className="grid grid-cols-2 gap-2">
               <ToolLink icon={Calculator} label="GPA" to="/tools?tool=gpa" />
-              <ToolLink icon={Flag} label={p("add_deadline")} to="/calendar?create=1" />
+              <ToolLink icon={Flag} label={p("add_deadline")} createKey="homework" />
               <ToolLink icon={BookOpenCheck} label={t("tools_flashcards")} to="/tools?tool=flashcards" />
               <ToolLink icon={CalendarDays} label={p("calendar_title")} to="/calendar" />
             </div>
@@ -193,8 +223,9 @@ function SectionTitle({ title, action, to }) {
   return <div className="mb-3 flex items-center justify-between gap-3"><h2 className="text-sm font-bold text-foreground">{title}</h2>{action && to && <Link to={to} className="text-xs font-semibold text-primary hover:underline">{action}</Link>}</div>;
 }
 
-function QuickAction({ icon: Icon, label, to, tone, className }) {
-  return <Link to={to} className={cn("flex min-h-14 items-center gap-3 rounded-lg border px-3 text-sm font-semibold transition-colors", quickActionTones[tone], className)}><Icon className="h-4 w-4" />{label}</Link>;
+function QuickAction({ icon: Icon, label, createKey, tone, className }) {
+  const { openCreateAction } = useCreateAction();
+  return <button type="button" onClick={() => openCreateAction(createKey)} className={cn("flex min-h-14 items-center gap-3 rounded-lg border px-3 text-start text-sm font-semibold transition-colors", quickActionTones[tone], className)}><Icon className="h-4 w-4" />{label}</button>;
 }
 
 function TimelineRow({ item, last }) {
@@ -223,6 +254,11 @@ function PersonRow({ icon: Icon, title, detail, to, border = true }) {
   return <Link to={to} className={cn("flex min-h-16 items-center gap-3 px-4 py-3 hover:bg-muted/50", border && "border-b border-border")}><span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary"><Icon className="h-4 w-4" /></span><div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold text-foreground">{title}</p><p className="truncate text-xs text-muted-foreground">{detail}</p></div><ChevronRight className="h-4 w-4 text-muted-foreground rtl:rotate-180" /></Link>;
 }
 
-function ToolLink({ icon: Icon, label, to }) {
-  return <Link to={to} className="flex min-h-24 flex-col justify-between rounded-lg border border-border bg-card p-3 hover:border-primary/35"><Icon className="h-5 w-5 text-primary" /><span className="mt-3 text-xs font-semibold text-foreground">{label}</span></Link>;
+function ToolLink({ icon: Icon, label, to, createKey }) {
+  const { openCreateAction } = useCreateAction();
+  const className = "flex min-h-24 flex-col justify-between rounded-lg border border-border bg-card p-3 text-start hover:border-primary/35";
+  if (createKey) {
+    return <button type="button" onClick={() => openCreateAction(createKey)} className={className}><Icon className="h-5 w-5 text-primary" /><span className="mt-3 text-xs font-semibold text-foreground">{label}</span></button>;
+  }
+  return <Link to={to} className={className}><Icon className="h-5 w-5 text-primary" /><span className="mt-3 text-xs font-semibold text-foreground">{label}</span></Link>;
 }

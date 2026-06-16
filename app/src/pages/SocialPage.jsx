@@ -47,6 +47,7 @@ const categoryIcons = {
   volunteering: HandHeart,
   other: Users,
 };
+const FIND_PROMPT = "didn't find what you are loking for? why not make one your self!";
 
 function safeQuery(promise) {
   return promise.catch(() => []);
@@ -110,6 +111,18 @@ export default function SocialPage() {
     });
     return () => { active = false; };
   }, [profile?.university_id, user?.id]);
+
+  useEffect(() => {
+    const handleCreated = (event) => {
+      const detail = event.detail;
+      if (detail?.type !== "social") return;
+      setEvents((current) => [detail.event, ...current.filter((item) => item.id !== detail.event.id && !String(item.id).startsWith("demo-"))]);
+      if (detail.membership) setMemberships((current) => mergeRecordsById(current, [detail.membership]));
+      if (detail.calendarItem) setCalendarItems((current) => mergeRecordsById(current, [detail.calendarItem]));
+    };
+    window.addEventListener("elysium:create-action-complete", handleCreated);
+    return () => window.removeEventListener("elysium:create-action-complete", handleCreated);
+  }, []);
 
   const approvedMemberships = useMemo(() => memberships.filter((item) => item.status !== "rejected"), [memberships]);
   const myMemberships = useMemo(() => approvedMemberships.filter((item) => item.user_id === user?.id), [approvedMemberships, user?.id]);
@@ -229,7 +242,10 @@ export default function SocialPage() {
     setSaving(true);
     try {
       await base44.entities.SocialEvent.update(event.id, { status: "canceled", is_open: false });
+      const ownCalendarItems = await safeQuery(base44.entities.CalendarItem.filter({ owner_user_id: user.id, source_type: "social_activity", source_id: event.id }));
+      await Promise.all(ownCalendarItems.map((item) => base44.entities.CalendarItem.delete(item.id).catch(() => null)));
       setEvents((current) => current.map((item) => item.id === event.id ? { ...item, status: "canceled", is_open: false } : item));
+      setCalendarItems((current) => current.filter((item) => item.source_id !== event.id));
       setSelected(null);
     } finally {
       setSaving(false);
@@ -257,7 +273,12 @@ export default function SocialPage() {
       {loading ? (
         <div className="grid gap-3 md:grid-cols-2">{[1, 2, 3, 4].map((item) => <SkeletonCard key={item} lines={3} />)}</div>
       ) : visibleEvents.length === 0 ? (
-        <EmptyState icon={Users} title="No campus activities yet" message="Create the first activity for students at your university." />
+        <EmptyState
+          icon={Users}
+          title="No social groups yet."
+          message="Why not make one and connect with your peers."
+          action={<Button size="sm" onClick={() => setShowCreate(true)}>Create social group</Button>}
+        />
       ) : (
         <div className="grid gap-3 md:grid-cols-2">
           {visibleEvents.map((event) => {
@@ -280,6 +301,7 @@ export default function SocialPage() {
               </button>
             );
           })}
+          <CreateSocialPrompt onClick={() => setShowCreate(true)} />
         </div>
       )}
 
@@ -330,6 +352,22 @@ export default function SocialPage() {
 
 function Field({ label, children }) {
   return <label className="block"><span className="mb-1.5 block text-xs font-semibold text-muted-foreground">{label}</span>{children}</label>;
+}
+
+function CreateSocialPrompt({ onClick }) {
+  return (
+    <article className={cn("min-h-36 rounded-lg border border-dashed bg-card p-4 text-start", domainTones.social.border)}>
+      <div className="flex items-start gap-3">
+        <span className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-md", domainTones.social.icon)}>
+          <Users className="h-5 w-5" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <h2 className="font-semibold text-foreground">{FIND_PROMPT}</h2>
+          <Button size="sm" className="mt-4" onClick={onClick}>Create social group</Button>
+        </div>
+      </div>
+    </article>
+  );
 }
 
 function ParticipationFilter({ value, onChange }) {

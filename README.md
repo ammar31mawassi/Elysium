@@ -12,7 +12,7 @@
 
 Elysium is a trilingual student hub that brings campus planning, social connection, collaborative study, academic support, and practical tools into one personalized product.
 
-The interface supports English, Hebrew, and Arabic, including first-class RTL layouts. Elysium is currently a private MVP being developed for the Hub02 x BGU Hackathon, scheduled for June 17-22, 2026.
+The interface supports English, Hebrew, and Arabic, including first-class RTL layouts. Elysium is a hackathon MVP being developed for the Hub02 x BGU Hackathon, scheduled for June 17-22, 2026.
 
 **Live application:** [elysium-nexus-flow.base44.app](https://elysium-nexus-flow.base44.app/)
 
@@ -170,7 +170,7 @@ Never commit access tokens, passwords, private contact information, or environme
 
 BGU is the first fully represented campus, while the data architecture supports multiple universities. Payments, verified ratings, calendar synchronization, push notifications, university-system integrations, syllabus import, and campus maps remain future work.
 
-This repository remains private during hackathon development. Public release requires a final security review, production content review, and an explicit license decision.
+This repository is public for hackathon review and product feedback. Public visibility does not grant permission to reuse the code or assets; all rights remain reserved unless a license is added later.
 
 ## Team
 

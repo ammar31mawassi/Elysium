@@ -8,7 +8,6 @@ import { activeCourseNames } from "@/lib/profileCourses";
 import { buildCourseOptions } from "@/lib/creationOptions";
 import { domainTones } from "@/lib/domainTones";
 import PageLayout from "@/components/layout/PageLayout";
-import EmptyState from "@/components/ui/EmptyState";
 import SkeletonCard from "@/components/ui/SkeletonCard";
 import Modal from "@/components/ui/Modal";
 import SearchableChoice from "@/components/elysium/SearchableChoice";
@@ -27,7 +26,7 @@ import {
 } from "@/lib/communityMatching";
 
 const emptyForm = { title: "", course_name: "", preferred_language: "", session_date: "", end_time: "", location: "", notes: "", max_spots: 8, is_marathon: false };
-const FIND_PROMPT = "didn't find what you are loking for? why not make one your self!";
+const FIND_PROMPT = "Didn't find what you are looking for? Why not make one yourself!";
 
 function safeQuery(promise) {
   return promise.catch(() => []);
@@ -181,7 +180,7 @@ export default function StudyGroupsPage() {
 
       {!activeCourses.length && <div className="mb-5 rounded-lg border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-foreground">Add an active course in <Link to="/me" className="font-semibold text-primary underline">Me</Link> before creating or discovering study groups.</div>}
 
-      {loading ? <div className="grid gap-3 md:grid-cols-2">{[1, 2, 3, 4].map((item) => <SkeletonCard key={item} lines={3} />)}</div> : visibleSessions.length === 0 ? <EmptyState icon={BookOpenCheck} title="No study groups yet." message="Why not be the first to start one." action={<Button size="sm" onClick={() => setShowForm(true)}>Start a study group</Button>} /> : <div className="grid gap-3 md:grid-cols-2">{visibleSessions.map((session) => {
+      {loading ? <div className="grid gap-3 md:grid-cols-2">{[1, 2, 3, 4].map((item) => <SkeletonCard key={item} lines={3} />)}</div> : <div className="grid gap-3 md:grid-cols-2">{visibleSessions.map((session) => {
         const joined = mySessionIds.has(session.id);
         const count = memberCount(session.id);
         return <button key={session.id} onClick={() => setSelected(session)} className={cn("rounded-lg border border-border bg-card p-4 text-start", domainTones.study.border)}><div className="flex items-start gap-3"><span className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-md", domainTones.study.icon)}><BookOpenCheck className="h-5 w-5" /></span><div className="min-w-0 flex-1" dir="auto"><div className="flex justify-between gap-3"><h2 className="font-semibold text-foreground">{session.title}</h2><span className={cn("shrink-0 text-xs font-semibold", session.status === "canceled" ? "text-destructive" : "text-emerald-600")}>{session.status === "canceled" ? "Canceled" : joined ? "Joined" : "Open"}</span></div><p className={cn("mt-1 text-xs font-semibold", domainTones.study.text)}>{session.is_marathon ? "Study marathon" : "Study group"} · {session.course_name}</p><p className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground"><CalendarClock className="h-3.5 w-3.5" />{new Date(session.session_date).toLocaleString()}</p>{session.location && <p className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground"><MapPin className="h-3.5 w-3.5" />{session.location}</p>}{session.preferred_language && <p className="mt-1 text-xs text-muted-foreground">Preferred language: {session.preferred_language}</p>}<p className="mt-2 text-xs text-muted-foreground">{count} / {session.max_spots} joined</p></div></div></button>;

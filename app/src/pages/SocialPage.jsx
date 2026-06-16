@@ -17,7 +17,6 @@ import { useProfile } from "@/lib/useProfile";
 import { useLanguage } from "@/lib/LanguageContext";
 import PageLayout from "@/components/layout/PageLayout";
 import SkeletonCard from "@/components/ui/SkeletonCard";
-import EmptyState from "@/components/ui/EmptyState";
 import Modal from "@/components/ui/Modal";
 import SearchableChoice from "@/components/elysium/SearchableChoice";
 import { Button } from "@/components/ui/button";
@@ -48,7 +47,7 @@ const categoryIcons = {
   volunteering: HandHeart,
   other: Users,
 };
-const FIND_PROMPT = "didn't find what you are loking for? why not make one your self!";
+const FIND_PROMPT = "Didn't find what you are looking for? Why not make one yourself!";
 
 function safeQuery(promise) {
   return promise.catch(() => []);
@@ -273,13 +272,6 @@ export default function SocialPage() {
 
       {loading ? (
         <div className="grid gap-3 md:grid-cols-2">{[1, 2, 3, 4].map((item) => <SkeletonCard key={item} lines={3} />)}</div>
-      ) : visibleEvents.length === 0 ? (
-        <EmptyState
-          icon={Users}
-          title="No social groups yet."
-          message="Why not make one and connect with your peers."
-          action={<Button size="sm" onClick={() => setShowCreate(true)}>Create social group</Button>}
-        />
       ) : (
         <div className="grid gap-3 md:grid-cols-2">
           {visibleEvents.map((event) => {

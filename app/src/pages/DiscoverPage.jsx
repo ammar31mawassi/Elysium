@@ -57,7 +57,7 @@ const eventIcons = {
 };
 
 const tabAliases = { study: "sessions", groups: "sessions", teachers: "tutors", mentors: "helpers", guides: "resources" };
-const FIND_PROMPT = "didn't find what you are loking for? why not make one your self!";
+const FIND_PROMPT = "Didn't find what you are looking for? Why not make one yourself!";
 
 function safeQuery(promise) {
   return Promise.race([promise.catch(() => []), new Promise((resolve) => setTimeout(() => resolve([]), 7000))]);
@@ -270,23 +270,12 @@ export default function DiscoverPage() {
   }
 
   const activeItems = view[tab] || [];
-  const emptyCopy = tab === "social"
-    ? {
-        title: "No social groups yet.",
-        message: "Why not make one and connect with your peers.",
-        action: <Button size="sm" onClick={() => openCreateAction("social")}>Create social group</Button>,
-      }
-    : tab === "sessions"
-      ? {
-          title: "No study groups yet.",
-          message: "Why not be the first to start one.",
-          action: <Button size="sm" onClick={() => openCreateAction("study")}>Start a study group</Button>,
-        }
-      : {
-          title: p("discover_empty"),
-          message: p("discover_body"),
-          action: null,
-        };
+  const emptyCopy = {
+    title: p("discover_empty"),
+    message: p("discover_body"),
+    action: null,
+  };
+  const isActivityTab = tab === "social" || tab === "sessions";
 
   return (
     <PageLayout wide>
@@ -316,16 +305,16 @@ export default function DiscoverPage() {
       ) : (
         <div className="grid min-w-0 gap-3 md:grid-cols-2 xl:grid-cols-3">
           {tab === "social" && view.events.map((event) => <SocialCard key={event.id} event={event} members={countParticipants(data.eventMembers, "event_id", event.id, myEventIds)} joined={myEventIds.has(event.id)} onOpen={() => setSelected({ type: "social", item: event })} onJoin={() => joinEvent(event)} onLeave={() => leaveEvent(event.id)} p={p} />)}
-          {tab === "social" && view.events.length > 0 && <CreatePromptCard tone="social" icon={Users} buttonLabel="Create social group" onClick={() => openCreateAction("social")} />}
+          {tab === "social" && <CreatePromptCard tone="social" icon={Users} buttonLabel="Create social group" onClick={() => openCreateAction("social")} />}
           {tab === "sessions" && view.sessions.map((session) => <SessionCard key={session.id} session={session} members={countParticipants(data.sessionMembers, "session_id", session.id, mySessionIds)} joined={mySessionIds.has(session.id)} onOpen={() => setSelected({ type: "study", item: session })} onJoin={() => joinSession(session)} onLeave={() => leaveSession(session.id)} p={p} />)}
-          {tab === "sessions" && view.sessions.length > 0 && <CreatePromptCard tone="study" icon={BookOpenCheck} buttonLabel="Start a study group" onClick={() => openCreateAction("study")} />}
+          {tab === "sessions" && <CreatePromptCard tone="study" icon={BookOpenCheck} buttonLabel="Start a study group" onClick={() => openCreateAction("study")} />}
           {tab === "tutors" && view.tutors.map((tutor) => <TutorCard key={tutor.id} tutor={tutor} whatsappUrl={tutor.contact_consent ? buildWhatsAppUrl(tutor.phone_number, `Hi ${tutor.display_name}, I found your tutor profile on Elysium and would like to ask about a lesson.`) : ""} />)}
           {tab === "helpers" && view.helpers.map((helper) => <HelperCard key={helper.id} helper={helper} whatsappUrl={helper.contact_consent && helper.contact_method === "whatsapp" ? buildWhatsAppUrl(helper.contact_value, `Hi ${helper.display_name}, I found your peer helper profile on Elysium and would like to ask for student help.`) : ""} />)}
           {tab === "resources" && view.resources.map((resource) => <ResourceCard key={`${resource.resourceType}-${resource.id}`} resource={resource} locale={locale} />)}
         </div>
       )}
 
-      {!loading && activeItems.length === 0 && <EmptyState icon={Search} title={emptyCopy.title} message={emptyCopy.message} action={emptyCopy.action} />}
+      {!loading && activeItems.length === 0 && !isActivityTab && <EmptyState icon={Search} title={emptyCopy.title} message={emptyCopy.message} action={emptyCopy.action} />}
 
       {selected && (
         <DetailsModal

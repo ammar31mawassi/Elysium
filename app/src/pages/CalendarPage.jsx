@@ -19,7 +19,7 @@ import { normalizeCourseRecords } from "@/lib/profileCourses";
 const PERSONAL_KINDS = ["homework", "exam", "other"];
 const PRIORITIES = ["normal", "important", "urgent"];
 const DEADLINE_KINDS = new Set(["homework", "exam"]);
-const FIND_PROMPT = "didn't find what you are loking for? why not make one your self!";
+const FIND_PROMPT = "Didn't find what you are looking for? Why not make one yourself!";
 const CALENDAR_REFRESH_MS = 60 * 1000;
 const CATEGORY_FILTERS = [
   ["all", "All events"],
@@ -197,22 +197,6 @@ export default function CalendarPage() {
         action: <Button size="sm" onClick={() => openCreate("homework")}>Add deadline</Button>,
       };
     }
-    if (categoryFilter === "social_activity") {
-      return {
-        icon: Users,
-        title: "No social groups yet.",
-        message: "Why not make one and connect with your peers.",
-        action: <Button size="sm" onClick={() => openCreateAction("social")}>Create social group</Button>,
-      };
-    }
-    if (categoryFilter === "study_session") {
-      return {
-        icon: BookOpenCheck,
-        title: "No study groups yet.",
-        message: "Why not be the first to start one.",
-        action: <Button size="sm" onClick={() => openCreateAction("study")}>Start a study group</Button>,
-      };
-    }
     return {
       icon: CalendarDays,
       title: tab === "past" ? "No past events yet." : "No upcoming events yet.",
@@ -221,7 +205,11 @@ export default function CalendarPage() {
     };
   })();
 
-  const showCreatePrompt = displayed.length > 0 && ["social_activity", "study_session"].includes(categoryFilter);
+  const activityPrompt = categoryFilter === "study_session"
+    ? { icon: BookOpenCheck, tone: "study", buttonLabel: "Start a study group", action: "study" }
+    : categoryFilter === "social_activity"
+      ? { icon: Users, tone: "social", buttonLabel: "Create social group", action: "social" }
+      : null;
 
   const openEdit = (item) => {
     if (item.source_type !== "personal") return;
@@ -315,6 +303,16 @@ export default function CalendarPage() {
 
       {loading ? (
         <div className="grid gap-3 md:grid-cols-2">{[1, 2, 3, 4].map((item) => <SkeletonCard key={item} lines={2} />)}</div>
+      ) : displayed.length === 0 && activityPrompt ? (
+        <div className="overflow-hidden rounded-lg border border-border bg-card">
+          <CalendarCreatePrompt
+            icon={activityPrompt.icon}
+            tone={activityPrompt.tone}
+            buttonLabel={activityPrompt.buttonLabel}
+            onClick={() => openCreateAction(activityPrompt.action)}
+            standalone
+          />
+        </div>
       ) : displayed.length === 0 ? (
         <EmptyState
           icon={emptyContent.icon}
@@ -349,12 +347,12 @@ export default function CalendarPage() {
               </div>
             </article>
           ))}
-          {showCreatePrompt && (
+          {activityPrompt && (
             <CalendarCreatePrompt
-              icon={categoryFilter === "study_session" ? BookOpenCheck : Users}
-              tone={categoryFilter === "study_session" ? "study" : "social"}
-              buttonLabel={categoryFilter === "study_session" ? "Start a study group" : "Create social group"}
-              onClick={() => openCreateAction(categoryFilter === "study_session" ? "study" : "social")}
+              icon={activityPrompt.icon}
+              tone={activityPrompt.tone}
+              buttonLabel={activityPrompt.buttonLabel}
+              onClick={() => openCreateAction(activityPrompt.action)}
             />
           )}
         </div>
@@ -376,10 +374,10 @@ export default function CalendarPage() {
   );
 }
 
-function CalendarCreatePrompt({ icon: Icon, tone, buttonLabel, onClick }) {
+function CalendarCreatePrompt({ icon: Icon, tone, buttonLabel, onClick, standalone = false }) {
   const toneClass = tone === "study" ? "bg-primary/10 text-primary" : "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300";
   return (
-    <article className="flex items-start gap-3 border-t border-dashed border-border bg-muted/20 p-4 sm:p-5">
+    <article className={cn("flex items-start gap-3 border-dashed border-border bg-muted/20 p-4 sm:p-5", !standalone && "border-t")}>
       <span className={cn("flex h-11 w-11 shrink-0 items-center justify-center rounded-md", toneClass)}>
         <Icon className="h-5 w-5" />
       </span>

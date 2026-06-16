@@ -165,6 +165,29 @@ describe("CalendarPage", () => {
     expect(await screen.findByText("no upcoming deadlines, want to add a new one")).toBeInTheDocument();
   });
 
+  it("shows only the activity create prompt when social or study filters are empty", async () => {
+    base44.entities.CalendarItem.filter.mockResolvedValue([]);
+
+    render(
+      <MemoryRouter initialEntries={["/calendar"]}>
+        <CalendarPage />
+      </MemoryRouter>
+    );
+
+    await screen.findByText("No upcoming events yet.");
+    fireEvent.click(screen.getByRole("button", { name: "Social events" }));
+
+    expect(screen.getByText("Didn't find what you are looking for? Why not make one yourself!")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Create social group" })).toBeInTheDocument();
+    expect(screen.queryByText("No social groups yet.")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Study groups" }));
+
+    expect(screen.getByText("Didn't find what you are looking for? Why not make one yourself!")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Start a study group" })).toBeInTheDocument();
+    expect(screen.queryByText("No study groups yet.")).not.toBeInTheDocument();
+  });
+
   it("moves social and study events to past when their start time has passed", async () => {
     const past = new Date(Date.now() - 60 * 60 * 1000).toISOString();
     const future = new Date(Date.now() + 60 * 60 * 1000).toISOString();

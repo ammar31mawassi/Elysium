@@ -27,6 +27,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { DEFAULT_INTERESTS, localizedOption, mergeInterestOptions, normalizeOptionName } from "@/lib/onboardingOptions";
 import { categoryForInterest } from "@/lib/creationOptions";
+import {
+  PARTICIPATION_FILTERS,
+  countParticipants,
+  filterByParticipation,
+  joinedIdsFromState,
+  mergeRecordsById,
+  sortSocialEventsByInterests,
+} from "@/lib/communityMatching";
 import { domainTones } from "@/lib/domainTones";
 import { toast } from "@/components/ui/use-toast";
 
@@ -58,6 +66,7 @@ export default function SocialPage() {
   const [calendarItems, setCalendarItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [openOnly, setOpenOnly] = useState(false);
+  const [participationFilter, setParticipationFilter] = useState(PARTICIPATION_FILTERS.all);
   const [selected, setSelected] = useState(null);
   const [showCreate, setShowCreate] = useState(new URLSearchParams(location.search).get("create") === "1");
   const [saving, setSaving] = useState(false);
@@ -88,12 +97,13 @@ export default function SocialPage() {
     Promise.all([
       safeQuery(base44.entities.SocialEvent.filter({ university_id: profile.university_id })),
       safeQuery(base44.entities.SocialEventMember.list()),
+      safeQuery(base44.entities.SocialEventMember.filter({ user_id: user.id })),
       safeQuery(base44.entities.CalendarItem.filter({ owner_user_id: user.id, source_type: "social_activity" })),
       safeQuery(base44.entities.Interest.filter({ is_active: true })),
-    ]).then(([eventRows, memberRows, calendarRows, interestRows]) => {
+    ]).then(([eventRows, memberRows, ownMemberRows, calendarRows, interestRows]) => {
       if (!active) return;
       setEvents(withDemoFallback(eventRows, demoContent.events));
-      setMemberships(memberRows || []);
+      setMemberships(mergeRecordsById(memberRows, ownMemberRows));
       setCalendarItems(calendarRows || []);
       setInterestOptions(mergeInterestOptions(interestRows));
       setLoading(false);
@@ -101,15 +111,22 @@ export default function SocialPage() {
     return () => { active = false; };
   }, [profile?.university_id, user?.id]);
 
-  const approvedMemberships = memberships.filter((item) => item.status !== "rejected");
-  const myMemberships = approvedMemberships.filter((item) => item.user_id === user?.id);
-  const myEventIds = new Set(myMemberships.map((item) => item.event_id));
-  const memberCount = (eventId) => approvedMemberships.filter((item) => item.event_id === eventId).length;
+  const approvedMemberships = useMemo(() => memberships.filter((item) => item.status !== "rejected"), [memberships]);
+  const myMemberships = useMemo(() => approvedMemberships.filter((item) => item.user_id === user?.id), [approvedMemberships, user?.id]);
+  const myEventIds = useMemo(() => joinedIdsFromState({
+    memberships: approvedMemberships,
+    calendarItems,
+    idField: "event_id",
+    userId: user?.id,
+    sourceType: "social_activity",
+  }), [approvedMemberships, calendarItems, user?.id]);
+  const selectedInterests = useMemo(() => profile?.interests || [], [profile?.interests]);
+  const memberCount = (eventId) => countParticipants(approvedMemberships, "event_id", eventId, myEventIds);
   const visibleEvents = useMemo(() => {
-    return events
-      .filter((event) => !openOnly || (event.status !== "canceled" && event.is_open))
-      .sort((a, b) => `${a.date}${a.start_time || ""}`.localeCompare(`${b.date}${b.start_time || ""}`));
-  }, [events, openOnly]);
+    const filtered = events
+      .filter((event) => !openOnly || (event.status !== "canceled" && event.is_open));
+    return sortSocialEventsByInterests(filterByParticipation(filtered, myEventIds, participationFilter), selectedInterests);
+  }, [events, openOnly, myEventIds, participationFilter, selectedInterests]);
   const activityChoices = useMemo(() => interestOptions.map((interest) => ({
     value: interest.en,
     label: localizedOption(interest, locale),
@@ -134,8 +151,8 @@ export default function SocialPage() {
       const membership = await base44.entities.SocialEventMember.create({ event_id: created.id, user_id: user.id, status: "approved" });
       const calendarItem = await base44.entities.CalendarItem.create({ owner_user_id: user.id, source_type: "social_activity", source_id: created.id, title: created.title, starts_at: calendarStart(created), ends_at: created.end_time ? new Date(`${created.date}T${created.end_time}:00`).toISOString() : undefined, notes: created.location || "", status: "active" });
       setEvents((current) => [created, ...current.filter((item) => !String(item.id).startsWith("demo-") )]);
-      setMemberships((current) => [...current, membership]);
-      setCalendarItems((current) => [...current, calendarItem]);
+      setMemberships((current) => mergeRecordsById(current, [membership]));
+      setCalendarItems((current) => mergeRecordsById(current, [calendarItem]));
       setShowCreate(false);
       setForm({ title: "", date: "", start_time: "", end_time: "", location: "", activity_id: "", activity_name: "", category: "", max_spots: 10, description: "", preferred_language: "" });
     } finally {
@@ -183,8 +200,8 @@ export default function SocialPage() {
         notes: event.location || "",
         status: "active",
       });
-      setMemberships((current) => [...current, membership]);
-      setCalendarItems((current) => [...current, calendarItem]);
+      setMemberships((current) => mergeRecordsById(current, [membership]));
+      setCalendarItems((current) => mergeRecordsById(current, [calendarItem]));
       setSelected(null);
     } finally {
       setSaving(false);
@@ -193,14 +210,14 @@ export default function SocialPage() {
 
   const leaveEvent = async (event) => {
     const membership = myMemberships.find((item) => item.event_id === event.id);
-    if (!membership || event.organizer_id === user?.id) return;
+    const calendarItem = calendarItems.find((item) => item.source_id === event.id);
+    if (event.organizer_id === user?.id || (!membership && !calendarItem)) return;
     setSaving(true);
     try {
-      await base44.entities.SocialEventMember.delete(membership.id);
-      const calendarItem = calendarItems.find((item) => item.source_id === event.id);
+      if (membership) await base44.entities.SocialEventMember.delete(membership.id);
       if (calendarItem) await base44.entities.CalendarItem.delete(calendarItem.id);
-      setMemberships((current) => current.filter((item) => item.id !== membership.id));
-      setCalendarItems((current) => current.filter((item) => item.id !== calendarItem?.id));
+      setMemberships((current) => current.filter((item) => item.id !== membership?.id && !(item.event_id === event.id && item.user_id === user?.id)));
+      setCalendarItems((current) => current.filter((item) => item.source_id !== event.id));
       setSelected(null);
     } finally {
       setSaving(false);
@@ -221,14 +238,17 @@ export default function SocialPage() {
 
   return (
     <PageLayout wide>
-      <header className="mb-6 flex items-end justify-between gap-4">
+      <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground sm:text-3xl">{t("social_title")}</h1>
           <p className="mt-2 text-sm text-muted-foreground">{t("social_subtitle")}</p>
         </div>
-        <Button variant="outline" className="min-h-11" onClick={() => setOpenOnly((current) => !current)}>
-          {openOnly ? <Check className="me-2 h-4 w-4" /> : null}Open only
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <ParticipationFilter value={participationFilter} onChange={setParticipationFilter} />
+          <Button variant="outline" className="min-h-11" onClick={() => setOpenOnly((current) => !current)}>
+            {openOnly ? <Check className="me-2 h-4 w-4" /> : null}Open only
+          </Button>
+        </div>
       </header>
 
       {loading ? (
@@ -307,4 +327,27 @@ export default function SocialPage() {
 
 function Field({ label, children }) {
   return <label className="block"><span className="mb-1.5 block text-xs font-semibold text-muted-foreground">{label}</span>{children}</label>;
+}
+
+function ParticipationFilter({ value, onChange }) {
+  const options = [
+    [PARTICIPATION_FILTERS.all, "All", Users],
+    [PARTICIPATION_FILTERS.joined, "Joined", Check],
+    [PARTICIPATION_FILTERS.notJoined, "Not joined", Plus],
+  ];
+  return (
+    <div className="flex max-w-full gap-1 overflow-x-auto rounded-md bg-muted p-1" role="group" aria-label="Social participation filter">
+      {options.map(([key, label, Icon]) => (
+        <button
+          key={key}
+          type="button"
+          onClick={() => onChange(key)}
+          className={cn("flex min-h-10 shrink-0 items-center gap-1.5 rounded-md px-3 text-xs font-semibold", value === key ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}
+        >
+          <Icon className="h-3.5 w-3.5" />
+          {label}
+        </button>
+      ))}
+    </div>
+  );
 }

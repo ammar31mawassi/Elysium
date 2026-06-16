@@ -3,6 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { useNavigate } from "react-router-dom";
 import { useLanguage } from "@/lib/LanguageContext";
 import { useTheme } from "@/lib/ThemeContext";
+import { findDefaultUniversity } from "@/lib/universities";
 
 const ProfileContext = createContext(null);
 
@@ -35,7 +36,12 @@ export function ProfileProvider({ children }) {
         if (p.theme_preference) setTheme(p.theme_preference);
         if (p.university_id) {
           const unis = await withTimeout(base44.entities.University.filter({ id: p.university_id }));
-          if (unis.length) setUniversity(unis[0]);
+          if (unis.length) {
+            setUniversity(unis[0]);
+          } else {
+            const fallbackUniversity = findDefaultUniversity(p.university_id);
+            if (fallbackUniversity) setUniversity(fallbackUniversity);
+          }
         }
       } catch (e) {
         console.error(e);

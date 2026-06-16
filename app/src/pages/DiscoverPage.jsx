@@ -11,6 +11,12 @@ import { localizedField, parseDate } from "@/lib/productUtils";
 import { activeCourseNames } from "@/lib/profileCourses";
 import { buildWhatsAppUrl } from "@/lib/whatsapp";
 import { domainTones } from "@/lib/domainTones";
+import {
+  countParticipants,
+  joinedIdsFromState,
+  mergeRecordsById,
+  sortSocialEventsByInterests,
+} from "@/lib/communityMatching";
 import PageLayout from "@/components/layout/PageLayout";
 import SkeletonCard from "@/components/ui/SkeletonCard";
 import EmptyState from "@/components/ui/EmptyState";
@@ -36,7 +42,7 @@ export default function DiscoverPage() {
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(null);
-  const [data, setData] = useState({ events: [], eventMembers: [], sessions: [], sessionMembers: [], tutors: [], helpers: [], guides: [], links: [] });
+  const [data, setData] = useState({ events: [], eventMembers: [], sessions: [], sessionMembers: [], calendarItems: [], tutors: [], helpers: [], guides: [], links: [] });
 
   useEffect(() => setTab(requestedTab), [requestedTab]);
 
@@ -47,21 +53,25 @@ export default function DiscoverPage() {
     Promise.all([
       safeQuery(base44.entities.SocialEvent.filter({ university_id: profile.university_id })),
       safeQuery(base44.entities.SocialEventMember.list("-created_date", 500)),
+      safeQuery(base44.entities.SocialEventMember.filter({ user_id: user.id })),
       safeQuery(base44.entities.StudySession.filter({ university_id: profile.university_id })),
       safeQuery(base44.entities.StudySessionMember.list("-created_date", 500)),
+      safeQuery(base44.entities.StudySessionMember.filter({ user_id: user.id })),
+      safeQuery(base44.entities.CalendarItem.filter({ owner_user_id: user.id })),
       safeQuery(base44.entities.PrivateTeacher.filter({ university_id: profile.university_id, is_active: true, is_approved: true })),
       safeQuery(base44.entities.PeerHelper.filter({ university_id: profile.university_id, is_visible: true })),
       safeQuery(base44.entities.Guide.filter({ is_published: true })),
       safeQuery(base44.entities.HelpfulLink.filter({ is_published: true })),
-    ]).then(([events, eventMembers, sessions, sessionMembers, tutors, helpers, guides, links]) => {
+    ]).then(([events, eventMembers, ownEventMembers, sessions, sessionMembers, ownSessionMembers, calendarItems, tutors, helpers, guides, links]) => {
       if (!active) return;
       const allowBguDemo = !university?.name || /Ben-Gurion/i.test(university.name);
       const forUniversity = (items) => (items || []).filter((item) => !item.university_id || item.university_id === profile.university_id);
       setData({
         events: allowBguDemo ? withDemoFallback(events, demoContent.events) : events || [],
-        eventMembers: eventMembers || [],
+        eventMembers: mergeRecordsById(eventMembers, ownEventMembers),
         sessions: allowBguDemo ? withDemoFallback(sessions, demoContent.sessions) : sessions || [],
-        sessionMembers: sessionMembers || [],
+        sessionMembers: mergeRecordsById(sessionMembers, ownSessionMembers),
+        calendarItems: calendarItems || [],
         tutors: allowBguDemo ? withDemoFallback(tutors, demoContent.tutors) : tutors || [],
         helpers: allowBguDemo ? withDemoFallback(helpers, demoContent.helpers) : helpers || [],
         guides: allowBguDemo ? withDemoFallback(forUniversity(guides), demoContent.guides) : forUniversity(guides),
@@ -72,41 +82,55 @@ export default function DiscoverPage() {
   }, [profile?.university_id, user?.id, university?.name]);
 
   const tabs = [["social", p("discover_social"), Users], ["sessions", p("discover_groups"), BookOpenCheck], ["tutors", p("discover_tutors"), GraduationCap], ["helpers", p("discover_helpers"), HelpCircle], ["resources", locale === "he" ? "משאבים" : locale === "ar" ? "المصادر" : "Resources", ShieldCheck]];
-  const myEventIds = new Set(data.eventMembers.filter((item) => item.user_id === user?.id && item.status !== "rejected").map((item) => item.event_id));
-  const mySessionIds = new Set(data.sessionMembers.filter((item) => item.user_id === user?.id).map((item) => item.session_id));
+  const myEventIds = useMemo(() => joinedIdsFromState({
+    memberships: data.eventMembers,
+    calendarItems: data.calendarItems,
+    idField: "event_id",
+    userId: user?.id,
+    sourceType: "social_activity",
+  }), [data.eventMembers, data.calendarItems, user?.id]);
+  const mySessionIds = useMemo(() => joinedIdsFromState({
+    memberships: data.sessionMembers,
+    calendarItems: data.calendarItems,
+    idField: "session_id",
+    userId: user?.id,
+    sourceType: "study_session",
+  }), [data.sessionMembers, data.calendarItems, user?.id]);
   const courses = activeCourseNames(profile).map((course) => course.toLocaleLowerCase("en"));
   const normalizedQuery = query.trim().toLowerCase();
   const includesQuery = (...values) => !normalizedQuery || values.flat().filter(Boolean).join(" ").toLowerCase().includes(normalizedQuery);
+  const selectedInterests = useMemo(() => profile?.interests || [], [profile?.interests]);
 
   const view = useMemo(() => {
     const now = new Date();
     const courseSet = new Set(courses);
     return {
-      events: data.events.filter((item) => { const date = parseDate(`${item.date}T${item.start_time || "12:00"}`); return date && date >= now && item.status !== "canceled" && includesQuery(item.title, item.description, item.location, item.activity_name, item.category, item.preferred_language); }).sort((a, b) => `${a.date}${a.start_time}`.localeCompare(`${b.date}${b.start_time}`)),
+      events: sortSocialEventsByInterests(data.events.filter((item) => { const date = parseDate(`${item.date}T${item.start_time || "12:00"}`); return date && date >= now && item.status !== "canceled" && includesQuery(item.title, item.description, item.location, item.activity_name, item.category, item.preferred_language); }), selectedInterests),
       sessions: data.sessions.filter((item) => { const date = parseDate(item.session_date); const relevant = courseSet.has((item.course_name || "").toLocaleLowerCase("en")) || item.host_id === user?.id || mySessionIds.has(item.id); return relevant && date && date >= now && item.status !== "canceled" && includesQuery(item.title, item.course_name, item.location, item.preferred_language); }).sort((a, b) => (a.session_date || "").localeCompare(b.session_date || "")),
       tutors: data.tutors.filter((item) => includesQuery(item.display_name, item.subjects, item.languages, item.bio, item.teaching_mode)),
       helpers: data.helpers.filter((item) => includesQuery(item.display_name, item.help_topics, item.field_of_study, item.bio, item.languages)),
       resources: [...data.guides.map((item) => ({ ...item, resourceType: "guide" })), ...data.links.map((item) => ({ ...item, resourceType: "link" }))].filter((item) => includesQuery(localizedField(item, "title", locale), localizedField(item, "description", locale), localizedField(item, "content", locale), item.category)),
     };
-  }, [data, normalizedQuery, locale, courses.join("|"), user?.id]);
+  }, [data, normalizedQuery, locale, courses.join("|"), user?.id, mySessionIds, selectedInterests]);
 
   async function addCalendar(sourceType, sourceId, title, startsAt, notes, courseName = "") {
     const existing = await safeQuery(base44.entities.CalendarItem.filter({ owner_user_id: user.id, source_id: sourceId }));
-    if (!existing.length) await base44.entities.CalendarItem.create({ owner_user_id: user.id, source_type: sourceType, source_id: sourceId, course_name: courseName, title, starts_at: startsAt, notes, status: "active", completed: false });
+    if (existing.length) return existing[0];
+    return base44.entities.CalendarItem.create({ owner_user_id: user.id, source_type: sourceType, source_id: sourceId, course_name: courseName, title, starts_at: startsAt, notes, status: "active", completed: false });
   }
-  async function removeCalendar(sourceId) { const items = await safeQuery(base44.entities.CalendarItem.filter({ owner_user_id: user.id, source_id: sourceId })); await Promise.all(items.map((item) => base44.entities.CalendarItem.delete(item.id))); }
-  async function joinEvent(event) { const approved = data.eventMembers.filter((item) => item.event_id === event.id && item.status === "approved").length; if (approved >= (event.max_spots || Infinity)) return; const membership = await base44.entities.SocialEventMember.create({ event_id: event.id, user_id: user.id, status: "approved" }); setData((current) => ({ ...current, eventMembers: [...current.eventMembers, membership] })); await addCalendar("social_activity", event.id, event.title, `${event.date}T${event.start_time || "12:00"}`, event.location); }
-  async function leaveEvent(eventId) { const membership = data.eventMembers.find((item) => item.event_id === eventId && item.user_id === user.id); if (!membership) return; await base44.entities.SocialEventMember.delete(membership.id); setData((current) => ({ ...current, eventMembers: current.eventMembers.filter((item) => item.id !== membership.id) })); await removeCalendar(eventId); }
-  async function joinSession(session) { if (mySessionIds.has(session.id)) return; const membership = await base44.entities.StudySessionMember.create({ session_id: session.id, user_id: user.id }); setData((current) => ({ ...current, sessionMembers: [...current.sessionMembers, membership] })); await addCalendar("study_session", session.id, session.title || session.course_name || "Study group", session.session_date, session.location, session.course_name); }
-  async function leaveSession(sessionId) { const membership = data.sessionMembers.find((item) => item.session_id === sessionId && item.user_id === user.id); if (!membership) return; await base44.entities.StudySessionMember.delete(membership.id); setData((current) => ({ ...current, sessionMembers: current.sessionMembers.filter((item) => item.id !== membership.id) })); await removeCalendar(sessionId); }
+  async function removeCalendar(sourceId) { const items = await safeQuery(base44.entities.CalendarItem.filter({ owner_user_id: user.id, source_id: sourceId })); await Promise.all(items.map((item) => base44.entities.CalendarItem.delete(item.id))); return items; }
+  async function joinEvent(event) { const approved = countParticipants(data.eventMembers, "event_id", event.id, myEventIds); if (myEventIds.has(event.id) || approved >= (event.max_spots || Infinity)) return; const membership = await base44.entities.SocialEventMember.create({ event_id: event.id, user_id: user.id, status: "approved" }); const calendarItem = await addCalendar("social_activity", event.id, event.title, `${event.date}T${event.start_time || "12:00"}`, event.location); setData((current) => ({ ...current, eventMembers: mergeRecordsById(current.eventMembers, [membership]), calendarItems: mergeRecordsById(current.calendarItems, [calendarItem]) })); }
+  async function leaveEvent(eventId) { const membership = data.eventMembers.find((item) => item.event_id === eventId && item.user_id === user.id); const calendarItem = data.calendarItems.find((item) => item.source_id === eventId); if (!membership && !calendarItem) return; if (membership) await base44.entities.SocialEventMember.delete(membership.id); await removeCalendar(eventId); setData((current) => ({ ...current, eventMembers: current.eventMembers.filter((item) => item.id !== membership?.id && !(item.event_id === eventId && item.user_id === user.id)), calendarItems: current.calendarItems.filter((item) => item.source_id !== eventId) })); }
+  async function joinSession(session) { if (mySessionIds.has(session.id)) return; const membership = await base44.entities.StudySessionMember.create({ session_id: session.id, user_id: user.id }); const calendarItem = await addCalendar("study_session", session.id, session.title || session.course_name || "Study group", session.session_date, session.location, session.course_name); setData((current) => ({ ...current, sessionMembers: mergeRecordsById(current.sessionMembers, [membership]), calendarItems: mergeRecordsById(current.calendarItems, [calendarItem]) })); }
+  async function leaveSession(sessionId) { const membership = data.sessionMembers.find((item) => item.session_id === sessionId && item.user_id === user.id); const calendarItem = data.calendarItems.find((item) => item.source_id === sessionId); if (!membership && !calendarItem) return; if (membership) await base44.entities.StudySessionMember.delete(membership.id); await removeCalendar(sessionId); setData((current) => ({ ...current, sessionMembers: current.sessionMembers.filter((item) => item.id !== membership?.id && !(item.session_id === sessionId && item.user_id === user.id)), calendarItems: current.calendarItems.filter((item) => item.source_id !== sessionId) })); }
 
   const activeItems = view[tab] || [];
   return <PageLayout wide>
     <header className="mb-6 max-w-2xl"><h1 className="text-2xl font-bold text-foreground sm:text-3xl">{p("discover_title")}</h1><p className="mt-2 text-sm leading-relaxed text-muted-foreground">{p("discover_body")}</p></header>
     <div className="sticky top-16 z-30 -mx-4 mb-5 border-y border-border bg-background/95 px-4 py-3 backdrop-blur-xl sm:mx-0 sm:rounded-lg sm:border"><div className="flex min-w-0 flex-col gap-3 lg:flex-row lg:items-center"><div className="relative min-w-0 flex-1"><Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={p("discover_search")} className="h-11 min-w-0 ps-9" /></div><div className="no-scrollbar flex max-w-full gap-1 overflow-x-auto rounded-md bg-muted p-1" role="tablist">{tabs.map(([key, label, Icon]) => <button key={key} onClick={() => setTab(key)} className={cn("flex min-h-11 shrink-0 items-center gap-2 rounded-md px-3 text-xs font-semibold", tab === key ? "bg-background text-foreground" : "text-muted-foreground hover:text-foreground")} role="tab" aria-selected={tab === key}><Icon className="h-4 w-4" />{label}</button>)}</div></div></div>
     {loading ? <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">{[1, 2, 3, 4, 5, 6].map((item) => <SkeletonCard key={item} lines={3} />)}</div> : <div className="grid min-w-0 gap-3 md:grid-cols-2 xl:grid-cols-3">
-      {tab === "social" && view.events.map((event) => <SocialCard key={event.id} event={event} members={data.eventMembers.filter((item) => item.event_id === event.id && item.status === "approved").length} joined={myEventIds.has(event.id)} onOpen={() => setSelected({ type: "social", item: event })} onJoin={() => joinEvent(event)} onLeave={() => leaveEvent(event.id)} p={p} />)}
-      {tab === "sessions" && view.sessions.map((session) => <SessionCard key={session.id} session={session} members={data.sessionMembers.filter((item) => item.session_id === session.id).length} joined={mySessionIds.has(session.id)} onOpen={() => setSelected({ type: "study", item: session })} onJoin={() => joinSession(session)} onLeave={() => leaveSession(session.id)} p={p} />)}
+      {tab === "social" && view.events.map((event) => <SocialCard key={event.id} event={event} members={countParticipants(data.eventMembers, "event_id", event.id, myEventIds)} joined={myEventIds.has(event.id)} onOpen={() => setSelected({ type: "social", item: event })} onJoin={() => joinEvent(event)} onLeave={() => leaveEvent(event.id)} p={p} />)}
+      {tab === "sessions" && view.sessions.map((session) => <SessionCard key={session.id} session={session} members={countParticipants(data.sessionMembers, "session_id", session.id, mySessionIds)} joined={mySessionIds.has(session.id)} onOpen={() => setSelected({ type: "study", item: session })} onJoin={() => joinSession(session)} onLeave={() => leaveSession(session.id)} p={p} />)}
       {tab === "tutors" && view.tutors.map((tutor) => <TutorCard key={tutor.id} tutor={tutor} whatsappUrl={tutor.contact_consent ? buildWhatsAppUrl(tutor.phone_number, `Hi ${tutor.display_name}, I found your tutor profile on Elysium and would like to ask about a lesson.`) : ""} />)}
       {tab === "helpers" && view.helpers.map((helper) => <HelperCard key={helper.id} helper={helper} whatsappUrl={helper.contact_consent && helper.contact_method === "whatsapp" ? buildWhatsAppUrl(helper.contact_value, `Hi ${helper.display_name}, I found your peer helper profile on Elysium and would like to ask for student help.`) : ""} />)}
       {tab === "resources" && view.resources.map((resource) => <ResourceCard key={`${resource.resourceType}-${resource.id}`} resource={resource} locale={locale} />)}

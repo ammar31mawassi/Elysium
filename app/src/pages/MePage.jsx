@@ -5,8 +5,9 @@ import { base44 } from "@/api/base44Client";
 import { useProfile } from "@/lib/useProfile";
 import { useLanguage } from "@/lib/LanguageContext";
 import { courseProfileUpdate, normalizeCourseRecords } from "@/lib/profileCourses";
-import { mergeCourseSuggestions, registerCourses } from "@/lib/courseCatalog";
+import { fetchCourseCatalogSuggestions, mergeCourseSuggestions, registerCourses } from "@/lib/courseCatalog";
 import { DEFAULT_INTERESTS, filterLocalizedOptions, localizedOption, mergeInterestOptions, normalizeOptionName } from "@/lib/onboardingOptions";
+import { sortOptionsBySelectedInterests } from "@/lib/communityMatching";
 import PageLayout from "@/components/layout/PageLayout";
 import SearchableChoice from "@/components/elysium/SearchableChoice";
 import { Button } from "@/components/ui/button";
@@ -32,7 +33,7 @@ export default function MePage() {
   useEffect(() => {
     if (!profile?.university_id) return;
     Promise.all([
-      base44.entities.CourseCatalog.filter({ university_id: profile.university_id }).catch(() => []),
+      fetchCourseCatalogSuggestions(base44, { universityId: profile.university_id }).catch(() => []),
       base44.entities.StudySession.filter({ university_id: profile.university_id }).catch(() => []),
       base44.entities.Interest.filter({ is_active: true }).catch(() => []),
     ]).then(([catalog, sessions, interests]) => {
@@ -42,7 +43,10 @@ export default function MePage() {
   }, [profile?.university_id]);
 
   const courseOptions = useMemo(() => mergeCourseSuggestions(catalogCourses, courseRecords).map((name) => ({ value: name, label: name })), [catalogCourses, courseRecords]);
-  const filteredInterests = useMemo(() => filterLocalizedOptions(interestOptions, interestSearch).slice(0, 24), [interestOptions, interestSearch]);
+  const selectedInterests = useMemo(() => profile?.interests || [], [profile?.interests]);
+  const filteredInterests = useMemo(() => {
+    return sortOptionsBySelectedInterests(filterLocalizedOptions(interestOptions, interestSearch), selectedInterests, locale).slice(0, 24);
+  }, [interestOptions, interestSearch, locale, selectedInterests]);
 
   const persistCourses = async (nextCourses) => {
     if (!profile?.id) return;

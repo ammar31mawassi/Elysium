@@ -20,6 +20,7 @@ const PERSONAL_KINDS = ["homework", "exam", "other"];
 const PRIORITIES = ["normal", "important", "urgent"];
 const DEADLINE_KINDS = new Set(["homework", "exam"]);
 const FIND_PROMPT = "didn't find what you are loking for? why not make one your self!";
+const CALENDAR_REFRESH_MS = 60 * 1000;
 const CATEGORY_FILTERS = [
   ["all", "All events"],
   ["deadlines", "Deadlines"],
@@ -95,6 +96,11 @@ function sourceIsCanceled(item, events = [], sessions = []) {
   return false;
 }
 
+function itemStartTime(item) {
+  const time = new Date(item.starts_at).getTime();
+  return Number.isFinite(time) ? time : null;
+}
+
 export default function CalendarPage() {
   const location = useLocation();
   const { openCreateAction } = useCreateAction();
@@ -106,6 +112,7 @@ export default function CalendarPage() {
   const [saving, setSaving] = useState(false);
   const [tab, setTab] = useState("upcoming");
   const [categoryFilter, setCategoryFilter] = useState("all");
+  const [currentTime, setCurrentTime] = useState(() => Date.now());
   const initialParams = new URLSearchParams(location.search);
   const initialKind = PERSONAL_KINDS.includes(initialParams.get("type")) ? initialParams.get("type") : "other";
   const [showEditor, setShowEditor] = useState(initialParams.get("create") === "1");
@@ -143,6 +150,11 @@ export default function CalendarPage() {
   }, [user?.id, profile?.university_id]);
 
   useEffect(() => {
+    const timer = window.setInterval(() => setCurrentTime(Date.now()), CALENDAR_REFRESH_MS);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
     const handleCreated = (event) => {
       const item = event.detail?.calendarItem;
       if (!item) return;
@@ -153,12 +165,19 @@ export default function CalendarPage() {
   }, []);
 
   const timeFilteredItems = useMemo(() => {
-    const now = new Date();
     return items
       .filter((item) => item.status !== "canceled")
-      .filter((item) => tab === "upcoming" ? new Date(item.starts_at) >= now || !item.completed : new Date(item.starts_at) < now && item.completed)
-      .sort((a, b) => new Date(a.starts_at) - new Date(b.starts_at));
-  }, [items, tab]);
+      .filter((item) => {
+        const startTime = itemStartTime(item);
+        if (startTime === null) return tab === "upcoming";
+        return tab === "upcoming" ? startTime >= currentTime : startTime < currentTime;
+      })
+      .sort((a, b) => {
+        const aTime = itemStartTime(a) ?? Number.MAX_SAFE_INTEGER;
+        const bTime = itemStartTime(b) ?? Number.MAX_SAFE_INTEGER;
+        return tab === "past" ? bTime - aTime : aTime - bTime;
+      });
+  }, [items, tab, currentTime]);
 
   const displayed = useMemo(() => (
     timeFilteredItems.filter((item) => matchesCategory(item, categoryFilter))

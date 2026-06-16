@@ -164,4 +164,60 @@ describe("CalendarPage", () => {
 
     expect(await screen.findByText("no upcoming deadlines, want to add a new one")).toBeInTheDocument();
   });
+
+  it("moves social and study events to past when their start time has passed", async () => {
+    const past = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+    const future = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+    base44.entities.CalendarItem.filter.mockResolvedValue([
+      {
+        id: "past-social",
+        owner_user_id: "user-1",
+        source_type: "social_activity",
+        source_id: "event-past",
+        title: "Past football",
+        starts_at: past,
+        notes: "Sports field",
+        completed: false,
+        status: "active",
+      },
+      {
+        id: "past-study",
+        owner_user_id: "user-1",
+        source_type: "study_session",
+        source_id: "session-past",
+        title: "Past algorithms",
+        starts_at: past,
+        notes: "Library",
+        completed: false,
+        status: "active",
+      },
+      {
+        id: "future-social",
+        owner_user_id: "user-1",
+        source_type: "social_activity",
+        source_id: "event-future",
+        title: "Future football",
+        starts_at: future,
+        notes: "Sports field",
+        completed: false,
+        status: "active",
+      },
+    ]);
+
+    render(
+      <MemoryRouter initialEntries={["/calendar"]}>
+        <CalendarPage />
+      </MemoryRouter>
+    );
+
+    expect(await screen.findByText("Future football")).toBeInTheDocument();
+    expect(screen.queryByText("Past football")).not.toBeInTheDocument();
+    expect(screen.queryByText("Past algorithms")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Past" }));
+
+    expect(await screen.findByText("Past football")).toBeInTheDocument();
+    expect(screen.getByText("Past algorithms")).toBeInTheDocument();
+    expect(screen.queryByText("Future football")).not.toBeInTheDocument();
+  });
 });

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Edit2, GraduationCap, HelpCircle, LogOut, Monitor, Moon, Sun } from "lucide-react";
 import { base44 } from "@/api/base44Client";
+import { buildCanonicalAppUrl } from "@/lib/app-params";
 import { useProfile } from "@/lib/useProfile";
 import { useLanguage } from "@/lib/LanguageContext";
 import { useTheme } from "@/lib/ThemeContext";
@@ -280,7 +281,7 @@ export default function ProfilePage() {
         onSubmit={handleHelperSubmit}
       />
 
-      <button onClick={() => base44.auth.logout("/")} className="mt-2 flex items-center gap-2 pb-4 text-sm text-muted-foreground hover:text-destructive"><LogOut className="h-4 w-4" />{t("profile_signout")}</button>
+      <button onClick={() => base44.auth.logout(buildCanonicalAppUrl("/"))} className="mt-2 flex items-center gap-2 pb-4 text-sm text-muted-foreground hover:text-destructive"><LogOut className="h-4 w-4" />{t("profile_signout")}</button>
     </PageLayout>
   );
 }

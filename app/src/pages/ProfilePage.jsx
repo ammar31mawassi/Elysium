@@ -11,6 +11,7 @@ import { buildTutorProfilePayload, emptyTutorForm, splitCommaList, tutorFormFrom
 import { withDefaultUniversities } from "@/lib/universities";
 import { productText } from "@/lib/productCopy";
 import { localizedField } from "@/lib/productUtils";
+import { FIELD_OPTIONS } from "@/lib/onboardingOptions";
 import PageLayout from "@/components/layout/PageLayout";
 import ElysiumMark from "@/components/elysium/ElysiumMark";
 import { Button } from "@/components/ui/button";
@@ -236,11 +237,14 @@ export default function ProfilePage() {
       </div>
 
       <SettingsCard title="Profile information">
+        <datalist id="profile-field-options">
+          {FIELD_OPTIONS.map((field) => <option key={field.id} value={field.en} />)}
+        </datalist>
         <div className="grid gap-3 sm:grid-cols-2">
           <Field label="Preferred name"><Input value={profileForm.preferred_name} onChange={(event) => setProfileForm((current) => ({ ...current, preferred_name: event.target.value }))} /></Field>
           <Field label="University"><select className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm" value={profileForm.university_id} onChange={(event) => setProfileForm((current) => ({ ...current, university_id: event.target.value }))}>{universities.map((item) => <option key={item.id} value={item.id}>{localizedField(item, "name", locale)}</option>)}</select></Field>
           <Field label="Academic year"><select className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm" value={profileForm.academic_year} onChange={(event) => setProfileForm((current) => ({ ...current, academic_year: event.target.value }))}><option value="">Select year</option>{YEARS.map((year) => <option key={year} value={year}>{year}</option>)}</select></Field>
-          <Field label="Field of study"><Input value={profileForm.field_of_study} onChange={(event) => setProfileForm((current) => ({ ...current, field_of_study: event.target.value }))} /></Field>
+          <Field label="Field of study"><Input list="profile-field-options" value={profileForm.field_of_study} onChange={(event) => setProfileForm((current) => ({ ...current, field_of_study: event.target.value }))} /></Field>
           <Field label="Preferred spoken language"><select className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm" value={profileForm.preferred_language} onChange={(event) => setProfileForm((current) => ({ ...current, preferred_language: event.target.value }))}>{SPOKEN_LANGUAGES.map((language) => <option key={language} value={language}>{language}</option>)}</select></Field>
         </div>
         <Button className="mt-4 w-full sm:w-auto" disabled={savingProfile || !profileForm.preferred_name.trim() || !profileForm.university_id} onClick={saveProfile}>{savingProfile ? "Saving..." : "Save profile"}</Button>

@@ -15,6 +15,7 @@ import { withDefaultUniversities } from "@/lib/universities";
 import {
   DEFAULT_INTERESTS,
   FIELD_OPTIONS,
+  fieldOptionsWithCustom,
   filterLocalizedOptions,
   localizedOption,
   mergeInterestOptions,
@@ -80,7 +81,7 @@ export default function Onboarding() {
     safeQuery(interestQuery).then((rows) => setInterestOptions(mergeInterestOptions(rows)));
   }, []);
 
-  const filteredFields = useMemo(() => filterLocalizedOptions(FIELD_OPTIONS, fieldQuery).slice(0, 8), [fieldQuery]);
+  const filteredFields = useMemo(() => fieldOptionsWithCustom(FIELD_OPTIONS, fieldQuery).slice(0, 9), [fieldQuery]);
   const filteredInterests = useMemo(() => filterLocalizedOptions(interestOptions, interestSearch).slice(0, 24), [interestOptions, interestSearch]);
   const canContinue = isOnboardingStepValid(form, step);
 
@@ -196,7 +197,7 @@ export default function Onboarding() {
             {step === 2 && <Step title={p("onboarding_university_title")} body={p("onboarding_university_body")}>
               {universities.length ? <div className="grid gap-2 sm:grid-cols-2">{universities.map((university) => <Choice key={university.id} selected={form.university_id === university.id} onClick={() => setForm((current) => ({ ...current, university_id: university.id }))}><p className="text-sm font-semibold text-foreground">{localizedField(university, "name", locale)}</p>{university.city && <p className="mt-1 text-xs text-muted-foreground">{university.city}</p>}</Choice>)}</div> : <div className="rounded-lg border border-dashed border-border p-4 text-sm text-muted-foreground">{p("onboarding_no_university")}</div>}
               <div className="mt-5"><Label>{p("onboarding_year")}</Label><div className="flex flex-wrap gap-2">{years.map((year) => <Pill key={year} selected={form.academic_year === year} onClick={() => setForm((current) => ({ ...current, academic_year: year }))}>{year}</Pill>)}</div></div>
-              <div className="relative mt-5"><Label>{p("onboarding_field")}</Label><div className="relative"><Search className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><Input role="combobox" aria-expanded={showFieldOptions} aria-controls="field-options" className="ps-9" value={fieldQuery} placeholder={p("onboarding_field_search")} onFocus={() => setShowFieldOptions(true)} onChange={(event) => { setFieldQuery(event.target.value); setForm((current) => ({ ...current, field_of_study: "" })); setShowFieldOptions(true); }} /></div>{showFieldOptions && <div id="field-options" role="listbox" className="absolute z-20 mt-1 max-h-64 w-full overflow-y-auto rounded-lg border border-border bg-popover p-1 shadow-xl">{filteredFields.length ? filteredFields.map((field) => <button key={field.id} role="option" aria-selected={form.field_of_study === field.en} onMouseDown={(event) => event.preventDefault()} onClick={() => chooseField(field)} className="flex min-h-11 w-full items-center justify-between rounded-md px-3 py-2 text-start text-sm text-popover-foreground hover:bg-muted"><span>{localizedOption(field, locale)}</span>{form.field_of_study === field.en && <Check className="h-4 w-4 text-primary" />}</button>) : <p className="px-3 py-4 text-sm text-muted-foreground">{p("onboarding_field_select")}</p>}</div>}</div>
+              <div className="relative mt-5"><Label>{p("onboarding_field")}</Label><div className="relative"><Search className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><Input role="combobox" aria-expanded={showFieldOptions} aria-controls="field-options" className="ps-9" value={fieldQuery} placeholder={p("onboarding_field_search")} onFocus={() => setShowFieldOptions(true)} onChange={(event) => { const value = event.target.value; setFieldQuery(value); setForm((current) => ({ ...current, field_of_study: value.trim() })); setShowFieldOptions(true); }} /></div>{showFieldOptions && <div id="field-options" role="listbox" className="absolute z-20 mt-1 max-h-64 w-full overflow-y-auto rounded-lg border border-border bg-popover p-1 shadow-xl">{filteredFields.length ? filteredFields.map((field) => <button key={field.id} role="option" aria-selected={form.field_of_study === field.en} onMouseDown={(event) => event.preventDefault()} onClick={() => chooseField(field)} className="flex min-h-11 w-full items-center justify-between rounded-md px-3 py-2 text-start text-sm text-popover-foreground hover:bg-muted"><span>{field.custom ? `+ Use "${field.en}"` : localizedOption(field, locale)}</span>{form.field_of_study === field.en && <Check className="h-4 w-4 text-primary" />}</button>) : <p className="px-3 py-4 text-sm text-muted-foreground">{p("onboarding_field_select")}</p>}</div>}</div>
             </Step>}
 
             {step === 3 && <Step title={p("onboarding_courses_title")} body={p("onboarding_courses_body")}>

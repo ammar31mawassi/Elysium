@@ -27,6 +27,7 @@ import Login from '@/pages/Login';
 import Register from '@/pages/Register';
 import ForgotPassword from '@/pages/ForgotPassword';
 import ResetPassword from '@/pages/ResetPassword';
+import LandingPage from '@/pages/LandingPage';
 
 const AuthenticatedApp = () => {
   const { pathname, search } = useLocation();
@@ -62,7 +63,14 @@ const AuthenticatedApp = () => {
     );
   }
 
-  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (!isAuthenticated) {
+    return (
+      <Routes>
+        <Route path="/" element={<LandingPage />} />
+        <Route path="*" element={<Navigate to="/login" replace />} />
+      </Routes>
+    );
+  }
 
   return (
     <Routes>

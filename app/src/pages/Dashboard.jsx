@@ -200,7 +200,7 @@ export default function Dashboard() {
             <div className="grid grid-cols-2 gap-2">
               <ToolLink icon={Calculator} label="GPA" to="/tools?tool=gpa" />
               <ToolLink icon={Flag} label={p("add_deadline")} createKey="homework" />
-              <ToolLink icon={BookOpenCheck} label={t("tools_flashcards")} to="/tools?tool=flashcards" />
+              <ToolLink icon={BookOpenCheck} label={t("tools_flashcards")} to="/flashcards" />
               <ToolLink icon={CalendarDays} label={p("calendar_title")} to="/calendar" />
             </div>
           </section>

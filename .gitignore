@@ -12,6 +12,9 @@ build/
 .vite/
 .vercel/
 
+# Local media captures and screenshots
+In App Photos/
+
 # Supabase local state
 supabase/.branches/
 supabase/.temp/

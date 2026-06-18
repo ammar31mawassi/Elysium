@@ -14,6 +14,10 @@ describe("student planning utilities", () => {
     expect(calculateGpa([{ grade: 80, credits: 2 }, { grade: 90, credits: 3 }])).toEqual({ average: 86, credits: 5 });
   });
 
+  it("ignores courses without a completed grade", () => {
+    expect(calculateGpa([{ grade: "", credits: 5 }, { grade: 90, credits: 3 }])).toEqual({ average: 90, credits: 3 });
+  });
+
   it("calculates the grade needed on remaining coursework", () => {
     expect(calculateRequiredGrade(70, 60, 80)).toBeCloseTo(95);
   });

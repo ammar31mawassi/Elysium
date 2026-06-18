@@ -23,7 +23,11 @@ export function localizedField(record, field, locale = "en") {
 }
 
 export function calculateGpa(courses) {
-  const valid = courses.filter((course) => Number.isFinite(Number(course.grade)) && Number.isFinite(Number(course.credits)) && Number(course.credits) > 0);
+  const valid = courses.filter((course) => {
+    const hasGrade = course.grade !== "" && course.grade !== null && course.grade !== undefined;
+    const hasCredits = course.credits !== "" && course.credits !== null && course.credits !== undefined;
+    return hasGrade && hasCredits && Number.isFinite(Number(course.grade)) && Number.isFinite(Number(course.credits)) && Number(course.credits) > 0;
+  });
   if (!valid.length) return null;
   const credits = valid.reduce((total, course) => total + Number(course.credits), 0);
   const points = valid.reduce((total, course) => total + Number(course.grade) * Number(course.credits), 0);

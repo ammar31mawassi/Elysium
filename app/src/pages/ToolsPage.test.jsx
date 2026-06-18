@@ -67,4 +67,14 @@ describe("ToolsPage", () => {
     expect(screen.getByText("Average needed on blank requirements")).toBeInTheDocument();
     expect(screen.getByText("62.5")).toBeInTheDocument();
   });
+
+  it("links the GPA calculator to its dedicated page", () => {
+    render(
+      <MemoryRouter initialEntries={["/tools"]}>
+        <ToolsPage />
+      </MemoryRouter>
+    );
+
+    expect(screen.getByRole("link", { name: "GPA Calculator" })).toHaveAttribute("href", "/tools/gpa");
+  });
 });

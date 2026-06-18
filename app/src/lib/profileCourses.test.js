@@ -4,7 +4,7 @@ import { activeCourseNames, courseProfileUpdate, normalizeCourseRecords } from "
 describe("profile course helpers", () => {
   it("migrates legacy course strings to active records", () => {
     expect(normalizeCourseRecords({ courses: ["Calculus 2"] })).toEqual([
-      { name: "Calculus 2", status: "active", grade: "", credits: "" },
+      { name: "Calculus 2", status: "active", semester: "unassigned", grade: "", credits: "" },
     ]);
   });
 
@@ -14,9 +14,13 @@ describe("profile course helpers", () => {
   });
 
   it("keeps the legacy course list synchronized", () => {
-    expect(courseProfileUpdate([{ name: "Data Structures", status: "finished", grade: 88, credits: 4 }])).toEqual({
-      course_records: [{ name: "Data Structures", status: "finished", grade: 88, credits: 4 }],
+    expect(courseProfileUpdate([{ name: "Data Structures", status: "finished", semester: "semester_b", grade: 88, credits: 4 }])).toEqual({
+      course_records: [{ name: "Data Structures", status: "finished", semester: "semester_b", grade: 88, credits: 4 }],
       courses: ["Data Structures"],
     });
+  });
+
+  it("normalizes invalid semester values", () => {
+    expect(courseProfileUpdate([{ name: "Physics", status: "active", semester: "fall" }]).course_records[0].semester).toBe("unassigned");
   });
 });

@@ -22,21 +22,19 @@ import { base44 } from "@/api/base44Client";
 import { useProfile } from "@/lib/useProfile";
 import { useLanguage } from "@/lib/LanguageContext";
 import { productText } from "@/lib/productCopy";
-import { calculateGpa, calculateNeededRequirementAverage, localizedField } from "@/lib/productUtils";
+import { calculateNeededRequirementAverage, localizedField } from "@/lib/productUtils";
 import { demoContent, withDemoFallback } from "@/lib/demoData";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import PageLayout from "@/components/layout/PageLayout";
 import { cn } from "@/lib/utils";
-import { courseProfileUpdate, normalizeCourseRecords } from "@/lib/profileCourses";
-import { mergeCourseSuggestions, registerCourses } from "@/lib/courseCatalog";
 
 const toolDefinitions = [
-  { key: "gpa", icon: Calculator, component: GpaCalculator },
   { key: "grade", icon: Target, component: GradeNeeded },
 ];
 
 const toolLinks = [
+  { key: "gpa", icon: Calculator, to: "/tools/gpa" },
   { key: "flashcards", icon: Layers3, to: "/flashcards" },
 ];
 
@@ -72,6 +70,9 @@ export default function ToolsPage() {
     if (params.get("tool") === "flashcards") {
       navigate("/flashcards", { replace: true });
     }
+    if (params.get("tool") === "gpa") {
+      navigate("/tools/gpa", { replace: true });
+    }
   }, [navigate, params]);
 
   useEffect(() => {
@@ -94,8 +95,8 @@ export default function ToolsPage() {
 
       <SectionHeader label={t("tools_calculators")} />
       <div className="mb-6 grid grid-cols-2 gap-2 md:grid-cols-3">
-        {toolDefinitions.map(({ key, icon: Icon }) => <button key={key} onClick={() => setActiveTool(activeTool === key ? null : key)} className={cn("min-h-28 rounded-lg border p-3 text-start transition-colors", activeTool === key ? "border-primary bg-primary/5" : "border-border bg-card hover:border-primary/40")}><span className="flex h-9 w-9 items-center justify-center rounded-md bg-primary/10 text-primary"><Icon className="h-4 w-4" /></span><span className="mt-3 block text-sm font-semibold text-foreground">{toolLabels[key]}</span></button>)}
         {toolLinks.map(({ key, icon: Icon, to }) => <Link key={key} to={to} className="min-h-28 rounded-lg border border-border bg-card p-3 text-start transition-colors hover:border-primary/40"><span className="flex h-9 w-9 items-center justify-center rounded-md bg-primary/10 text-primary"><Icon className="h-4 w-4" /></span><span className="mt-3 block text-sm font-semibold text-foreground">{toolLabels[key]}</span></Link>)}
+        {toolDefinitions.map(({ key, icon: Icon }) => <button key={key} onClick={() => setActiveTool(activeTool === key ? null : key)} className={cn("min-h-28 rounded-lg border p-3 text-start transition-colors", activeTool === key ? "border-primary bg-primary/5" : "border-border bg-card hover:border-primary/40")}><span className="flex h-9 w-9 items-center justify-center rounded-md bg-primary/10 text-primary"><Icon className="h-4 w-4" /></span><span className="mt-3 block text-sm font-semibold text-foreground">{toolLabels[key]}</span></button>)}
       </div>
 
       {activeDefinition && <section className="mb-7 rounded-lg border border-border bg-card p-4"><div className="mb-4 flex items-center justify-between"><h2 className="text-sm font-semibold text-foreground">{toolLabels[activeDefinition.key]}</h2><button className="flex h-10 w-10 items-center justify-center rounded-md text-muted-foreground hover:bg-muted" onClick={() => setActiveTool(null)} aria-label="Close tool"><X className="h-4 w-4" /></button></div>{React.createElement(activeDefinition.component)}</section>}
@@ -124,43 +125,6 @@ function SectionHeader({ label }) {
 
 function GuideRow({ guide, locale, expanded, onToggle }) {
   return <article className="overflow-hidden rounded-lg border border-border bg-card" dir="auto"><button onClick={onToggle} className="flex min-h-16 w-full items-center justify-between gap-3 px-4 py-3 text-start hover:bg-muted/30"><div><p className="text-sm font-semibold text-foreground">{localizedField(guide, "title", locale)}</p><p className="mt-1 text-xs text-muted-foreground">{guide.category}</p></div>{expanded ? <ChevronUp className="h-4 w-4 shrink-0 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />}</button>{expanded && <div className="space-y-3 border-t border-border px-4 py-4"><p className="text-sm text-muted-foreground">{localizedField(guide, "situation", locale)}</p><p className="text-sm leading-relaxed text-foreground">{localizedField(guide, "content", locale)}</p>{localizedField(guide, "what_to_do", locale) && <div><p className="text-xs font-semibold text-primary">Next steps</p><p className="mt-1 whitespace-pre-line text-sm text-foreground">{localizedField(guide, "what_to_do", locale)}</p></div>}{guide.source_url && <a href={guide.source_url} target="_blank" rel="noreferrer" className="inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-primary"><ExternalLink className="h-4 w-4" />Official source</a>}</div>}</article>;
-}
-
-function GpaCalculator() {
-  const { user, profile, setProfile } = useProfile();
-  const makeRow = (course = {}) => ({ name: "", status: "active", grade: "", credits: "", ...course, _rowId: `${Date.now()}-${Math.random()}` });
-  const [courses, setCourses] = useState(() => {
-    const profileCourses = normalizeCourseRecords(profile);
-    return profileCourses.length ? profileCourses.map(makeRow) : [makeRow()];
-  });
-  const [courseSuggestions, setCourseSuggestions] = useState([]);
-  const [saving, setSaving] = useState(false);
-  useEffect(() => {
-    const profileCourses = normalizeCourseRecords(profile);
-    if (profileCourses.length) setCourses(profileCourses.map(makeRow));
-  }, [profile?.id]);
-  useEffect(() => {
-    if (!profile?.university_id) return;
-    Promise.all([
-      base44.entities.CourseCatalog.filter({ university_id: profile.university_id }).catch(() => []),
-      base44.entities.StudySession.filter({ university_id: profile.university_id }).catch(() => []),
-    ]).then(([catalog, sessions]) => setCourseSuggestions(mergeCourseSuggestions(catalog, sessions, normalizeCourseRecords(profile))));
-  }, [profile?.university_id]);
-  const result = useMemo(() => calculateGpa(courses), [courses]);
-  const updateCourse = (index, field, value) => setCourses((current) => current.map((course, courseIndex) => courseIndex === index ? { ...course, [field]: value } : course));
-  const saveGrades = async () => {
-    if (!profile?.id) return;
-    setSaving(true);
-    try {
-      const update = courseProfileUpdate(courses.filter((course) => course.name.trim()));
-      await base44.entities.StudentProfile.update(profile.id, update);
-      await registerCourses(base44, { universityId: profile.university_id, userId: user.id, courses: update.course_records });
-      setProfile((current) => ({ ...current, ...update }));
-      setCourses(update.course_records.length ? update.course_records.map(makeRow) : [makeRow()]);
-      setCourseSuggestions((current) => mergeCourseSuggestions(current, update.course_records));
-    } finally { setSaving(false); }
-  };
-  return <div className="space-y-3"><datalist id="gpa-course-suggestions">{courseSuggestions.map((name) => <option key={name} value={name} />)}</datalist>{courses.map((course, index) => <div key={course._rowId} className="grid min-w-0 gap-2 rounded-md border border-border p-2 sm:grid-cols-[minmax(0,2fr)_minmax(88px,1fr)_minmax(88px,1fr)_44px] sm:border-0 sm:p-0"><Input className="min-w-0" aria-label="Course" list="gpa-course-suggestions" autoComplete="off" placeholder="Course" value={course.name} onChange={(event) => updateCourse(index, "name", event.target.value)} /><div className="grid grid-cols-2 gap-2 sm:contents"><Input className="min-w-0" aria-label="Grade" type="number" min="0" max="100" placeholder="Grade" value={course.grade ?? ""} onChange={(event) => updateCourse(index, "grade", event.target.value)} /><Input className="min-w-0" aria-label="Credits" type="number" min="0.5" max="20" step="0.5" placeholder="Credits" value={course.credits ?? ""} onChange={(event) => updateCourse(index, "credits", event.target.value)} /></div><button className="flex h-10 w-10 items-center justify-center rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive" onClick={() => setCourses((current) => current.length > 1 ? current.filter((_, courseIndex) => courseIndex !== index) : current)} aria-label="Remove course"><X className="h-4 w-4" /></button></div>)}<div className="flex flex-wrap gap-2"><Button variant="outline" className="gap-2" onClick={() => setCourses((current) => [...current, makeRow()])}><Plus className="h-4 w-4" />Add course</Button><Button onClick={saveGrades} disabled={saving || !courses.some((course) => course.name.trim())}>{saving ? "Saving..." : "Save grades"}</Button></div>{result && <div className="rounded-lg border border-primary/20 bg-primary/5 p-4 text-center"><p className="text-xs text-muted-foreground">Weighted average across {result.credits} credits</p><p className="mt-1 text-4xl font-bold text-primary">{result.average.toFixed(2)}</p><p className="mt-2 text-xs text-muted-foreground">Sum of grade times credits, divided by total credits.</p></div>}</div>;
 }
 
 function GradeNeeded() {

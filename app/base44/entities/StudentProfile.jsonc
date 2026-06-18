@@ -19,6 +19,7 @@
         "properties": {
           "name": { "type": "string" },
           "status": { "type": "string", "enum": ["active", "finished"], "default": "active" },
+          "semester": { "type": "string", "enum": ["semester_a", "semester_b", "summer", "annual", "unassigned"], "default": "unassigned" },
           "grade": { "type": "number" },
           "credits": { "type": "number" }
         },

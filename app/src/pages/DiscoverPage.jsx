@@ -37,6 +37,7 @@ import {
   mergeRecordsById,
   participantSnapshot,
   sortSocialEventsByInterests,
+  uniqueParticipants,
 } from "@/lib/communityMatching";
 import PageLayout from "@/components/layout/PageLayout";
 import { useCreateAction } from "@/components/elysium/CreateActionProvider";
@@ -158,6 +159,8 @@ export default function DiscoverPage() {
     userId: user?.id,
     sourceType: "study_session",
   }), [data.sessionMembers, data.calendarItems, user?.id]);
+  const socialParticipantsFor = (eventId) => uniqueParticipants(data.eventMembers, "event_id", eventId);
+  const studyParticipantsFor = (sessionId) => uniqueParticipants(data.sessionMembers, "session_id", sessionId);
 
   const courses = activeCourseNames(profile).map((course) => course.toLocaleLowerCase("en"));
   const normalizedQuery = query.trim().toLowerCase();
@@ -324,6 +327,7 @@ export default function DiscoverPage() {
           onClose={() => setSelected(null)}
           joined={selected.type === "social" ? myEventIds.has(selected.item.id) : mySessionIds.has(selected.item.id)}
           members={selected.type === "social" ? countParticipants(data.eventMembers, "event_id", selected.item.id, myEventIds) : countParticipants(data.sessionMembers, "session_id", selected.item.id, mySessionIds)}
+          participants={selected.type === "social" ? socialParticipantsFor(selected.item.id) : studyParticipantsFor(selected.item.id)}
           saving={saving}
           onJoin={() => selected.type === "social" ? joinEvent(selected.item) : joinSession(selected.item)}
           onLeave={() => selected.type === "social" ? leaveEvent(selected.item.id) : leaveSession(selected.item.id)}
@@ -390,7 +394,7 @@ function ResourceCard({ resource, locale }) {
   return <Card><div className="flex items-start justify-between"><span className="flex h-10 w-10 items-center justify-center rounded-md bg-slate-500/10 text-slate-700 dark:text-slate-300"><ShieldCheck className="h-5 w-5" /></span><span className="rounded-full bg-emerald-500/10 px-2 py-1 text-[10px] font-bold text-emerald-700 dark:text-emerald-400">Official</span></div><p className="mt-4 text-xs font-semibold text-slate-600 dark:text-slate-300">{resource.category?.replaceAll("_", " ")}</p><h2 className="mt-1 text-base font-bold text-foreground" dir="auto">{title}</h2><p className="mt-1 line-clamp-3 text-sm text-muted-foreground" dir="auto">{description}</p>{url && <a href={url} target="_blank" rel="noreferrer" className="mt-auto flex min-h-11 items-center justify-center gap-2 rounded-md border border-border px-3 text-sm font-semibold text-foreground hover:border-primary/40">Open source<ExternalLink className="h-4 w-4" /></a>}</Card>;
 }
 
-function DetailsModal({ selected, user, profile, onClose, joined, members, saving, onJoin, onLeave, onCancel, p }) {
+function DetailsModal({ selected, user, profile, onClose, joined, members, participants, saving, onJoin, onLeave, onCancel, p }) {
   const item = selected.item;
   const social = selected.type === "social";
   const isCreator = social ? item.organizer_id === user?.id : item.host_id === user?.id;
@@ -415,6 +419,7 @@ function DetailsModal({ selected, user, profile, onClose, joined, members, savin
           {item.location && <p className="mt-1 text-muted-foreground">{item.location}</p>}
           <p className="mt-1 text-muted-foreground">{members} of {item.max_spots || "unlimited"} spots</p>
         </div>
+        <ParticipantList participants={participants} user={user} profile={profile} />
         {isCreator && social ? (
           <Button variant="destructive" className="w-full" disabled={saving || item.status === "canceled"} onClick={onCancel}>
             <X className="me-2 h-4 w-4" />Cancel activity
@@ -430,4 +435,34 @@ function DetailsModal({ selected, user, profile, onClose, joined, members, savin
       </div>
     </Modal>
   );
+}
+
+function ParticipantList({ participants = [], user, profile }) {
+  return (
+    <section className="rounded-md border border-border p-3">
+      <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Signed-up students</h3>
+      {participants.length ? (
+        <div className="mt-3 space-y-2">
+          {participants.map((member) => (
+            <div key={member.user_id || member.id} className="rounded-md bg-muted/40 p-3">
+              <p className="text-sm font-semibold text-foreground">{participantName(member, user, profile)}</p>
+              {participantMeta(member) && <p className="mt-1 text-xs text-muted-foreground">{participantMeta(member)}</p>}
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="mt-2 text-sm text-muted-foreground">No one has signed up yet.</p>
+      )}
+    </section>
+  );
+}
+
+function participantName(member, user, profile) {
+  if (member.participant_name) return member.participant_name;
+  if (member.user_id === user?.id) return profile?.preferred_name || user?.full_name || "You";
+  return "Campus student";
+}
+
+function participantMeta(member) {
+  return [member.participant_academic_year, member.participant_field_of_study].filter(Boolean).join(" - ");
 }

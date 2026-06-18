@@ -34,6 +34,7 @@ import {
   mergeRecordsById,
   participantSnapshot,
   sortSocialEventsByInterests,
+  uniqueParticipants,
 } from "@/lib/communityMatching";
 import { domainTones } from "@/lib/domainTones";
 import { toast } from "@/components/ui/use-toast";
@@ -135,6 +136,7 @@ export default function SocialPage() {
   }), [approvedMemberships, calendarItems, user?.id]);
   const selectedInterests = useMemo(() => profile?.interests || [], [profile?.interests]);
   const memberCount = (eventId) => countParticipants(approvedMemberships, "event_id", eventId, myEventIds);
+  const participantsFor = (eventId) => uniqueParticipants(approvedMemberships, "event_id", eventId);
   const visibleEvents = useMemo(() => {
     const filtered = events
       .filter((event) => !openOnly || (event.status !== "canceled" && event.is_open));
@@ -311,6 +313,7 @@ export default function SocialPage() {
               {selected.location && <p className="mt-1 text-muted-foreground">{selected.location}</p>}
               <p className="mt-1 text-muted-foreground">{memberCount(selected.id)} of {selected.max_spots} spots</p>
             </div>
+            <ParticipantList participants={participantsFor(selected.id)} user={user} profile={profile} />
             {selected.organizer_id === user?.id ? (
               <Button variant="destructive" className="w-full" disabled={saving || selected.status === "canceled"} onClick={() => cancelEvent(selected)}><X className="me-2 h-4 w-4" />Cancel activity</Button>
             ) : myEventIds.has(selected.id) ? (
@@ -361,6 +364,36 @@ function CreateSocialPrompt({ onClick }) {
       </div>
     </article>
   );
+}
+
+function ParticipantList({ participants = [], user, profile }) {
+  return (
+    <section className="rounded-md border border-border p-3">
+      <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Signed-up students</h3>
+      {participants.length ? (
+        <div className="mt-3 space-y-2">
+          {participants.map((member) => (
+            <div key={member.user_id || member.id} className="rounded-md bg-muted/40 p-3">
+              <p className="text-sm font-semibold text-foreground">{participantName(member, user, profile)}</p>
+              {participantMeta(member) && <p className="mt-1 text-xs text-muted-foreground">{participantMeta(member)}</p>}
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="mt-2 text-sm text-muted-foreground">No one has signed up yet.</p>
+      )}
+    </section>
+  );
+}
+
+function participantName(member, user, profile) {
+  if (member.participant_name) return member.participant_name;
+  if (member.user_id === user?.id) return profile?.preferred_name || user?.full_name || "You";
+  return "Campus student";
+}
+
+function participantMeta(member) {
+  return [member.participant_academic_year, member.participant_field_of_study].filter(Boolean).join(" - ");
 }
 
 function ParticipationFilter({ value, onChange }) {

@@ -23,6 +23,7 @@ import {
   joinedIdsFromState,
   mergeRecordsById,
   participantSnapshot,
+  uniqueParticipants,
 } from "@/lib/communityMatching";
 
 const emptyForm = { title: "", course_name: "", preferred_language: "", session_date: "", end_time: "", location: "", notes: "", max_spots: 8, is_marathon: false };
@@ -92,6 +93,7 @@ export default function StudyGroupsPage() {
     sourceType: "study_session",
   }), [members, calendarItems, user?.id]);
   const memberCount = (sessionId) => countParticipants(members, "session_id", sessionId, mySessionIds);
+  const participantsFor = (sessionId) => uniqueParticipants(members, "session_id", sessionId);
   const visibleSessions = useMemo(() => {
     const activeSet = new Set(activeCourses.map((course) => course.toLocaleLowerCase("en")));
     const filtered = sessions
@@ -186,7 +188,33 @@ export default function StudyGroupsPage() {
         return <button key={session.id} onClick={() => setSelected(session)} className={cn("rounded-lg border border-border bg-card p-4 text-start", domainTones.study.border)}><div className="flex items-start gap-3"><span className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-md", domainTones.study.icon)}><BookOpenCheck className="h-5 w-5" /></span><div className="min-w-0 flex-1" dir="auto"><div className="flex justify-between gap-3"><h2 className="font-semibold text-foreground">{session.title}</h2><span className={cn("shrink-0 text-xs font-semibold", session.status === "canceled" ? "text-destructive" : "text-emerald-600")}>{session.status === "canceled" ? "Canceled" : joined ? "Joined" : "Open"}</span></div><p className={cn("mt-1 text-xs font-semibold", domainTones.study.text)}>{session.is_marathon ? "Study marathon" : "Study group"} · {session.course_name}</p><p className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground"><CalendarClock className="h-3.5 w-3.5" />{new Date(session.session_date).toLocaleString()}</p>{session.location && <p className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground"><MapPin className="h-3.5 w-3.5" />{session.location}</p>}{session.preferred_language && <p className="mt-1 text-xs text-muted-foreground">Preferred language: {session.preferred_language}</p>}<p className="mt-2 text-xs text-muted-foreground">{count} / {session.max_spots} joined</p></div></div></button>;
       })}<CreateStudyPrompt onClick={() => setShowForm(true)} /></div>}
 
-      {selected && <Modal title={selected.title} onClose={() => setSelected(null)}><div className="space-y-4" dir="auto"><p className={cn("text-xs font-semibold", domainTones.study.text)}>{selected.is_marathon ? "Study marathon" : "Study group"} · {selected.course_name}{selected.preferred_language ? ` · ${selected.preferred_language}` : ""}</p><p className="text-sm text-muted-foreground">{selected.notes || "Bring the material you want to work on."}</p><div className="rounded-md border border-border p-3"><p className="text-xs font-semibold text-muted-foreground">Hosted by</p><p className="mt-1 text-sm font-semibold text-foreground">{selected.host_name || (selected.host_id === user?.id ? profile?.preferred_name || user?.full_name : "Campus student")}</p>{(selected.host_academic_year || selected.host_field_of_study) && <p className="mt-1 text-xs text-muted-foreground">{[selected.host_academic_year, selected.host_field_of_study].filter(Boolean).join(" · ")}</p>}</div><div className="rounded-md bg-muted/50 p-3 text-sm"><p>{new Date(selected.session_date).toLocaleString()}</p>{selected.location && <p className="mt-1 text-muted-foreground">{selected.location}</p>}<p className="mt-1 text-muted-foreground">{memberCount(selected.id)} of {selected.max_spots} spots</p></div>{selected.host_id === user?.id ? <Button variant="destructive" className="w-full" disabled={saving || selected.status === "canceled"} onClick={() => cancelGroup(selected)}><X className="me-2 h-4 w-4" />Cancel group</Button> : mySessionIds.has(selected.id) ? <Button variant="outline" className="w-full" disabled={saving} onClick={() => leaveGroup(selected)}>Leave group</Button> : <Button className="w-full" disabled={saving || selected.status === "canceled" || memberCount(selected.id) >= selected.max_spots || String(selected.id).startsWith("demo-")} onClick={() => joinGroup(selected)}>Join group</Button>}{String(selected.id).startsWith("demo-") && <p className="text-center text-xs text-muted-foreground">Demo preview. Seed it to Base44 before the live demo to enable joining.</p>}</div></Modal>}
+      {selected && (
+        <Modal title={selected.title} onClose={() => setSelected(null)}>
+          <div className="space-y-4" dir="auto">
+            <p className={cn("text-xs font-semibold", domainTones.study.text)}>{selected.is_marathon ? "Study marathon" : "Study group"} · {selected.course_name}{selected.preferred_language ? ` · ${selected.preferred_language}` : ""}</p>
+            <p className="text-sm text-muted-foreground">{selected.notes || "Bring the material you want to work on."}</p>
+            <div className="rounded-md border border-border p-3">
+              <p className="text-xs font-semibold text-muted-foreground">Hosted by</p>
+              <p className="mt-1 text-sm font-semibold text-foreground">{selected.host_name || (selected.host_id === user?.id ? profile?.preferred_name || user?.full_name : "Campus student")}</p>
+              {(selected.host_academic_year || selected.host_field_of_study) && <p className="mt-1 text-xs text-muted-foreground">{[selected.host_academic_year, selected.host_field_of_study].filter(Boolean).join(" · ")}</p>}
+            </div>
+            <div className="rounded-md bg-muted/50 p-3 text-sm">
+              <p>{new Date(selected.session_date).toLocaleString()}</p>
+              {selected.location && <p className="mt-1 text-muted-foreground">{selected.location}</p>}
+              <p className="mt-1 text-muted-foreground">{memberCount(selected.id)} of {selected.max_spots} spots</p>
+            </div>
+            <ParticipantList participants={participantsFor(selected.id)} user={user} profile={profile} />
+            {selected.host_id === user?.id ? (
+              <Button variant="destructive" className="w-full" disabled={saving || selected.status === "canceled"} onClick={() => cancelGroup(selected)}><X className="me-2 h-4 w-4" />Cancel group</Button>
+            ) : mySessionIds.has(selected.id) ? (
+              <Button variant="outline" className="w-full" disabled={saving} onClick={() => leaveGroup(selected)}>Leave group</Button>
+            ) : (
+              <Button className="w-full" disabled={saving || selected.status === "canceled" || memberCount(selected.id) >= selected.max_spots || String(selected.id).startsWith("demo-")} onClick={() => joinGroup(selected)}>Join group</Button>
+            )}
+            {String(selected.id).startsWith("demo-") && <p className="text-center text-xs text-muted-foreground">Demo preview. Seed it to Base44 before the live demo to enable joining.</p>}
+          </div>
+        </Modal>
+      )}
 
       {showForm && <Modal title={form.is_marathon ? "Create study marathon" : "Create study group"} onClose={() => setShowForm(false)}><div className="space-y-4"><div><p className="mb-1.5 text-xs font-semibold text-muted-foreground">Format</p><div role="group" aria-label="Study format" className="grid grid-cols-2 gap-2 rounded-md bg-muted p-1"><button type="button" onClick={() => setForm((current) => ({ ...current, is_marathon: false }))} className={cn("min-h-10 rounded-md text-sm font-semibold", !form.is_marathon ? "bg-background text-foreground shadow-sm" : "text-muted-foreground")}>Study group</button><button type="button" onClick={() => setForm((current) => ({ ...current, is_marathon: true }))} className={cn("min-h-10 rounded-md text-sm font-semibold", form.is_marathon ? "bg-background text-foreground shadow-sm" : "text-muted-foreground")}>Study marathon</button></div></div><Field label={form.is_marathon ? "Marathon title" : "Group title"}><Input value={form.title} onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))} autoFocus /></Field><Field label="Active course"><SearchableChoice value={form.course_name} options={courseOptions} placeholder="Select one of your active courses" emptyLabel="Add an active course in Me first." onChange={(option) => setForm((current) => ({ ...current, course_name: option?.value || "" }))} /></Field><div className="grid gap-3 sm:grid-cols-2"><Field label="Starts"><Input type="datetime-local" value={form.session_date} onChange={(event) => setForm((current) => ({ ...current, session_date: event.target.value }))} /></Field><Field label="Ends"><Input type="datetime-local" value={form.end_time} onChange={(event) => setForm((current) => ({ ...current, end_time: event.target.value }))} /></Field></div><div className="grid gap-3 sm:grid-cols-2"><Field label="Preferred language (optional)"><select className="h-11 w-full rounded-md border border-input bg-background px-3 text-sm" value={form.preferred_language} onChange={(event) => setForm((current) => ({ ...current, preferred_language: event.target.value }))}><option value="">Any language</option><option value="English">English</option><option value="Hebrew">Hebrew</option><option value="Arabic">Arabic</option></select></Field><Field label="Capacity"><Input type="number" min="2" max="50" value={form.max_spots} onChange={(event) => setForm((current) => ({ ...current, max_spots: Number(event.target.value) }))} /></Field></div><Field label="Location"><Input value={form.location} onChange={(event) => setForm((current) => ({ ...current, location: event.target.value }))} /></Field><Field label="What will you study?"><Textarea rows={3} value={form.notes} onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))} /></Field><Button className="w-full" disabled={saving || !form.title || !activeCourses.includes(form.course_name) || !form.session_date} onClick={createGroup}>{saving ? t("common_loading") : form.is_marathon ? "Create marathon" : "Create study group"}</Button></div></Modal>}
     </PageLayout>
@@ -211,6 +239,36 @@ function CreateStudyPrompt({ onClick }) {
       </div>
     </article>
   );
+}
+
+function ParticipantList({ participants = [], user, profile }) {
+  return (
+    <section className="rounded-md border border-border p-3">
+      <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Signed-up students</h3>
+      {participants.length ? (
+        <div className="mt-3 space-y-2">
+          {participants.map((member) => (
+            <div key={member.user_id || member.id} className="rounded-md bg-muted/40 p-3">
+              <p className="text-sm font-semibold text-foreground">{participantName(member, user, profile)}</p>
+              {participantMeta(member) && <p className="mt-1 text-xs text-muted-foreground">{participantMeta(member)}</p>}
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="mt-2 text-sm text-muted-foreground">No one has signed up yet.</p>
+      )}
+    </section>
+  );
+}
+
+function participantName(member, user, profile) {
+  if (member.participant_name) return member.participant_name;
+  if (member.user_id === user?.id) return profile?.preferred_name || user?.full_name || "You";
+  return "Campus student";
+}
+
+function participantMeta(member) {
+  return [member.participant_academic_year, member.participant_field_of_study].filter(Boolean).join(" - ");
 }
 
 function ParticipationFilter({ value, onChange }) {

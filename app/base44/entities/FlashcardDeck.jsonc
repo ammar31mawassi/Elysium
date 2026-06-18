@@ -5,11 +5,36 @@
     "owner_user_id": {
       "type": "string"
     },
+    "university_id": {
+      "type": "string"
+    },
+    "owner_display_name": {
+      "type": "string"
+    },
     "name": {
       "type": "string"
     },
     "subject": {
       "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "color": {
+      "type": "string",
+      "default": "#2563eb"
+    },
+    "is_public": {
+      "type": "boolean",
+      "default": false
+    },
+    "card_count": {
+      "type": "integer",
+      "default": 0
+    },
+    "last_edited_at": {
+      "type": "string",
+      "format": "date-time"
     },
     "language": {
       "type": "string",
@@ -19,7 +44,7 @@
   "required": ["owner_user_id", "name"],
   "rls": {
     "create": { "data.owner_user_id": "{{user.id}}" },
-    "read": { "$or": [{ "data.owner_user_id": "{{user.id}}" }, { "user_condition": { "role": "admin" } }] },
+    "read": { "$or": [{ "data.owner_user_id": "{{user.id}}" }, { "data.is_public": true }, { "user_condition": { "role": "admin" } }] },
     "update": { "$or": [{ "data.owner_user_id": "{{user.id}}" }, { "user_condition": { "role": "admin" } }] },
     "delete": { "$or": [{ "data.owner_user_id": "{{user.id}}" }, { "user_condition": { "role": "admin" } }] }
   }

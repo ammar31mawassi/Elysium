@@ -1,12 +1,10 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import {
   Bell,
   Calculator,
   CalendarSync,
   ChevronDown,
-  ChevronLeft,
-  ChevronRight,
   ChevronUp,
   CreditCard,
   ExternalLink,
@@ -36,7 +34,10 @@ import { mergeCourseSuggestions, registerCourses } from "@/lib/courseCatalog";
 const toolDefinitions = [
   { key: "gpa", icon: Calculator, component: GpaCalculator },
   { key: "grade", icon: Target, component: GradeNeeded },
-  { key: "flashcards", icon: Layers3, component: FlashcardsSection },
+];
+
+const toolLinks = [
+  { key: "flashcards", icon: Layers3, to: "/flashcards" },
 ];
 
 const plannedFeatures = [
@@ -58,6 +59,7 @@ function safeQuery(promise) {
 
 export default function ToolsPage() {
   const [params] = useSearchParams();
+  const navigate = useNavigate();
   const { profile } = useProfile();
   const { t, locale } = useLanguage();
   const p = (key) => productText(locale, key);
@@ -65,6 +67,12 @@ export default function ToolsPage() {
   const [links, setLinks] = useState([]);
   const [activeTool, setActiveTool] = useState(params.get("tool") || null);
   const [expandedGuide, setExpandedGuide] = useState(null);
+
+  useEffect(() => {
+    if (params.get("tool") === "flashcards") {
+      navigate("/flashcards", { replace: true });
+    }
+  }, [navigate, params]);
 
   useEffect(() => {
     if (!profile) return;
@@ -87,6 +95,7 @@ export default function ToolsPage() {
       <SectionHeader label={t("tools_calculators")} />
       <div className="mb-6 grid grid-cols-2 gap-2 md:grid-cols-3">
         {toolDefinitions.map(({ key, icon: Icon }) => <button key={key} onClick={() => setActiveTool(activeTool === key ? null : key)} className={cn("min-h-28 rounded-lg border p-3 text-start transition-colors", activeTool === key ? "border-primary bg-primary/5" : "border-border bg-card hover:border-primary/40")}><span className="flex h-9 w-9 items-center justify-center rounded-md bg-primary/10 text-primary"><Icon className="h-4 w-4" /></span><span className="mt-3 block text-sm font-semibold text-foreground">{toolLabels[key]}</span></button>)}
+        {toolLinks.map(({ key, icon: Icon, to }) => <Link key={key} to={to} className="min-h-28 rounded-lg border border-border bg-card p-3 text-start transition-colors hover:border-primary/40"><span className="flex h-9 w-9 items-center justify-center rounded-md bg-primary/10 text-primary"><Icon className="h-4 w-4" /></span><span className="mt-3 block text-sm font-semibold text-foreground">{toolLabels[key]}</span></Link>)}
       </div>
 
       {activeDefinition && <section className="mb-7 rounded-lg border border-border bg-card p-4"><div className="mb-4 flex items-center justify-between"><h2 className="text-sm font-semibold text-foreground">{toolLabels[activeDefinition.key]}</h2><button className="flex h-10 w-10 items-center justify-center rounded-md text-muted-foreground hover:bg-muted" onClick={() => setActiveTool(null)} aria-label="Close tool"><X className="h-4 w-4" /></button></div>{React.createElement(activeDefinition.component)}</section>}
@@ -254,34 +263,6 @@ function GradeNeeded() {
       )}
     </div>
   );
-}
-
-function FlashcardsSection() {
-  const { user } = useProfile();
-  const { locale, isRTL } = useLanguage();
-  const [decks, setDecks] = useState([]);
-  const [cards, setCards] = useState([]);
-  const [activeDeck, setActiveDeck] = useState(null);
-  const [cardIndex, setCardIndex] = useState(0);
-  const [flipped, setFlipped] = useState(false);
-  const [deckName, setDeckName] = useState("");
-  const [front, setFront] = useState("");
-  const [back, setBack] = useState("");
-
-  useEffect(() => { if (user?.id) safeQuery(base44.entities.FlashcardDeck.filter({ owner_user_id: user.id })).then(setDecks); }, [user?.id]);
-  useEffect(() => { if (activeDeck) safeQuery(base44.entities.Flashcard.filter({ deck_id: activeDeck.id })).then((rows) => setCards((rows || []).sort((a, b) => (a.card_order || 0) - (b.card_order || 0)))); }, [activeDeck]);
-
-  const createDeck = async () => { if (!user?.id || !deckName) return; const deck = await base44.entities.FlashcardDeck.create({ owner_user_id: user.id, name: deckName, language: locale }); setDecks((current) => [...current, deck]); setActiveDeck(deck); setDeckName(""); };
-  const addCard = async () => { if (!user?.id || !activeDeck || !front || !back) return; const card = await base44.entities.Flashcard.create({ owner_user_id: user.id, deck_id: activeDeck.id, front, back, card_order: cards.length, review_status: "new" }); setCards((current) => [...current, card]); setFront(""); setBack(""); };
-  const previousIcon = isRTL ? ChevronRight : ChevronLeft;
-  const nextIcon = isRTL ? ChevronLeft : ChevronRight;
-  const PreviousIcon = previousIcon;
-  const NextIcon = nextIcon;
-
-  if (!activeDeck) return <div><div className="mb-3 grid gap-2 sm:grid-cols-2">{decks.map((deck) => <button key={deck.id} className="min-h-16 rounded-lg border border-border bg-muted/20 p-3 text-start hover:border-primary/40" onClick={() => setActiveDeck(deck)}><p className="text-sm font-semibold text-foreground">{deck.name}</p><p className="mt-1 text-xs text-muted-foreground">{deck.subject || "Flashcard deck"}</p></button>)}</div><div className="flex gap-2"><Input value={deckName} onChange={(event) => setDeckName(event.target.value)} placeholder="New deck name" /><Button disabled={!deckName} onClick={createDeck}>Create</Button></div></div>;
-
-  const currentCard = cards[cardIndex];
-  return <div><button className="mb-4 min-h-11 text-sm font-semibold text-primary" onClick={() => { setActiveDeck(null); setCards([]); }}>All decks</button><div className="mb-4 flex items-center justify-between gap-3"><h3 className="font-semibold text-foreground">{activeDeck.name}</h3><span className="text-xs text-muted-foreground">{cards.length} cards</span></div>{currentCard && <div><button className={cn("flex min-h-44 w-full items-center justify-center rounded-lg border p-6 text-center", flipped ? "border-primary bg-primary text-primary-foreground" : "border-border bg-muted/30 text-foreground")} onClick={() => setFlipped((current) => !current)} dir="auto"><span className="text-lg font-semibold">{flipped ? currentCard.back : currentCard.front}</span></button><div className="mt-3 flex items-center justify-between"><button className="flex h-11 w-11 items-center justify-center rounded-md border border-border" onClick={() => { setCardIndex((current) => Math.max(0, current - 1)); setFlipped(false); }} aria-label="Previous card"><PreviousIcon className="h-4 w-4" /></button><span className="text-xs text-muted-foreground">{cardIndex + 1} / {cards.length}</span><button className="flex h-11 w-11 items-center justify-center rounded-md border border-border" onClick={() => { setCardIndex((current) => Math.min(cards.length - 1, current + 1)); setFlipped(false); }} aria-label="Next card"><NextIcon className="h-4 w-4" /></button></div></div>}<div className="mt-5 grid gap-2 border-t border-border pt-4 sm:grid-cols-[1fr_1fr_auto]"><Input value={front} onChange={(event) => setFront(event.target.value)} placeholder="Front" /><Input value={back} onChange={(event) => setBack(event.target.value)} placeholder="Back" /><Button disabled={!front || !back} onClick={addCard}>Add card</Button></div></div>;
 }
 
 function Field({ label, children }) {

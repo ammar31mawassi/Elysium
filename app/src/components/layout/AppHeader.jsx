@@ -36,7 +36,7 @@ export default function AppHeader() {
 
         <nav className="mx-auto hidden h-full items-center gap-1 md:flex" aria-label="Primary navigation">
           {nav.map(([path, label, Icon]) => {
-            const active = path === "/" ? pathname === "/" : pathname.startsWith(path);
+            const active = path === "/" ? pathname === "/" : path === "/tools" ? pathname.startsWith(path) || pathname.startsWith("/flashcards") : pathname.startsWith(path);
             return (
               <Link key={path} to={path} className={cn(
                 "relative flex h-10 items-center gap-2 rounded-md px-3 text-sm font-medium",

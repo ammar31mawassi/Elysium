@@ -1,7 +1,7 @@
 import React, { useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
-import { buildCanonicalAppUrl } from "@/lib/app-params";
+import { useAuth } from "@/lib/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,20 +10,36 @@ import AuthLayout from "@/components/AuthLayout";
 import GoogleIcon from "@/components/GoogleIcon";
 // Uses Elysium logo via AuthLayout
 
+function safeNextPath(value) {
+  if (!value || !value.startsWith("/") || value.startsWith("//")) return "/";
+  const next = new URL(value, window.location.origin);
+  if (next.origin !== window.location.origin) return "/";
+  next.searchParams.delete("clear_access_token");
+  return `${next.pathname}${next.search}${next.hash}`;
+}
+
+function sameOriginUrl(path = "/") {
+  return new URL(path, window.location.origin).toString();
+}
+
 export default function Login() {
+  const navigate = useNavigate();
+  const { checkUserAuth } = useAuth();
   const [searchParams] = useSearchParams();
+  const nextPath = safeNextPath(searchParams.get("next"));
   const [email, setEmail] = useState(() => searchParams.get("email") || "");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
+    e?.preventDefault();
     setError("");
     setLoading(true);
     try {
       await base44.auth.loginViaEmailPassword(email, password);
-      window.location.href = buildCanonicalAppUrl("/");
+      await checkUserAuth();
+      navigate(nextPath, { replace: true });
     } catch (err) {
       setError(err.message || "Invalid email or password");
     } finally {
@@ -32,7 +48,7 @@ export default function Login() {
   };
 
   const handleGoogle = () => {
-    base44.auth.loginWithProvider("google", buildCanonicalAppUrl("/"));
+    base44.auth.loginWithProvider("google", sameOriginUrl(nextPath));
   };
 
   return (
@@ -60,6 +76,7 @@ export default function Login() {
       </Button>
 
       <Button
+        type="button"
         variant="outline"
         className="w-full h-12 text-sm font-medium mb-6"
         onClick={handleGoogle}
@@ -122,7 +139,7 @@ export default function Login() {
             />
           </div>
         </div>
-        <Button type="submit" className="w-full h-12 font-medium" disabled={loading}>
+        <Button type="button" className="w-full h-12 font-medium" disabled={loading} onClick={handleSubmit}>
           {loading ? (
             <>
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />

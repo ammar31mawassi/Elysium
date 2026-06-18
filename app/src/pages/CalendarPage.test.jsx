@@ -136,6 +136,59 @@ describe("CalendarPage", () => {
     expect(screen.getByText("Add homework")).toBeInTheDocument();
   });
 
+  it("shows event markers in the visual calendar and opens the selected day popup", async () => {
+    const scheduledAt = new Date();
+    scheduledAt.setHours(15, 30, 0, 0);
+    if (scheduledAt.getTime() < Date.now()) {
+      scheduledAt.setDate(scheduledAt.getDate() + 1);
+    }
+    const dayLabel = scheduledAt.toLocaleDateString("en", { weekday: "long", month: "long", day: "numeric", year: "numeric" });
+    const nextMonth = new Date();
+    nextMonth.setMonth(nextMonth.getMonth() + 1);
+
+    base44.entities.CalendarItem.filter.mockResolvedValue([
+      {
+        id: "calendar-visual-1",
+        owner_user_id: "user-1",
+        source_type: "personal",
+        personal_kind: "exam",
+        title: "Algorithms quiz",
+        starts_at: scheduledAt.toISOString(),
+        notes: "Room 204",
+        priority: "urgent",
+        completed: false,
+        status: "active",
+      },
+    ]);
+
+    render(
+      <MemoryRouter initialEntries={["/calendar"]}>
+        <CalendarPage />
+      </MemoryRouter>
+    );
+
+    expect(await screen.findByText("Algorithms quiz")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Calendar board" })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Next month" }));
+    expect(screen.getByText(nextMonth.toLocaleDateString("en", { month: "long", year: "numeric" }))).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Previous month" }));
+
+    const dayButton = screen.getByRole("button", { name: `Open ${dayLabel}. 1 scheduled event.` });
+    fireEvent.click(dayButton);
+
+    expect(screen.getByRole("heading", { name: `Events on ${dayLabel}` })).toBeInTheDocument();
+    expect(screen.getAllByText("Algorithms quiz").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Room 204").length).toBeGreaterThan(0);
+
+    fireEvent.click(screen.getByRole("button", { name: "Close" }));
+    fireEvent.click(screen.getByRole("button", { name: "Week" }));
+    expect(screen.getByRole("button", { name: `Open ${dayLabel}. 1 scheduled event.` })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Day" }));
+    expect(screen.getByText("Day view")).toBeInTheDocument();
+  });
+
   it("does not show the deadline empty copy while social or study calendar items are listed", async () => {
     base44.entities.CalendarItem.filter.mockResolvedValue([
       {

@@ -93,7 +93,10 @@ describe("FlashcardsPage", () => {
       return Promise.resolve([]);
     });
     base44.entities.FlashcardDeckFavorite.filter.mockResolvedValue([]);
-    base44.entities.FlashcardDeckFavorite.create.mockResolvedValue({ id: "favorite-1", owner_user_id: "user-1", deck_id: "deck-public" });
+    base44.entities.FlashcardDeckFavorite.create.mockImplementation((payload) => Promise.resolve({
+      id: `favorite-${payload.deck_id}`,
+      ...payload,
+    }));
     base44.entities.FlashcardDeckFavorite.delete.mockResolvedValue({});
     base44.entities.Flashcard.filter.mockResolvedValue(ownCards);
     base44.entities.FlashcardDeck.create.mockResolvedValue({ id: "created-deck" });
@@ -104,6 +107,9 @@ describe("FlashcardsPage", () => {
     render(<MemoryRouter><FlashcardsPage /></MemoryRouter>);
 
     expect(await screen.findByText("My Biology Pack")).toBeInTheDocument();
+    expect(screen.getByText("Cards you added")).toBeInTheDocument();
+    expect(screen.getByText("1. Question A")).toBeInTheDocument();
+    expect(screen.getByText("Answer A")).toBeInTheDocument();
 
     openTab("Published");
     expect(await screen.findByText("Chemistry Basics")).toBeInTheDocument();
@@ -126,6 +132,23 @@ describe("FlashcardsPage", () => {
       deck_owner_user_id: "user-2",
       university_id: "uni-1",
     }));
+  });
+
+  it("lets a student favorite one of their own packs", async () => {
+    render(<MemoryRouter><FlashcardsPage /></MemoryRouter>);
+
+    expect(await screen.findByText("My Biology Pack")).toBeInTheDocument();
+    fireEvent.click(screen.getByLabelText("Favorite My Biology Pack"));
+
+    await waitFor(() => expect(base44.entities.FlashcardDeckFavorite.create).toHaveBeenCalledWith({
+      owner_user_id: "user-1",
+      deck_id: "deck-own",
+      deck_owner_user_id: "user-1",
+      university_id: "uni-1",
+    }));
+
+    openTab("Favorites");
+    expect(await screen.findByText("My Biology Pack")).toBeInTheDocument();
   });
 
   it("opens a study overlay with flip animation and next navigation", async () => {

@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -187,6 +187,82 @@ describe("CalendarPage", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Day" }));
     expect(screen.getByText("Day view")).toBeInTheDocument();
+  });
+
+  it("puts important homework and exams first in the visual day popup", async () => {
+    const day = new Date();
+    day.setHours(9, 0, 0, 0);
+    if (day.getTime() < Date.now()) {
+      day.setDate(day.getDate() + 1);
+    }
+    const dayLabel = day.toLocaleDateString("en", { weekday: "long", month: "long", day: "numeric", year: "numeric" });
+    const atTime = (hour) => {
+      const date = new Date(day);
+      date.setHours(hour, 0, 0, 0);
+      return date.toISOString();
+    };
+
+    base44.entities.CalendarItem.filter.mockResolvedValue([
+      {
+        id: "social-blue",
+        owner_user_id: "user-1",
+        source_type: "social_activity",
+        title: "Morning meetup",
+        starts_at: atTime(8),
+        completed: false,
+        status: "active",
+      },
+      {
+        id: "deadline-yellow",
+        owner_user_id: "user-1",
+        source_type: "personal",
+        personal_kind: "homework",
+        title: "Regular homework",
+        starts_at: atTime(9),
+        priority: "normal",
+        completed: false,
+        status: "active",
+      },
+      {
+        id: "study-green",
+        owner_user_id: "user-1",
+        source_type: "study_session",
+        title: "Study group",
+        starts_at: atTime(10),
+        completed: false,
+        status: "active",
+      },
+      {
+        id: "deadline-red",
+        owner_user_id: "user-1",
+        source_type: "personal",
+        personal_kind: "exam",
+        title: "Important exam",
+        starts_at: atTime(12),
+        priority: "important",
+        completed: false,
+        status: "active",
+      },
+    ]);
+
+    render(
+      <MemoryRouter initialEntries={["/calendar"]}>
+        <CalendarPage />
+      </MemoryRouter>
+    );
+
+    expect(await screen.findByText("Important exam")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: `Open ${dayLabel}. 4 scheduled events.` }));
+
+    const dialog = screen.getByRole("dialog");
+    const importantExam = within(dialog).getByText("Important exam");
+    const morningMeetup = within(dialog).getByText("Morning meetup");
+    const regularHomework = within(dialog).getByText("Regular homework");
+    const studyGroup = within(dialog).getByText("Study group");
+
+    expect(importantExam.compareDocumentPosition(morningMeetup) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(importantExam.compareDocumentPosition(regularHomework) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(importantExam.compareDocumentPosition(studyGroup) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
   it("does not show the deadline empty copy while social or study calendar items are listed", async () => {

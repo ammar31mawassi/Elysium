@@ -62,17 +62,17 @@ function calendarPayloadFromForm(form) {
 }
 
 function itemTone(item) {
-  if (item.source_type === "personal" && ["important", "urgent"].includes(item.priority)) {
+  if (isImportantDeadlineItem(item)) {
     return "bg-destructive/10 text-destructive";
   }
   if (item.source_type === "social_activity") {
-    return "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300";
+    return "bg-blue-500/10 text-blue-700 dark:text-blue-300";
   }
   if (item.source_type === "study_session") {
-    return "bg-primary/10 text-primary";
+    return "bg-green-500/10 text-green-700 dark:text-green-300";
   }
-  if (item.source_type === "personal") {
-    return "bg-amber-500/10 text-amber-700 dark:text-amber-300";
+  if (isDeadlineItem(item)) {
+    return "bg-yellow-400/15 text-yellow-700 dark:text-yellow-300";
   }
   return "bg-muted text-muted-foreground";
 }
@@ -83,6 +83,10 @@ function typeLabel(item) {
 
 function isDeadlineItem(item) {
   return item.source_type === "personal" && DEADLINE_KINDS.has(item.personal_kind);
+}
+
+function isImportantDeadlineItem(item) {
+  return isDeadlineItem(item) && ["important", "urgent"].includes(item.priority);
 }
 
 function matchesCategory(item, category) {
@@ -195,11 +199,21 @@ function formatItemTime(item, locale) {
   return date.toLocaleTimeString(locale, { hour: "numeric", minute: "2-digit" });
 }
 
+function calendarPriorityRank(item) {
+  return isImportantDeadlineItem(item) ? 0 : 1;
+}
+
+function compareCalendarItems(a, b) {
+  const priorityDiff = calendarPriorityRank(a) - calendarPriorityRank(b);
+  if (priorityDiff !== 0) return priorityDiff;
+  return (itemStartTime(a) ?? 0) - (itemStartTime(b) ?? 0);
+}
+
 function eventDotClass(item) {
-  if (item.source_type === "social_activity") return "bg-emerald-500";
-  if (item.source_type === "study_session") return "bg-primary";
-  if (item.source_type === "personal" && ["important", "urgent"].includes(item.priority)) return "bg-destructive";
-  if (item.source_type === "personal") return "bg-amber-500";
+  if (isImportantDeadlineItem(item)) return "bg-red-500";
+  if (item.source_type === "social_activity") return "bg-blue-500";
+  if (item.source_type === "study_session") return "bg-green-500";
+  if (isDeadlineItem(item)) return "bg-yellow-400";
   return "bg-muted-foreground";
 }
 
@@ -293,7 +307,7 @@ export default function CalendarPage() {
       .filter((item) => item.status !== "canceled")
       .filter((item) => itemStartTime(item) !== null)
       .filter((item) => matchesCategory(item, categoryFilter))
-      .sort((a, b) => (itemStartTime(a) ?? 0) - (itemStartTime(b) ?? 0));
+      .sort(compareCalendarItems);
   }, [items, categoryFilter]);
 
   const calendarItemsByDay = useMemo(() => {

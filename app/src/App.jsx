@@ -30,6 +30,13 @@ import ForgotPassword from '@/pages/ForgotPassword';
 import ResetPassword from '@/pages/ResetPassword';
 import LandingPage from '@/pages/LandingPage';
 
+function protectedNextPath(pathname, search) {
+  const params = new URLSearchParams(search);
+  params.delete("clear_access_token");
+  const nextSearch = params.toString();
+  return `${pathname}${nextSearch ? `?${nextSearch}` : ""}`;
+}
+
 const AuthenticatedApp = () => {
   const { pathname, search } = useLocation();
   const { isAuthenticated, isLoadingAuth, isLoadingPublicSettings, authError } = useAuth();
@@ -65,10 +72,11 @@ const AuthenticatedApp = () => {
   }
 
   if (!isAuthenticated) {
+    const nextPath = protectedNextPath(pathname, search);
     return (
       <Routes>
         <Route path="/" element={<LandingPage />} />
-        <Route path="*" element={<Navigate to="/login" replace />} />
+        <Route path="*" element={<Navigate to={`/login?next=${encodeURIComponent(nextPath)}`} replace />} />
       </Routes>
     );
   }

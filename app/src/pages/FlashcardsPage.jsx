@@ -139,6 +139,7 @@ export default function FlashcardsPage() {
   const [publishedDecks, setPublishedDecks] = useState([]);
   const [favorites, setFavorites] = useState([]);
   const [deckCardCounts, setDeckCardCounts] = useState({});
+  const [createdCardsByDeck, setCreatedCardsByDeck] = useState({});
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("created");
   const [search, setSearch] = useState("");
@@ -155,7 +156,16 @@ export default function FlashcardsPage() {
   const user = profileUser || fallbackUser;
 
   const favoriteDeckIds = useMemo(() => new Set(favorites.map((favorite) => favorite.deck_id)), [favorites]);
-  const favoriteDecks = useMemo(() => publishedDecks.filter((deck) => favoriteDeckIds.has(deck.id)), [favoriteDeckIds, publishedDecks]);
+  const visibleDecksById = useMemo(() => {
+    const deckMap = new Map();
+    [...createdDecks, ...publishedDecks].forEach((deck) => {
+      if (deck?.id) deckMap.set(deck.id, deck);
+    });
+    return deckMap;
+  }, [createdDecks, publishedDecks]);
+  const favoriteDecks = useMemo(() => (
+    sortedDecks(favorites.map((favorite) => visibleDecksById.get(favorite.deck_id)).filter(Boolean))
+  ), [favorites, visibleDecksById]);
   const searchablePublishedDecks = useMemo(() => publishedDecks.filter((deck) => deckMatchesSearch(deck, search)), [publishedDecks, search]);
 
   const loadDecks = useCallback(async () => {
@@ -172,15 +182,17 @@ export default function FlashcardsPage() {
         safeQuery(() => base44.entities.FlashcardDeckFavorite.filter({ owner_user_id: user.id }), [], { retry: false }),
       ]);
       const mineRows = sortedDecks(mine || []);
-      const countPairs = await Promise.all(mineRows.map(async (deck) => {
+      const cardPairs = await Promise.all(mineRows.map(async (deck) => {
         const cards = await safeQuery(() => base44.entities.Flashcard.filter({ deck_id: deck.id }));
-        return [deck.id, (cards || []).length];
+        return [deck.id, sortedCards(cards || [])];
       }));
+      const cardCountPairs = cardPairs.map(([deckId, cards]) => [deckId, cards.length]);
       const publicForCampus = (publicRows || []).filter((deck) => (
         deck.owner_user_id !== user.id
         && (!profile?.university_id || deck.university_id === profile.university_id)
       ));
-      setDeckCardCounts(Object.fromEntries(countPairs));
+      setDeckCardCounts(Object.fromEntries(cardCountPairs));
+      setCreatedCardsByDeck(Object.fromEntries(cardPairs));
       setCreatedDecks(mineRows);
       setPublishedDecks(sortedDecks(publicForCampus));
       setFavorites(favoriteRows || []);
@@ -314,7 +326,7 @@ export default function FlashcardsPage() {
   };
 
   const toggleFavorite = async (deck) => {
-    if (!user?.id || deck.owner_user_id === user.id) return;
+    if (!user?.id || !deck?.id) return;
     const existing = favorites.find((favorite) => favorite.deck_id === deck.id);
     try {
       if (existing) {
@@ -324,7 +336,7 @@ export default function FlashcardsPage() {
         const favorite = await base44.entities.FlashcardDeckFavorite.create({
           owner_user_id: user.id,
           deck_id: deck.id,
-          deck_owner_user_id: deck.owner_user_id,
+          deck_owner_user_id: deck.owner_user_id || user.id,
           university_id: deck.university_id || profile?.university_id || "",
         });
         setFavorites((current) => [...current, favorite]);
@@ -408,6 +420,7 @@ export default function FlashcardsPage() {
             loading={loading}
             onCreate={openCreateEditor}
             deckCardCounts={deckCardCounts}
+            createdCardsByDeck={createdCardsByDeck}
             onEdit={openEditEditor}
             onStudy={startStudy}
             onToggleFavorite={toggleFavorite}
@@ -419,8 +432,9 @@ export default function FlashcardsPage() {
           <DeckGrid
             decks={favoriteDecks}
             emptyTitle="No favorite packs yet"
-            emptyBody="Favorite published packs to keep them here for faster studying."
+            emptyBody="Heart any pack to keep it here for faster studying."
             deckCardCounts={deckCardCounts}
+            createdCardsByDeck={createdCardsByDeck}
             favoriteDeckIds={favoriteDeckIds}
             loading={loading}
             onStudy={startStudy}
@@ -446,6 +460,7 @@ export default function FlashcardsPage() {
             emptyTitle="No published packs found"
             emptyBody="Published packs from your university will show here."
             deckCardCounts={deckCardCounts}
+            createdCardsByDeck={createdCardsByDeck}
             favoriteDeckIds={favoriteDeckIds}
             loading={loading}
             onStudy={startStudy}
@@ -657,7 +672,20 @@ function CardSide({ children, color, back = false }) {
   );
 }
 
-function DeckGrid({ decks, deckCardCounts = {}, emptyTitle, emptyBody, favoriteDeckIds, loading, onCreate, onEdit, onStudy, onToggleFavorite, userId }) {
+function DeckGrid({
+  decks,
+  deckCardCounts = {},
+  createdCardsByDeck = {},
+  emptyTitle,
+  emptyBody,
+  favoriteDeckIds,
+  loading,
+  onCreate,
+  onEdit,
+  onStudy,
+  onToggleFavorite,
+  userId,
+}) {
   if (loading) {
     return (
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -684,6 +712,7 @@ function DeckGrid({ decks, deckCardCounts = {}, emptyTitle, emptyBody, favoriteD
           key={deck.id}
           deck={deck}
           cardCount={deckCardCounts[deck.id] ?? deck.card_count ?? 0}
+          cards={createdCardsByDeck[deck.id] || []}
           isFavorite={favoriteDeckIds.has(deck.id)}
           isOwner={deck.owner_user_id === userId}
           onEdit={onEdit}
@@ -695,7 +724,7 @@ function DeckGrid({ decks, deckCardCounts = {}, emptyTitle, emptyBody, favoriteD
   );
 }
 
-function DeckCard({ deck, cardCount, isFavorite, isOwner, onEdit, onStudy, onToggleFavorite }) {
+function DeckCard({ deck, cardCount, cards = [], isFavorite, isOwner, onEdit, onStudy, onToggleFavorite }) {
   const color = deckColor(deck);
 
   return (
@@ -708,7 +737,7 @@ function DeckCard({ deck, cardCount, isFavorite, isOwner, onEdit, onStudy, onTog
           </span>
           <div className="flex items-center gap-1">
             {deck.is_public && <span className="rounded-full border border-border px-2 py-1 text-[11px] font-semibold text-muted-foreground">Public</span>}
-            {!isOwner && (
+            {onToggleFavorite && (
               <button
                 type="button"
                 onClick={() => onToggleFavorite(deck)}
@@ -729,6 +758,7 @@ function DeckCard({ deck, cardCount, isFavorite, isOwner, onEdit, onStudy, onTog
             <span>{cardCount} cards</span>
             {!isOwner && <span>By {deck.owner_display_name || "Student"}</span>}
           </div>
+          {isOwner && <OwnedCardsPreview cards={cards} cardCount={cardCount} />}
         </div>
 
         <div className="mt-4 flex gap-2">
@@ -742,5 +772,37 @@ function DeckCard({ deck, cardCount, isFavorite, isOwner, onEdit, onStudy, onTog
         </div>
       </div>
     </article>
+  );
+}
+
+function OwnedCardsPreview({ cards, cardCount }) {
+  const visibleCards = cards.slice(0, 3);
+  const remainingCount = Math.max(0, cardCount - visibleCards.length);
+
+  return (
+    <div className="mt-4 rounded-md border border-border bg-muted/30 p-3">
+      <p className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Cards you added</p>
+      {visibleCards.length ? (
+        <div className="mt-2 space-y-2">
+          {visibleCards.map((card, index) => (
+            <article key={card.id || card._rowId || `${card.front}-${index}`} className="rounded-md bg-background/70 p-2">
+              <p className="line-clamp-1 text-xs font-semibold text-foreground" dir="auto">
+                {index + 1}. {card.front}
+              </p>
+              <p className="mt-1 line-clamp-1 text-xs text-muted-foreground" dir="auto">
+                {card.back}
+              </p>
+            </article>
+          ))}
+          {remainingCount > 0 && (
+            <p className="text-xs font-medium text-muted-foreground">
+              +{remainingCount} more {remainingCount === 1 ? "card" : "cards"} in this pack
+            </p>
+          )}
+        </div>
+      ) : (
+        <p className="mt-2 text-xs text-muted-foreground">No cards added yet.</p>
+      )}
+    </div>
   );
 }

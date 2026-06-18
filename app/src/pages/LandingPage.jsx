@@ -1,530 +1,570 @@
-import React, { useEffect, useRef, useState } from "react";
+import React from "react";
 import { Link } from "react-router-dom";
+import { motion, useReducedMotion } from "framer-motion";
 import {
   ArrowRight,
   BellRing,
   BookOpenCheck,
   CalendarDays,
   CheckCircle2,
+  Clock3,
   Compass,
   GraduationCap,
   Handshake,
-  HelpCircle,
+  LayoutDashboard,
   LibraryBig,
-  LineChart,
-  MapPinned,
   MessageCircle,
-  ShieldCheck,
+  Network,
+  NotebookTabs,
+  Moon,
   Sparkles,
+  Sun,
+  Target,
   Users,
+  Zap,
 } from "lucide-react";
 import ElysiumLogo from "@/components/elysium/ElysiumLogo";
-import LandingAuthCard from "@/components/landing/LandingAuthCard";
 import StudentOsPreview from "@/components/landing/StudentOsPreview";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
+import { useTheme } from "@/lib/ThemeContext";
 import { cn } from "@/lib/utils";
 
 const navItems = [
   { label: "Tools", href: "#tools" },
-  { label: "Benefits", href: "#benefits" },
-  { label: "How it works", href: "#how-it-works" },
-  { label: "Sign up", href: "#access" },
+  { label: "Organize", href: "#organize" },
+  { label: "Connect", href: "#connect" },
+  { label: "Start", href: "#start" },
 ];
 
-const productPillars = [
+const featureCards = [
   {
-    title: "Academic planning",
-    body: "Track deadlines, exams, study sessions, guides, flashcards, GPA tools, and what to do next.",
+    title: "Academic organization",
+    body: "Track exams, homework, schedules, notes, study sessions, flashcards, and reminders without scattering your day across tabs.",
     icon: BookOpenCheck,
+    accent: "cyan",
   },
   {
-    title: "Campus connection",
-    body: "Find shared activities, peer helpers, classmates, and student-led sessions without starting from zero.",
+    title: "Social and campus life",
+    body: "Discover events, shared activities, campus plans, and interest-based groups that make university feel easier to enter.",
+    icon: Handshake,
+    accent: "amber",
+  },
+  {
+    title: "Peer and tutor connection",
+    body: "Find classmates, study partners, private tutors, and peer helpers with clear roles and useful context.",
+    icon: GraduationCap,
+    accent: "mint",
+  },
+  {
+    title: "Personal dashboard",
+    body: "See what matters today: deadlines, joined events, help options, reminders, courses, and next actions in one calm place.",
+    icon: LayoutDashboard,
+    accent: "blue",
+  },
+];
+
+const toolWidgets = [
+  { title: "Exam planner", detail: "Study windows, countdowns, and course priorities.", icon: CalendarDays },
+  { title: "Homework reminders", detail: "Due dates stay visible before they become emergencies.", icon: BellRing },
+  { title: "Notes and guides", detail: "Course resources, links, terms, and saved guides.", icon: NotebookTabs },
+  { title: "Study groups", detail: "Create sessions and see who is already joining.", icon: Users },
+  { title: "Tutor matching", detail: "Surface relevant tutors and peer helpers by course.", icon: GraduationCap },
+  { title: "Campus events", detail: "Activities, interests, and shared lists around campus life.", icon: Compass },
+];
+
+const organizationFlow = [
+  {
+    title: "Know what is next",
+    body: "Elysium pulls deadlines, events, sessions, and reminders into a single student timeline.",
+    icon: Clock3,
+  },
+  {
+    title: "Choose the right action",
+    body: "Each widget points to a realistic next step: revise, ask, join, schedule, or get help.",
+    icon: Target,
+  },
+  {
+    title: "Keep momentum visible",
+    body: "Progress, urgent tasks, and upcoming plans stay readable on desktop and mobile.",
+    icon: Zap,
+  },
+];
+
+const connectionCards = [
+  {
+    title: "Classmates",
+    body: "Meet students around shared courses, language, year, and study goals.",
     icon: Users,
   },
   {
-    title: "Support discovery",
-    body: "Separate trusted private tutors, opted-in peer helpers, university resources, and AI guidance clearly.",
-    icon: HelpCircle,
-  },
-];
-
-const tools = [
-  {
-    title: "Study planner",
-    body: "Turn courses, tasks, and exam windows into a daily plan.",
-    icon: CalendarDays,
-  },
-  {
-    title: "Homework and exam tracker",
-    body: "Keep deadlines, reminders, and urgent next steps visible.",
-    icon: BellRing,
-  },
-  {
-    title: "Shared activities",
-    body: "Join football, coffee, hobby, and campus events with students nearby.",
-    icon: Handshake,
-  },
-  {
-    title: "Peer and tutor matching",
-    body: "Find help from students, helpers, and tutors with clear roles.",
+    title: "Tutors",
+    body: "Find support by subject while keeping tutor and peer-helper roles distinct.",
     icon: GraduationCap,
   },
   {
-    title: "Campus resources",
-    body: "Open guides, useful links, and terms without digging through portals.",
-    icon: LibraryBig,
+    title: "Interest circles",
+    body: "Turn interests into low-pressure activities, study plans, and campus moments.",
+    icon: Network,
   },
   {
-    title: "Progress dashboard",
-    body: "See what is coming, what is complete, and where you need support.",
-    icon: LineChart,
+    title: "Study partners",
+    body: "Join sessions before exams, labs, assignments, and high-focus weeks.",
+    icon: MessageCircle,
   },
 ];
 
-const benefits = [
-  {
-    title: "Less stress",
-    body: "Deadlines, sessions, and social plans live in one connected student context.",
-  },
-  {
-    title: "Better organization",
-    body: "The home screen summarizes your day instead of dropping you into an empty calendar.",
-  },
-  {
-    title: "Easier connection",
-    body: "Students can discover people around courses, interests, language, and campus life.",
-  },
-  {
-    title: "Faster help",
-    body: "Elysium routes questions to guides, tools, tutors, peer helpers, or university resources.",
-  },
-];
-
-const steps = [
-  {
-    title: "Create your account",
-    body: "Sign up with email or Google and choose your university context.",
-  },
-  {
-    title: "Add courses and interests",
-    body: "Tell Elysium what you study, what you need help with, and what kind of campus life you want.",
-  },
-  {
-    title: "Stay organized and connected",
-    body: "Use one dashboard for tasks, events, study plans, support, reminders, and next actions.",
-  },
-];
-
-const studentScenarios = [
-  {
-    title: "First week clarity",
-    body: "A new student sees campus resources, useful terms, peer helpers, and friendly activities in one place.",
-  },
-  {
-    title: "Exam season focus",
-    body: "A student connects deadlines, flashcards, study sessions, tutor options, and reminders without opening five tools.",
-  },
-  {
-    title: "Social confidence",
-    body: "A commuting student can join a shared activity or study group before campus starts feeling invisible.",
-  },
+const timelineRows = [
+  { time: "09:00", title: "Physics lab prep", meta: "Homework reminder", icon: BellRing },
+  { time: "12:30", title: "Algorithms study sprint", meta: "Study group with 4 classmates", icon: Users },
+  { time: "16:15", title: "Tutor match available", meta: "Data Structures", icon: GraduationCap },
 ];
 
 export default function LandingPage() {
-  useLandingMotion();
-
   return (
     <main className="landing-page">
       <LandingNav />
 
-      <section className="landing-hero landing-grid-bg">
-        <div className="mx-auto grid w-full max-w-7xl items-center gap-8 px-4 pb-4 pt-6 sm:px-6 sm:pb-8 sm:pt-8 lg:grid-cols-[minmax(0,0.9fr)_minmax(520px,1.1fr)] lg:gap-10 lg:px-8 lg:pb-12 lg:pt-10">
-          <div className="min-w-0 text-white">
-            <h1 className="max-w-4xl text-4xl font-extrabold leading-[1.04] tracking-tight sm:text-6xl">
-              University life, organized in one student OS.
+      <section className="landing-hero" aria-labelledby="landing-title">
+        <div className="landing-hero-inner">
+          <HeroReveal className="landing-hero-copy">
+            <h1 id="landing-title">
+              <span>Everything</span>
+              <span>students need,</span>
+              <span>in one place.</span>
             </h1>
-            <p className="mt-5 max-w-2xl text-base leading-7 text-white/70 sm:text-xl sm:leading-8">
-              Elysium helps students manage studies, events, tasks, resources, peer connection, tutor support,
-              and personal progress from one calm campus command center.
+            <p>
+              Elysium brings academic life, social plans, tasks, exams, homework, events,
+              study groups, tutors, peer connections, and interests into one organized student hub.
             </p>
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+            <div className="landing-hero-actions" aria-label="Landing page actions">
+              <AnimatedAction>
+                <Button asChild className="landing-primary-button h-12 px-6 text-base">
+                  <Link to="/register">
+                    Get Started
+                    <ArrowRight data-icon="inline-end" className="size-4 rtl:rotate-180" aria-hidden="true" />
+                  </Link>
+                </Button>
+              </AnimatedAction>
+              <AnimatedAction>
+                <Button asChild variant="outline" className="landing-secondary-button h-12 px-6 text-base">
+                  <Link to="/login">Sign In</Link>
+                </Button>
+              </AnimatedAction>
+              <ThemeToggle className="landing-mobile-theme-toggle" showText />
+            </div>
+          </HeroReveal>
+
+          <HeroReveal className="landing-hero-product" delay={0.12}>
+            <StudentOsPreview />
+          </HeroReveal>
+        </div>
+      </section>
+
+      <section id="tools" className="landing-section landing-section-tools" aria-labelledby="tools-title">
+        <div className="landing-container">
+          <SectionHeader
+            eager
+            title="A toolset built around real student life."
+            body="The page is not another portal. It is a launchpad for the academic, social, and support workflows students already juggle every week."
+          />
+          <div className="landing-feature-grid">
+            {featureCards.map((feature, index) => (
+              <FeatureCard key={feature.title} feature={feature} index={index} />
+            ))}
+          </div>
+          <Reveal className="landing-tool-strip" delay={0.08}>
+            {toolWidgets.map((tool, index) => (
+              <ToolPill key={tool.title} tool={tool} index={index} />
+            ))}
+          </Reveal>
+        </div>
+      </section>
+
+      <section id="organize" className="landing-section landing-section-organize" aria-labelledby="organize-title">
+        <div className="landing-container landing-split">
+          <Reveal className="landing-split-copy">
+            <SectionKicker icon={CheckCircle2} text="Stay organized" />
+            <h2 id="organize-title">From deadline noise to a clear next step.</h2>
+            <p>
+              Elysium helps students see what is due, what is coming, what needs support,
+              and where their time should go next. It turns scattered campus signals into a readable day.
+            </p>
+            <div className="landing-flow-list">
+              {organizationFlow.map((item, index) => (
+                <FlowItem key={item.title} item={item} index={index} />
+              ))}
+            </div>
+          </Reveal>
+          <Reveal delay={0.12}>
+            <OrganizationBoard />
+          </Reveal>
+        </div>
+      </section>
+
+      <section id="connect" className="landing-section landing-section-connect" aria-labelledby="connect-title">
+        <div className="landing-container landing-connect-grid">
+          <Reveal className="landing-connect-visual">
+            <ConnectionOrbit />
+          </Reveal>
+          <Reveal className="landing-split-copy" delay={0.1}>
+            <SectionKicker icon={Sparkles} text="Find your people" />
+            <h2 id="connect-title">Peer connection, tutor support, and interests belong beside your coursework.</h2>
+            <p>
+              University gets easier when academic help and social discovery are connected to the
+              courses, communities, and plans students actually care about.
+            </p>
+            <div className="landing-connection-cards">
+              {connectionCards.map((card, index) => (
+                <ConnectionCard key={card.title} card={card} index={index} />
+              ))}
+            </div>
+          </Reveal>
+        </div>
+      </section>
+
+      <section id="start" className="landing-final-cta" aria-labelledby="start-title">
+        <Reveal className="landing-final-card">
+          <Sparkles className="landing-final-spark" aria-hidden="true" />
+          <h2 id="start-title">Start with a clearer campus day.</h2>
+          <p>
+            Create your student space, add your courses and interests, and let Elysium organize
+            the tools, people, reminders, and plans that help university feel manageable.
+          </p>
+          <div className="landing-final-actions">
+            <AnimatedAction>
               <Button asChild className="landing-primary-button h-12 px-6 text-base">
                 <Link to="/register">
                   Get Started
                   <ArrowRight data-icon="inline-end" className="size-4 rtl:rotate-180" aria-hidden="true" />
                 </Link>
               </Button>
-              <Button asChild variant="outline" className="h-12 border-white/[0.18] bg-white/[0.08] px-6 text-base text-white hover:bg-white/[0.14] hover:text-white">
-                <a href="#tools">Explore Tools</a>
+            </AnimatedAction>
+            <AnimatedAction>
+              <Button asChild variant="outline" className="landing-secondary-button h-12 px-6 text-base">
+                <Link to="/login">Sign In</Link>
               </Button>
-            </div>
-            <div className="mt-8 hidden max-w-2xl gap-3 lg:grid lg:grid-cols-3">
-              {["Academic planning", "Campus connection", "Personal progress"].map((item) => (
-                <div key={item} className="landing-hero-chip rounded-lg border border-white/10 bg-white/[0.055] px-4 py-3 text-sm font-semibold text-white/[0.78]">
-                  {item}
-                </div>
-              ))}
-            </div>
+            </AnimatedAction>
           </div>
-          <StudentOsPreview className="landing-reveal" />
-        </div>
-      </section>
-
-      <section id="platform" className="landing-section bg-background">
-        <div className="mx-auto grid max-w-7xl gap-8 px-4 sm:px-6 lg:grid-cols-[0.8fr_1.2fr] lg:px-8">
-          <SectionIntro
-            icon={Compass}
-            title="A campus compass, not another portal."
-            body="Elysium connects academic planning, social discovery, support, tools, and guidance around the student. Every module answers a simple question: what should I do next?"
-          />
-          <div className="grid gap-3 md:grid-cols-3">
-            {productPillars.map((pillar) => (
-              <FeatureCard key={pillar.title} {...pillar} />
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section id="tools" className="landing-section bg-muted/35">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <SectionHeader
-            title="Everything students reach for, grouped by real campus needs."
-            body="The tools are connected enough to reduce friction, but separated enough to stay understandable."
-          />
-          <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {tools.map((tool) => (
-              <ToolCard key={tool.title} {...tool} />
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section id="benefits" className="landing-section bg-background">
-        <div className="mx-auto grid max-w-7xl items-center gap-10 px-4 sm:px-6 lg:grid-cols-[minmax(0,0.95fr)_minmax(360px,0.75fr)] lg:px-8">
-          <div>
-            <SectionHeader
-              align="left"
-              title="Designed to make university feel easier to navigate."
-              body="Students should understand deadlines, find people, ask for help, and move through campus life with less uncertainty."
-            />
-            <div className="mt-8 grid gap-3 sm:grid-cols-2">
-              {benefits.map((benefit) => (
-                <BenefitItem key={benefit.title} {...benefit} />
-              ))}
-            </div>
-          </div>
-          <div className="landing-benefit-panel">
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <p className="text-sm font-semibold text-primary">Clarity loop</p>
-                <h3 className="mt-2 text-2xl font-bold text-foreground">From lost to next step</h3>
-              </div>
-              <span className="flex size-12 items-center justify-center rounded-md bg-primary/10 text-primary">
-                <MapPinned className="size-5" aria-hidden="true" />
-              </span>
-            </div>
-            <Separator className="my-6" />
-            <div className="flex flex-col gap-4">
-              {["Know what is due", "Find where to get help", "Meet people around real plans", "Keep progress visible"].map((item) => (
-                <div key={item} className="flex items-center gap-3">
-                  <span className="flex size-7 items-center justify-center rounded-md bg-primary/10 text-primary">
-                    <CheckCircle2 className="size-4" aria-hidden="true" />
-                  </span>
-                  <span className="text-sm font-semibold text-foreground">{item}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section id="how-it-works" className="landing-section bg-muted/35">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <SectionHeader
-            title="How it works"
-            body="A short setup turns the platform from a directory into a personal campus operating system."
-          />
-          <div className="mt-10 grid gap-4 lg:grid-cols-3">
-            {steps.map((step, index) => (
-              <StepCard key={step.title} index={index + 1} {...step} />
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="landing-section bg-background">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <SectionHeader
-            title="Student-focused proof without fake traction."
-            body="Until real testimonials exist, the landing page should describe realistic student situations instead of inventing names, numbers, or logos."
-          />
-          <div className="mt-10 grid gap-4 lg:grid-cols-3">
-            {studentScenarios.map((scenario) => (
-              <ScenarioCard key={scenario.title} {...scenario} />
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section id="access" className="landing-section bg-muted/35">
-        <div className="mx-auto grid max-w-7xl items-center gap-10 px-4 sm:px-6 lg:grid-cols-[minmax(0,0.85fr)_minmax(360px,0.7fr)] lg:px-8">
-          <div>
-            <SectionIntro
-              icon={ShieldCheck}
-              title="A trustworthy starting point for new and returning students."
-              body="The auth area is part of the product story: students are creating a private space that can become academic planner, social hub, support network, and personal dashboard."
-            />
-            <div className="mt-8 grid gap-3 sm:grid-cols-2">
-              {[
-                "Clear role separation for tutors and peer helpers",
-                "Profile-controlled visibility",
-                "Trilingual product direction",
-                "Accessible keyboard and focus states",
-              ].map((item) => (
-                <div key={item} className="flex items-center gap-3 rounded-lg border border-border bg-card p-4 text-sm font-semibold text-foreground shadow-sm">
-                  <CheckCircle2 className="size-4 shrink-0 text-primary" aria-hidden="true" />
-                  <span>{item}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-          <LandingAuthCard />
-        </div>
-      </section>
-
-      <section className="landing-final-cta">
-        <div className="mx-auto max-w-4xl px-4 py-16 text-center sm:px-6 lg:px-8">
-          <Sparkles className="mx-auto size-9 text-cyan-200" aria-hidden="true" />
-          <h2 className="mt-5 text-3xl font-bold tracking-tight text-white sm:text-5xl">
-            Start building a clearer university life.
-          </h2>
-          <p className="mx-auto mt-5 max-w-2xl text-base leading-7 text-white/[0.68]">
-            Create your account, add your courses and interests, and let Elysium connect the tools, people,
-            resources, and reminders that make campus easier.
-          </p>
-          <div className="mt-8 flex justify-center">
-            <Button asChild className="landing-primary-button h-12 px-6 text-base">
-              <Link to="/register">
-                Sign Up
-                <ArrowRight data-icon="inline-end" className="size-4 rtl:rotate-180" aria-hidden="true" />
-              </Link>
-            </Button>
-          </div>
-        </div>
+        </Reveal>
       </section>
     </main>
   );
 }
 
 function LandingNav() {
-  const refs = useRef([]);
-  const [indicator, setIndicator] = useState({ left: 0, width: 0, opacity: 0 });
-  const [activeIndex, setActiveIndex] = useState(0);
-
-  const moveIndicator = (index) => {
-    const node = refs.current[index];
-    if (!node) return;
-    setIndicator({ left: node.offsetLeft, width: node.offsetWidth, opacity: 1 });
-  };
-
-  useEffect(() => {
-    moveIndicator(activeIndex);
-    const handleResize = () => moveIndicator(activeIndex);
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, [activeIndex]);
-
-  useEffect(() => {
-    if (!("IntersectionObserver" in window)) return undefined;
-
-    const sections = navItems
-      .map((item, index) => {
-        const node = document.querySelector(item.href);
-        return node ? { node, index } : null;
-      })
-      .filter(Boolean);
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const activeEntry = entries
-          .filter((entry) => entry.isIntersecting)
-          .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
-        if (!activeEntry) return;
-        const match = sections.find((section) => section.node === activeEntry.target);
-        if (match) setActiveIndex(match.index);
-      },
-      { rootMargin: "-28% 0px -55% 0px", threshold: [0.08, 0.18, 0.32] },
-    );
-
-    sections.forEach((section) => observer.observe(section.node));
-    return () => observer.disconnect();
-  }, []);
+  const prefersReducedMotion = useReducedMotion();
 
   return (
-    <header className="sticky top-0 z-30 border-b border-white/10 bg-[#071013]/[0.92] backdrop-blur-xl">
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
-        <Link to="/" className="flex items-center gap-3" aria-label="Elysium home">
+    <header className="landing-nav">
+      <div className="landing-nav-inner">
+        <Link to="/" className="landing-brand" aria-label="Elysium home">
           <ElysiumLogo size={38} className="rounded-sm" />
         </Link>
 
-        <nav
-          className="landing-hub relative hidden items-center rounded-lg border border-white/10 bg-white/[0.055] p-1 lg:flex"
-          aria-label="Landing page sections"
-          onMouseLeave={() => moveIndicator(activeIndex)}
-        >
-          <span
-            className="landing-hub-indicator"
-            style={{
-              opacity: indicator.opacity,
-              width: `${indicator.width}px`,
-              transform: `translateX(${indicator.left}px)`,
-            }}
-            aria-hidden="true"
-          />
-          {navItems.map((item, index) => (
-            <a
+        <nav className="landing-nav-links" aria-label="Landing page sections">
+          {navItems.map((item) => (
+            <motion.a
               key={item.href}
-              ref={(node) => {
-                refs.current[index] = node;
-              }}
               href={item.href}
-              className="relative z-10 rounded-md px-3.5 py-2 text-sm font-medium text-white/[0.68] transition-colors duration-150 hover:text-white focus-visible:text-white"
-              onMouseEnter={() => moveIndicator(index)}
-              onFocus={() => moveIndicator(index)}
-              onClick={() => setActiveIndex(index)}
+              whileHover={prefersReducedMotion ? undefined : { y: -1 }}
+              whileTap={prefersReducedMotion ? undefined : { scale: 0.98 }}
             >
               {item.label}
-            </a>
+            </motion.a>
           ))}
         </nav>
 
-        <div className="flex items-center gap-2">
-          <Button asChild variant="ghost" className="hidden text-white/[0.78] hover:bg-white/10 hover:text-white sm:inline-flex">
-            <Link to="/login">Sign in</Link>
-          </Button>
-          <Button asChild className="landing-primary-button h-10">
-            <Link to="/register">Sign up</Link>
-          </Button>
+        <div className="landing-nav-actions">
+          <ThemeToggle className="landing-theme-toggle" />
+          <AnimatedAction>
+            <Button asChild variant="ghost" className="landing-nav-signin hidden h-10 px-4 sm:inline-flex">
+              <Link to="/login">Sign In</Link>
+            </Button>
+          </AnimatedAction>
+          <AnimatedAction>
+            <Button asChild className="landing-primary-button h-10 px-4">
+              <Link to="/register">Get Started</Link>
+            </Button>
+          </AnimatedAction>
         </div>
       </div>
     </header>
   );
 }
 
-function SectionHeader({ title, body, align = "center" }) {
+function ThemeToggle({ className, showText = false }) {
+  const prefersReducedMotion = useReducedMotion();
+  const { isDark, setTheme } = useTheme();
+  const nextTheme = isDark ? "light" : "dark";
+  const ThemeIcon = isDark ? Sun : Moon;
+
   return (
-    <div data-landing-reveal className={cn("mx-auto max-w-3xl", align === "center" ? "text-center" : "mx-0 text-left")}>
-      <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">{title}</h2>
-      <p className="mt-4 text-base leading-7 text-muted-foreground sm:text-lg">{body}</p>
+    <motion.button
+      type="button"
+      className={className}
+      onClick={() => setTheme(nextTheme)}
+      aria-label={`Switch to ${nextTheme} mode`}
+      title={`Switch to ${nextTheme} mode`}
+      whileHover={prefersReducedMotion ? undefined : { y: -1 }}
+      whileTap={prefersReducedMotion ? undefined : { scale: 0.96 }}
+    >
+      <ThemeIcon className="size-4" aria-hidden="true" />
+      {showText && <span>{isDark ? "Use light mode" : "Use dark mode"}</span>}
+    </motion.button>
+  );
+}
+
+function Reveal({ children, className, delay = 0 }) {
+  const prefersReducedMotion = useReducedMotion();
+
+  return (
+    <motion.div
+      className={className}
+      initial={prefersReducedMotion ? false : { opacity: 0.78, y: 28, scale: 0.985 }}
+      whileInView={prefersReducedMotion ? undefined : { opacity: 1, y: 0, scale: 1 }}
+      viewport={{ once: true, amount: 0.2, margin: "0px 0px -10% 0px" }}
+      transition={{ duration: 0.62, ease: [0.16, 1, 0.3, 1], delay }}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+function HeroReveal({ children, className, delay = 0 }) {
+  const prefersReducedMotion = useReducedMotion();
+
+  return (
+    <motion.div
+      className={className}
+      initial={prefersReducedMotion ? false : { opacity: 0, y: 24, scale: 0.99 }}
+      animate={prefersReducedMotion ? undefined : { opacity: 1, y: 0, scale: 1 }}
+      transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1], delay }}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+function AnimatedAction({ children, className }) {
+  const prefersReducedMotion = useReducedMotion();
+
+  return (
+    <motion.div
+      className={cn("landing-action-motion", className)}
+      whileHover={prefersReducedMotion ? undefined : { y: -2 }}
+      whileTap={prefersReducedMotion ? undefined : { y: 0, scale: 0.98 }}
+      transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+function SectionHeader({ title, body, eager = false }) {
+  const Wrapper = eager ? HeroReveal : Reveal;
+
+  return (
+    <Wrapper className="landing-section-header">
+      <h2>{title}</h2>
+      <p>{body}</p>
+    </Wrapper>
+  );
+}
+
+function SectionKicker({ icon: Icon, text }) {
+  return (
+    <div className="landing-kicker">
+      <Icon className="size-4" aria-hidden="true" />
+      <span>{text}</span>
     </div>
   );
 }
 
-function SectionIntro({ icon: Icon, title, body }) {
-  return (
-    <div data-landing-reveal className="max-w-2xl">
-      <div className="flex items-start gap-4">
-        <span className="landing-motion-icon flex size-12 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
-          <Icon className="size-5" aria-hidden="true" />
-        </span>
-        <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">{title}</h2>
-      </div>
-      <p className="mt-4 text-base leading-7 text-muted-foreground sm:text-lg">{body}</p>
-    </div>
-  );
-}
+function FeatureCard({ feature, index }) {
+  const prefersReducedMotion = useReducedMotion();
+  const Icon = feature.icon;
 
-function FeatureCard({ title, body, icon: Icon }) {
   return (
-    <article data-landing-reveal className="landing-info-card landing-motion-card">
-      <span className="landing-motion-icon inline-flex size-10 items-center justify-center rounded-md bg-primary/10 text-primary">
+    <motion.article
+      className={cn("landing-feature-card", `landing-accent-${feature.accent}`)}
+      initial={prefersReducedMotion ? false : { opacity: 0.78, y: 30, scale: 0.97 }}
+      whileInView={prefersReducedMotion ? undefined : { opacity: 1, y: 0, scale: 1 }}
+      whileHover={prefersReducedMotion ? undefined : { y: -7, scale: 1.01 }}
+      viewport={{ once: true, amount: 0.28 }}
+      transition={{ duration: 0.52, ease: [0.16, 1, 0.3, 1], delay: index * 0.06 }}
+    >
+      <span className="landing-card-icon">
         <Icon className="size-5" aria-hidden="true" />
       </span>
-      <h3 className="mt-5 text-lg font-bold text-foreground">{title}</h3>
-      <p className="mt-2 text-sm leading-6 text-muted-foreground">{body}</p>
-    </article>
+      <h3>{feature.title}</h3>
+      <p>{feature.body}</p>
+    </motion.article>
   );
 }
 
-function ToolCard({ title, body, icon: Icon }) {
-  return (
-    <article data-landing-reveal className="landing-tool-card landing-motion-card group">
-      <div className="flex items-start justify-between gap-4">
-        <span className="landing-motion-icon flex size-11 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
-          <Icon className="size-5" aria-hidden="true" />
-        </span>
-        <ArrowRight className="size-4 text-muted-foreground transition-transform duration-150 group-hover:translate-x-1 rtl:rotate-180 rtl:group-hover:-translate-x-1" aria-hidden="true" />
-      </div>
-      <h3 className="mt-6 text-lg font-bold text-foreground">{title}</h3>
-      <p className="mt-2 text-sm leading-6 text-muted-foreground">{body}</p>
-    </article>
-  );
-}
+function ToolPill({ tool, index }) {
+  const prefersReducedMotion = useReducedMotion();
+  const Icon = tool.icon;
 
-function BenefitItem({ title, body }) {
   return (
-    <article data-landing-reveal className="landing-motion-card rounded-lg border border-border bg-card p-5 shadow-sm">
-      <h3 className="text-base font-bold text-foreground">{title}</h3>
-      <p className="mt-2 text-sm leading-6 text-muted-foreground">{body}</p>
-    </article>
-  );
-}
-
-function StepCard({ index, title, body }) {
-  return (
-    <article data-landing-reveal className="landing-motion-card rounded-lg border border-border bg-card p-6 shadow-sm">
-      <span className="landing-step-number flex size-10 items-center justify-center rounded-md bg-primary text-sm font-bold text-primary-foreground">
-        {index}
+    <motion.article
+      className="landing-tool-pill"
+      whileHover={prefersReducedMotion ? undefined : { y: -4 }}
+      transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1], delay: index * 0.02 }}
+    >
+      <span>
+        <Icon className="size-4" aria-hidden="true" />
       </span>
-      <h3 className="mt-6 text-xl font-bold text-foreground">{title}</h3>
-      <p className="mt-3 text-sm leading-6 text-muted-foreground">{body}</p>
-    </article>
-  );
-}
-
-function ScenarioCard({ title, body }) {
-  return (
-    <article data-landing-reveal className="landing-motion-card rounded-lg border border-border bg-card p-6 shadow-sm">
-      <div className="flex items-center gap-3">
-        <span className="landing-motion-icon flex size-9 items-center justify-center rounded-md bg-secondary/20 text-secondary-foreground">
-          <MessageCircle className="size-4" aria-hidden="true" />
-        </span>
-        <h3 className="text-lg font-bold text-foreground">{title}</h3>
+      <div>
+        <h3>{tool.title}</h3>
+        <p>{tool.detail}</p>
       </div>
-      <p className="mt-4 text-sm leading-6 text-muted-foreground">{body}</p>
-    </article>
+    </motion.article>
   );
 }
 
-function useLandingMotion() {
-  useEffect(() => {
-    const targets = Array.from(document.querySelectorAll("[data-landing-reveal]"));
-    if (!targets.length) return undefined;
+function FlowItem({ item, index }) {
+  const prefersReducedMotion = useReducedMotion();
+  const Icon = item.icon;
 
-    targets.forEach((target, index) => {
-      target.style.setProperty("--reveal-index", index % 6);
-    });
+  return (
+    <motion.article
+      className="landing-flow-item"
+      initial={prefersReducedMotion ? false : { opacity: 0.78, x: -18 }}
+      whileInView={prefersReducedMotion ? undefined : { opacity: 1, x: 0 }}
+      viewport={{ once: true, amount: 0.35 }}
+      transition={{ duration: 0.44, ease: [0.16, 1, 0.3, 1], delay: index * 0.08 }}
+    >
+      <span>
+        <Icon className="size-4" aria-hidden="true" />
+      </span>
+      <div>
+        <h3>{item.title}</h3>
+        <p>{item.body}</p>
+      </div>
+    </motion.article>
+  );
+}
 
-    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (reduceMotion || !("IntersectionObserver" in window)) {
-      targets.forEach((target) => target.classList.add("is-visible"));
-      return undefined;
-    }
+function OrganizationBoard() {
+  const prefersReducedMotion = useReducedMotion();
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (!entry.isIntersecting) return;
-          entry.target.classList.add("is-visible");
-          observer.unobserve(entry.target);
-        });
-      },
-      { rootMargin: "0px 0px -12% 0px", threshold: 0.16 },
-    );
+  return (
+    <motion.div
+      className="landing-organization-board"
+      whileHover={prefersReducedMotion ? undefined : { y: -4, rotateX: 1 }}
+      transition={{ duration: 0.24, ease: [0.16, 1, 0.3, 1] }}
+    >
+      <div className="landing-board-header">
+        <div>
+          <p>Today</p>
+          <h3>Academic focus map</h3>
+        </div>
+        <span>74%</span>
+      </div>
+      <div className="landing-progress-track" aria-hidden="true">
+        <motion.span
+          initial={prefersReducedMotion ? false : { scaleX: 0 }}
+          whileInView={prefersReducedMotion ? undefined : { scaleX: 1 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1], delay: 0.2 }}
+        />
+      </div>
+      <div className="landing-board-timeline">
+        {timelineRows.map((row) => {
+          const Icon = row.icon;
+          return (
+            <article key={row.title}>
+              <span className="landing-board-time">{row.time}</span>
+              <span className="landing-board-icon">
+                <Icon className="size-4" aria-hidden="true" />
+              </span>
+              <div>
+                <h4>{row.title}</h4>
+                <p>{row.meta}</p>
+              </div>
+            </article>
+          );
+        })}
+      </div>
+      <div className="landing-board-next">
+        <LibraryBig className="size-5" aria-hidden="true" />
+        <div>
+          <h4>Suggested next step</h4>
+          <p>Review saved notes before the study sprint starts.</p>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
 
-    targets.forEach((target) => observer.observe(target));
-    return () => observer.disconnect();
-  }, []);
+function ConnectionOrbit() {
+  const prefersReducedMotion = useReducedMotion();
+  const orbitTransition = prefersReducedMotion
+    ? undefined
+    : { duration: 8, repeat: Infinity, repeatType: "mirror", ease: "easeInOut" };
+
+  return (
+    <div className="landing-orbit-card" aria-label="Student connection preview">
+      <motion.div
+        className="landing-orbit-core"
+        animate={prefersReducedMotion ? undefined : { y: [0, -8, 0] }}
+        transition={orbitTransition}
+      >
+        <ElysiumLogo size={52} className="rounded-sm" decorative />
+        <p>Match by course, help, and interests</p>
+      </motion.div>
+      {[
+        { label: "Study partner", className: "orbit-a", icon: Users },
+        { label: "Tutor match", className: "orbit-b", icon: GraduationCap },
+        { label: "Campus event", className: "orbit-c", icon: CalendarDays },
+        { label: "Interest group", className: "orbit-d", icon: Sparkles },
+      ].map((item, index) => {
+        const Icon = item.icon;
+        return (
+          <motion.div
+            key={item.label}
+            className={cn("landing-orbit-node", item.className)}
+            initial={prefersReducedMotion ? false : { opacity: 0.78, scale: 0.88 }}
+            whileInView={prefersReducedMotion ? undefined : { opacity: 1, scale: 1 }}
+            animate={prefersReducedMotion ? undefined : { y: [0, index % 2 ? 7 : -7, 0] }}
+            viewport={{ once: true }}
+            transition={{
+              duration: 0.46,
+              ease: [0.16, 1, 0.3, 1],
+              delay: index * 0.08,
+              y: { duration: 6 + index, repeat: Infinity, repeatType: "mirror", ease: "easeInOut" },
+            }}
+          >
+            <Icon className="size-4" aria-hidden="true" />
+            <span>{item.label}</span>
+          </motion.div>
+        );
+      })}
+    </div>
+  );
+}
+
+function ConnectionCard({ card, index }) {
+  const prefersReducedMotion = useReducedMotion();
+  const Icon = card.icon;
+
+  return (
+    <motion.article
+      className="landing-connection-card"
+      initial={prefersReducedMotion ? false : { opacity: 0.78, y: 18 }}
+      whileInView={prefersReducedMotion ? undefined : { opacity: 1, y: 0 }}
+      whileHover={prefersReducedMotion ? undefined : { x: 4 }}
+      viewport={{ once: true, amount: 0.3 }}
+      transition={{ duration: 0.44, ease: [0.16, 1, 0.3, 1], delay: index * 0.05 }}
+    >
+      <span>
+        <Icon className="size-4" aria-hidden="true" />
+      </span>
+      <div>
+        <h3>{card.title}</h3>
+        <p>{card.body}</p>
+      </div>
+    </motion.article>
+  );
 }

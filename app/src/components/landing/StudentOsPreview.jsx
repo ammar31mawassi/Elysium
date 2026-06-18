@@ -1,4 +1,5 @@
 import React from "react";
+import { motion, useReducedMotion } from "framer-motion";
 import {
   Bell,
   BookOpenCheck,
@@ -51,110 +52,224 @@ const toolCards = [
   { label: "AI guide", detail: "Ready", icon: Sparkles },
 ];
 
+const floatingCards = [
+  {
+    title: "Upcoming Exam",
+    detail: "Calculus II · Friday",
+    icon: BookOpenCheck,
+    className: "landing-float-exam",
+  },
+  {
+    title: "Study Group",
+    detail: "4 classmates joined",
+    icon: Users,
+    className: "landing-float-group",
+  },
+  {
+    title: "New Tutor Match",
+    detail: "Data Structures",
+    icon: GraduationCap,
+    className: "landing-float-tutor",
+  },
+  {
+    title: "Homework Reminder",
+    detail: "Lab report due 18:00",
+    icon: Bell,
+    className: "landing-float-homework",
+  },
+  {
+    title: "Campus Event",
+    detail: "Design club tonight",
+    icon: CalendarDays,
+    className: "landing-float-event",
+  },
+];
+
 const toneMap = {
-  primary: "bg-primary/10 text-primary border-primary/20",
-  study: "bg-accent/10 text-accent border-accent/20",
-  social: "bg-secondary/20 text-secondary-foreground border-secondary/35",
+  primary: "bg-cyan-300/10 text-cyan-100 border-cyan-200/20",
+  study: "bg-blue-300/10 text-blue-100 border-blue-200/20",
+  social: "bg-amber-300/15 text-amber-100 border-amber-200/25",
 };
 
 export default function StudentOsPreview({ className }) {
+  const prefersReducedMotion = useReducedMotion();
+
   return (
     <div className={cn("landing-preview-shell", className)} aria-label="Elysium dashboard preview">
-      <div className="landing-preview-window" data-landing-reveal>
-        <div className="flex items-center justify-between gap-4 border-b border-white/10 px-4 py-3 sm:px-5">
+      {floatingCards.map((card, index) => (
+        <FloatingCard key={card.title} card={card} index={index} />
+      ))}
+
+      <motion.div
+        className="landing-preview-window"
+        whileHover={prefersReducedMotion ? undefined : { y: -5, scale: 1.006 }}
+        transition={{ duration: 0.26, ease: [0.16, 1, 0.3, 1] }}
+      >
+        <div className="landing-preview-topbar">
           <div className="flex min-w-0 items-center gap-2.5">
-            <span className="landing-preview-icon flex size-8 items-center justify-center rounded-md border border-white/[0.12] bg-white/[0.08] text-cyan-100">
+            <span className="landing-preview-icon">
               <Sparkles className="size-4" aria-hidden="true" />
             </span>
             <div className="min-w-0">
               <p className="truncate text-sm font-semibold text-white">Today command center</p>
-              <p className="truncate text-xs text-white/[0.55]">Ben-Gurion University · English</p>
+              <p className="truncate text-xs text-white/[0.55]">Courses · people · plans</p>
             </div>
           </div>
-          <span className="landing-preview-icon flex size-9 items-center justify-center rounded-md border border-white/[0.12] bg-white/[0.07] text-white/75">
+          <span className="landing-preview-bell">
             <Bell className="size-4" aria-hidden="true" />
           </span>
         </div>
 
-        <div className="grid items-start gap-4 p-4 sm:p-5 lg:grid-cols-[0.82fr_1.35fr_0.82fr]">
-          <aside className="landing-preview-panel hidden min-w-0 rounded-lg border border-white/10 bg-white/[0.045] p-3 lg:block">
-            <p className="px-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/[0.45]">Hub</p>
+        <div className="landing-preview-grid">
+          <aside className="landing-preview-panel landing-preview-sidebar">
+            <p className="landing-preview-label">Hub</p>
             <div className="mt-3 flex flex-col gap-1.5">
               {["Home", "Social", "Study", "Calendar", "Tools"].map((item, index) => (
-                <div
+                <motion.div
                   key={item}
-                  className={cn(
-                    "landing-preview-nav-row flex items-center justify-between rounded-md px-2.5 py-2 text-sm",
-                    index === 0 ? "bg-white/10 text-white" : "text-white/[0.55]",
-                  )}
+                  className={cn("landing-preview-nav-row", index === 0 && "is-active")}
+                  whileHover={prefersReducedMotion ? undefined : { x: 3 }}
                 >
                   <span>{item}</span>
                   {index === 0 && <span className="size-1.5 rounded-full bg-cyan-300" />}
-                </div>
+                </motion.div>
               ))}
             </div>
           </aside>
 
           <main className="min-w-0">
-            <div className="landing-preview-panel landing-preview-next rounded-lg border border-cyan-300/20 bg-cyan-300/[0.08] p-4 shadow-[0_22px_60px_rgba(0,0,0,0.2)]">
+            <div className="landing-preview-panel landing-preview-next">
               <div className="flex items-start justify-between gap-4">
                 <div className="min-w-0">
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-100/70">
-                    Your next step
-                  </p>
-                  <h3 className="mt-2 text-xl font-bold leading-tight text-white sm:text-2xl">
-                    Finish the lab plan before your study group.
-                  </h3>
-                  <p className="landing-preview-compact-hide mt-2 text-sm leading-6 text-white/[0.68]">
+                  <p className="landing-preview-label text-cyan-100/70">Your next step</p>
+                  <h3>Finish the lab plan before your study group.</h3>
+                  <p>
                     Elysium connects the deadline, classmates, tutor options, and your calendar.
                   </p>
                 </div>
-                <div className="landing-progress-ring shrink-0" style={{ "--progress": "74" }}>
+                <div className="landing-progress-ring" style={{ "--progress": "74" }}>
                   <span>74%</span>
                 </div>
               </div>
-              <div className="landing-preview-optional mt-5 grid gap-2 sm:grid-cols-3">
-                {actions.map((action) => (
-                  <div key={action.label} className="landing-preview-mini-card rounded-md border border-white/10 bg-white/[0.07] p-3">
-                    <action.icon className="size-4 text-cyan-100" aria-hidden="true" />
-                    <p className="mt-2 text-[11px] text-white/[0.48]">{action.label}</p>
-                    <p className="text-sm font-semibold text-white">{action.value}</p>
-                  </div>
+              <div className="landing-preview-actions">
+                {actions.map((action, index) => (
+                  <PreviewAction key={action.label} action={action} index={index} />
                 ))}
               </div>
             </div>
 
-            <div className="landing-preview-panel landing-preview-optional mt-4 overflow-hidden rounded-lg border border-white/10 bg-white/[0.045]">
+            <div className="landing-preview-panel landing-preview-timeline">
               {timeline.map((item, index) => (
                 <PreviewTimelineRow key={item.title} item={item} last={index === timeline.length - 1} />
               ))}
             </div>
           </main>
 
-          <aside className="landing-preview-optional grid min-w-0 gap-3 sm:grid-cols-2">
-            {toolCards.map((tool) => (
-              <div key={tool.label} className="landing-preview-mini-card rounded-lg border border-white/10 bg-white/[0.055] p-3.5">
-                <div className="flex items-center justify-between gap-3">
-                  <span className="flex size-9 items-center justify-center rounded-md bg-white/[0.08] text-white">
-                    <tool.icon className="size-4" aria-hidden="true" />
-                  </span>
-                  <span className="text-xs font-medium text-cyan-100/70">{tool.detail}</span>
-                </div>
-                <p className="mt-4 text-sm font-semibold text-white">{tool.label}</p>
-              </div>
+          <aside className="landing-preview-tools">
+            {toolCards.map((tool, index) => (
+              <PreviewTool key={tool.label} tool={tool} index={index} />
             ))}
           </aside>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 }
 
-function PreviewTimelineRow({ item, last }) {
-  const Icon = item.icon;
+function FloatingCard({ card, index }) {
+  const prefersReducedMotion = useReducedMotion();
+  const Icon = card.icon;
+
   return (
-    <div className={cn("flex items-center gap-3 px-3.5 py-3", !last && "border-b border-white/10")}>
-      <span className={cn("flex size-9 shrink-0 items-center justify-center rounded-md border", toneMap[item.tone])}>
+    <motion.div
+      className={cn("landing-floating-card", card.className)}
+      initial={prefersReducedMotion ? false : { opacity: 0, y: 14, scale: 0.94 }}
+      animate={
+        prefersReducedMotion
+          ? undefined
+          : {
+              opacity: 1,
+              y: [0, index % 2 ? 9 : -9, 0],
+              scale: 1,
+            }
+      }
+      transition={{
+        opacity: { duration: 0.42, delay: 0.25 + index * 0.08 },
+        scale: { duration: 0.42, delay: 0.25 + index * 0.08 },
+        y: {
+          duration: 5.5 + index * 0.5,
+          repeat: Infinity,
+          repeatType: "mirror",
+          ease: "easeInOut",
+          delay: 0.25 + index * 0.08,
+        },
+      }}
+    >
+      <span>
+        <Icon className="size-4" aria-hidden="true" />
+      </span>
+      <div>
+        <p>{card.title}</p>
+        <small>{card.detail}</small>
+      </div>
+    </motion.div>
+  );
+}
+
+function PreviewAction({ action, index }) {
+  const prefersReducedMotion = useReducedMotion();
+  const Icon = action.icon;
+
+  return (
+    <motion.div
+      className="landing-preview-mini-card"
+      initial={prefersReducedMotion ? false : { opacity: 0.82, y: 10 }}
+      whileInView={prefersReducedMotion ? undefined : { opacity: 1, y: 0 }}
+      whileHover={prefersReducedMotion ? undefined : { y: -2 }}
+      viewport={{ once: true }}
+      transition={{ duration: 0.34, delay: index * 0.05 }}
+    >
+      <Icon className="size-4 text-cyan-100" aria-hidden="true" />
+      <p>{action.label}</p>
+      <strong>{action.value}</strong>
+    </motion.div>
+  );
+}
+
+function PreviewTool({ tool, index }) {
+  const prefersReducedMotion = useReducedMotion();
+  const Icon = tool.icon;
+
+  return (
+    <motion.div
+      className="landing-preview-mini-card"
+      initial={prefersReducedMotion ? false : { opacity: 0.82, scale: 0.94 }}
+      whileInView={prefersReducedMotion ? undefined : { opacity: 1, scale: 1 }}
+      whileHover={prefersReducedMotion ? undefined : { y: -2 }}
+      viewport={{ once: true }}
+      transition={{ duration: 0.34, delay: index * 0.05 }}
+    >
+      <div className="flex items-center justify-between gap-3">
+        <span className="landing-preview-tool-icon">
+          <Icon className="size-4" aria-hidden="true" />
+        </span>
+        <span className="text-xs font-medium text-cyan-100/70">{tool.detail}</span>
+      </div>
+      <p className="mt-4 text-sm font-semibold text-white">{tool.label}</p>
+    </motion.div>
+  );
+}
+
+function PreviewTimelineRow({ item, last }) {
+  const prefersReducedMotion = useReducedMotion();
+  const Icon = item.icon;
+
+  return (
+    <motion.div
+      className={cn("landing-preview-timeline-row", !last && "border-b border-white/10")}
+      whileHover={prefersReducedMotion ? undefined : { x: 3 }}
+    >
+      <span className={cn("landing-preview-timeline-icon", toneMap[item.tone])}>
         <Icon className="size-4" aria-hidden="true" />
       </span>
       <div className="min-w-0 flex-1">
@@ -162,6 +277,6 @@ function PreviewTimelineRow({ item, last }) {
         <p className="truncate text-xs text-white/50">{item.detail}</p>
       </div>
       <span className="shrink-0 text-xs font-semibold text-white/[0.65]">{item.time}</span>
-    </div>
+    </motion.div>
   );
 }

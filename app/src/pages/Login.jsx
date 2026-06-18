@@ -5,7 +5,7 @@ import { buildCanonicalAppUrl } from "@/lib/app-params";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Mail, Lock, Loader2 } from "lucide-react";
+import { ArrowLeft, Mail, Lock, Loader2 } from "lucide-react";
 import AuthLayout from "@/components/AuthLayout";
 import GoogleIcon from "@/components/GoogleIcon";
 // Uses Elysium logo via AuthLayout
@@ -48,6 +48,17 @@ export default function Login() {
         </>
       }
     >
+      <Button
+        asChild
+        variant="ghost"
+        className="mb-4 h-10 w-full text-sm font-medium text-muted-foreground hover:text-foreground"
+      >
+        <Link to="/" aria-label="Back to launch page">
+          <ArrowLeft className="mr-2 h-4 w-4 rtl:rotate-180" aria-hidden="true" />
+          Back to launch page
+        </Link>
+      </Button>
+
       <Button
         variant="outline"
         className="w-full h-12 text-sm font-medium mb-6"

@@ -9,12 +9,14 @@ import PageLayout from "@/components/layout/PageLayout";
 import { useCreateAction } from "@/components/elysium/CreateActionProvider";
 import SkeletonCard from "@/components/ui/SkeletonCard";
 import EmptyState from "@/components/ui/EmptyState";
+import LoadFailedState from "@/components/ui/LoadFailedState";
 import Modal from "@/components/ui/Modal";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { normalizeCourseRecords } from "@/lib/profileCourses";
+import { base44ErrorMessage, loadBase44Collection } from "@/lib/base44LoadState";
 
 const PERSONAL_KINDS = ["homework", "exam", "other"];
 const PRIORITIES = ["normal", "important", "urgent"];
@@ -32,10 +34,6 @@ const WEEKDAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const FULL_DATE_FORMAT = { weekday: "long", month: "long", day: "numeric", year: "numeric" };
 const MONTH_YEAR_FORMAT = { month: "long", year: "numeric" };
 const SHORT_DATE_FORMAT = { month: "short", day: "numeric" };
-
-function safeQuery(promise) {
-  return promise.catch(() => []);
-}
 
 function makeEmptyForm(kind = "other") {
   return { title: "", starts_at: "", notes: "", priority: "normal", all_day: false, personal_kind: kind, course_name: "" };
@@ -225,6 +223,8 @@ export default function CalendarPage() {
   const p = (key) => productText(locale, key);
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
+  const [loadKey, setLoadKey] = useState(0);
   const [saving, setSaving] = useState(false);
   const [tab, setTab] = useState("upcoming");
   const [categoryFilter, setCategoryFilter] = useState("all");
@@ -253,10 +253,11 @@ export default function CalendarPage() {
     if (!user?.id) return;
     let active = true;
     setLoading(true);
+    setLoadError("");
     Promise.all([
-      safeQuery(base44.entities.CalendarItem.filter({ owner_user_id: user.id })),
-      profile?.university_id ? safeQuery(base44.entities.SocialEvent.filter({ university_id: profile.university_id })) : Promise.resolve([]),
-      profile?.university_id ? safeQuery(base44.entities.StudySession.filter({ university_id: profile.university_id })) : Promise.resolve([]),
+      loadBase44Collection(() => base44.entities.CalendarItem.filter({ owner_user_id: user.id }), "Calendar items timed out"),
+      profile?.university_id ? loadBase44Collection(() => base44.entities.SocialEvent.filter({ university_id: profile.university_id }), "Calendar social events timed out") : Promise.resolve([]),
+      profile?.university_id ? loadBase44Collection(() => base44.entities.StudySession.filter({ university_id: profile.university_id }), "Calendar study sessions timed out") : Promise.resolve([]),
     ]).then(async ([rows, events, sessions]) => {
       const staleItems = (rows || []).filter((item) => sourceIsCanceled(item, events, sessions));
       await Promise.all(staleItems.map((item) => base44.entities.CalendarItem.delete(item.id).catch(() => null)));
@@ -264,9 +265,11 @@ export default function CalendarPage() {
         setItems((rows || []).filter((item) => !staleItems.some((stale) => stale.id === item.id)));
         setLoading(false);
       }
-    });
+    }).catch((error) => {
+      if (active) setLoadError(base44ErrorMessage(error));
+    }).finally(() => active && setLoading(false));
     return () => { active = false; };
-  }, [user?.id, profile?.university_id]);
+  }, [user?.id, profile?.university_id, loadKey]);
 
   useEffect(() => {
     const timer = window.setInterval(() => setCurrentTime(Date.now()), CALENDAR_REFRESH_MS);
@@ -340,7 +343,8 @@ export default function CalendarPage() {
     if (categoryFilter === "deadlines") {
       return {
         icon: CalendarDays,
-        title: "no upcoming deadlines, want to add a new one",
+        title: "No upcoming deadlines yet.",
+        message: "Add homework, exams, or important dates before they sneak up on you.",
         action: <Button size="sm" onClick={() => openCreate("homework")}>Add deadline</Button>,
       };
     }
@@ -465,7 +469,9 @@ export default function CalendarPage() {
         onSelectDay={openCalendarDay}
       />
 
-      {loading ? (
+      {loadError ? (
+        <LoadFailedState message={loadError} onRetry={() => setLoadKey((key) => key + 1)} />
+      ) : loading ? (
         <div className="grid gap-3 md:grid-cols-2">{[1, 2, 3, 4].map((item) => <SkeletonCard key={item} lines={2} />)}</div>
       ) : displayed.length === 0 && activityPrompt ? (
         <div className="overflow-hidden rounded-lg border border-border bg-card">

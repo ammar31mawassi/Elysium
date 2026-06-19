@@ -5,7 +5,6 @@ import ReactMarkdown from "react-markdown";
 import { base44 } from "@/api/base44Client";
 import { useLanguage } from "@/lib/LanguageContext";
 import { useProfile } from "@/lib/useProfile";
-import ElysiumMark from "@/components/elysium/ElysiumMark";
 import { cn } from "@/lib/utils";
 import { extractInternalPaths } from "@/lib/productUtils";
 import { normalizeCourseRecords } from "@/lib/profileCourses";
@@ -16,6 +15,8 @@ const labels = {
   ar: { title: "Ely", subtitle: "مساعدك للخطوة التالية في الحرم", placeholder: "بماذا تحتاج مساعدة؟", empty: "اسأل عن الموعد القادم أو مساق أو دعم جامعي أو الشخص المناسب.", open: "فتح Ely", close: "إغلاق Ely", full: "فتح المحادثة الكاملة", error: "تعذر على Ely الرد. حاول مرة أخرى.", suggestions: ["على ماذا أركز الآن؟", "ابحث عن جلسة تفاضل وتكامل", "أين أحصل على دعم أكاديمي رسمي؟"] },
 };
 
+const FLOATING_MESSAGE = "Hi there, I am Ely. Ask me anything. Need help?";
+
 function actionLabel(path, locale) {
   const key = path.split("?")[0];
   const names = {
@@ -24,6 +25,51 @@ function actionLabel(path, locale) {
     ar: { "/calendar": "فتح التقويم", "/discover": "فتح الاستكشاف", "/tools": "فتح الأدوات", "/social": "فتح الأنشطة", "/groups": "فتح الدراسة", "/profile": "فتح الملف" },
   };
   return names[locale]?.[key] || names.en[key] || "Open";
+}
+
+function ElyRobotAvatar({ size = 46, className = "" }) {
+  const faceGradientId = React.useId();
+  const shellGradientId = React.useId();
+
+  return (
+    <svg
+      className={cn("ely-robot-avatar", className)}
+      width={size}
+      height={size}
+      viewBox="0 0 64 64"
+      role="img"
+      aria-label="Ely AI assistant"
+    >
+      <defs>
+        <linearGradient id={faceGradientId} x1="12" y1="11" x2="53" y2="58" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#FDFEFF" />
+          <stop offset="1" stopColor="#DFF7F5" />
+        </linearGradient>
+        <linearGradient id={shellGradientId} x1="10" y1="9" x2="54" y2="58" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#26D3C2" />
+          <stop offset="1" stopColor="#0D6B63" />
+        </linearGradient>
+      </defs>
+      <g className="ely-robot-body">
+        <path className="ely-robot-antenna" d="M32 13V7" />
+        <circle className="ely-robot-antenna-dot" cx="32" cy="6" r="3" />
+        <path className="ely-robot-hair" d="M17 24c3.8-9.2 13.6-13.1 23.1-9.9 5.5 1.9 9.2 6.1 10.8 10.9-9-4.4-19.8-3.6-29.3 2.8-1.9 1.3-5.4-1.5-4.6-3.8Z" />
+        <rect className="ely-robot-shell" x="9" y="18" width="46" height="37" rx="16" fill={`url(#${shellGradientId})`} />
+        <rect className="ely-robot-face" x="13" y="21" width="38" height="31" rx="13" fill={`url(#${faceGradientId})`} />
+        <path className="ely-robot-ear-left" d="M9 34H5" />
+        <path className="ely-robot-ear-right" d="M59 34h-4" />
+        <circle className="ely-robot-blush" cx="21" cy="41" r="2.3" />
+        <circle className="ely-robot-blush" cx="43" cy="41" r="2.3" />
+        <circle className="ely-robot-eye ely-robot-eye-left" cx="25" cy="34" r="3.1" />
+        <circle className="ely-robot-eye ely-robot-eye-right-open" cx="40" cy="34" r="3.1" />
+        <path className="ely-robot-wink" d="M37 34.5c2.3 1.9 4.7 1.9 7 0" />
+        <path className="ely-robot-lash" d="M21.5 29.5 19.8 27" />
+        <path className="ely-robot-lash" d="M27.9 29.2 29.7 26.9" />
+        <path className="ely-robot-lash" d="m43.8 31.2 2.4-1.6" />
+        <path className="ely-robot-mouth" d="M27 43.2c2.9 3 7.6 3 10.5 0" />
+      </g>
+    </svg>
+  );
 }
 
 export default function ElyAssistant({ embedded = false, defaultOpen = false }) {
@@ -139,7 +185,7 @@ export default function ElyAssistant({ embedded = false, defaultOpen = false }) 
       embedded ? "h-[calc(100vh-9rem)] min-h-[540px] rounded-lg border border-border" : "fixed inset-0 z-[90] sm:inset-y-0 sm:start-auto sm:end-0 sm:w-[430px] sm:border-s sm:border-border"
     )} dir={isRTL ? "rtl" : "ltr"} aria-label={copy.title}>
       <header className="flex h-16 shrink-0 items-center gap-3 border-b border-border px-4">
-        <span className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10"><ElysiumMark size={34} /></span>
+        <span className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10"><ElyRobotAvatar size={36} /></span>
         <div className="min-w-0 flex-1"><h2 className="text-sm font-bold text-foreground">{copy.title}</h2><p className="truncate text-xs text-muted-foreground">{copy.subtitle}</p></div>
         {!embedded && <Link to="/ask" className="flex h-11 w-11 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground" aria-label={copy.full}><Maximize2 className="h-4 w-4" /></Link>}
         {!embedded && <button onClick={() => setOpen(false)} className="flex h-11 w-11 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground" aria-label={copy.close}><X className="h-5 w-5" /></button>}
@@ -148,7 +194,7 @@ export default function ElyAssistant({ embedded = false, defaultOpen = false }) 
       <div className="min-h-0 flex-1 overflow-y-auto px-4 py-5">
         {!messages.length && !loading && (
           <div className="mx-auto flex max-w-sm flex-col items-center py-10 text-center">
-            <ElysiumMark size={72} />
+            <ElyRobotAvatar size={76} className="ely-robot-avatar-large" />
             <p className="mt-5 text-sm leading-relaxed text-muted-foreground">{copy.empty}</p>
             <div className="mt-5 flex w-full flex-col gap-2">{copy.suggestions.map((suggestion) => <button key={suggestion} onClick={() => send(suggestion)} className="min-h-11 rounded-md border border-border px-3 py-2 text-start text-xs font-medium text-foreground hover:border-primary/50 hover:bg-primary/5">{suggestion}</button>)}</div>
           </div>
@@ -170,7 +216,7 @@ export default function ElyAssistant({ embedded = false, defaultOpen = false }) 
             );
           })}
         </div>
-        {loading && <div className="mt-4 flex items-center gap-2 text-xs text-muted-foreground"><ElysiumMark size={26} /><span className="h-1.5 w-1.5 animate-pulse rounded-full bg-primary" /><span className="h-1.5 w-1.5 animate-pulse rounded-full bg-primary [animation-delay:150ms]" /><span className="h-1.5 w-1.5 animate-pulse rounded-full bg-primary [animation-delay:300ms]" /></div>}
+        {loading && <div className="mt-4 flex items-center gap-2 text-xs text-muted-foreground"><ElyRobotAvatar size={28} /><span className="h-1.5 w-1.5 animate-pulse rounded-full bg-primary" /><span className="h-1.5 w-1.5 animate-pulse rounded-full bg-primary [animation-delay:150ms]" /><span className="h-1.5 w-1.5 animate-pulse rounded-full bg-primary [animation-delay:300ms]" /></div>}
         {error && <div className="mt-4 flex items-center gap-2 rounded-md border border-destructive/30 bg-destructive/10 p-3 text-xs text-destructive"><RefreshCw className="h-4 w-4" />{error}</div>}
         <div ref={bottomRef} />
       </div>
@@ -188,7 +234,16 @@ export default function ElyAssistant({ embedded = false, defaultOpen = false }) 
   return (
     <>
       {open && <><button className="fixed inset-0 z-[80] bg-black/55 sm:block" onClick={() => setOpen(false)} aria-label={copy.close} />{panel}</>}
-      {!open && <button onClick={() => setOpen(true)} className="fixed bottom-[calc(84px+env(safe-area-inset-bottom))] end-4 z-[60] flex h-14 w-14 items-center justify-center rounded-full border border-primary/30 bg-card shadow-lg transition-transform hover:scale-105 md:bottom-6 md:end-6" aria-label={copy.open} title={copy.open}><ElysiumMark size={46} /></button>}
+      {!open && (
+        <div className="ely-float-shell fixed bottom-[calc(132px+env(safe-area-inset-bottom))] end-4 z-[60] md:bottom-24 md:end-6" dir={isRTL ? "rtl" : "ltr"}>
+          <div className="ely-chat-callout" aria-hidden="true">
+            <span className="ely-chat-callout-text">{FLOATING_MESSAGE}</span>
+          </div>
+          <button onClick={() => setOpen(true)} className="ely-float-button" aria-label={copy.open} title={copy.open}>
+            <ElyRobotAvatar size={52} />
+          </button>
+        </div>
+      )}
     </>
   );
 }

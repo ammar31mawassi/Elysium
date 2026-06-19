@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useLanguage } from "@/lib/LanguageContext";
 import { useTheme } from "@/lib/ThemeContext";
 import { findDefaultUniversity } from "@/lib/universities";
+import { base44ErrorMessage } from "@/lib/base44LoadState";
 
 const ProfileContext = createContext(null);
 
@@ -19,9 +20,13 @@ export function ProfileProvider({ children }) {
   const [profile, setProfile] = useState(null);
   const [university, setUniversity] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [loadKey, setLoadKey] = useState(0);
 
   useEffect(() => {
     const load = async () => {
+      setLoading(true);
+      setError("");
       try {
         const u = await withTimeout(base44.auth.me());
         setUser(u);
@@ -45,15 +50,18 @@ export function ProfileProvider({ children }) {
         }
       } catch (e) {
         console.error(e);
+        setError(base44ErrorMessage(e, "Your profile could not be loaded."));
       } finally {
         setLoading(false);
       }
     };
     load();
-  }, [navigate, setLocale, setTheme]);
+  }, [navigate, setLocale, setTheme, loadKey]);
+
+  const retryProfile = () => setLoadKey((key) => key + 1);
 
   return (
-    <ProfileContext.Provider value={{ user, profile, university, loading, setProfile, setUniversity }}>
+    <ProfileContext.Provider value={{ user, profile, university, loading, error, retryProfile, setProfile, setUniversity }}>
       {children}
     </ProfileContext.Provider>
   );

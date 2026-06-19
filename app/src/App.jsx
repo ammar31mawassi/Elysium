@@ -5,11 +5,12 @@ import { BrowserRouter as Router, Navigate, Route, Routes, useLocation } from 'r
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
-import { ProfileProvider } from '@/lib/useProfile';
+import { ProfileProvider, useProfile } from '@/lib/useProfile';
 import { ThemeProvider } from '@/lib/ThemeContext';
 import { LanguageProvider } from '@/lib/LanguageContext';
 import ElysiumMark from '@/components/elysium/ElysiumMark';
 import { CreateActionProvider } from '@/components/elysium/CreateActionProvider';
+import LoadFailedState from '@/components/ui/LoadFailedState';
 
 import Onboarding from '@/pages/Onboarding';
 import Dashboard from '@/pages/Dashboard';
@@ -112,10 +113,39 @@ function ProfileWrapper() {
   return (
     <ProfileProvider>
       <CreateActionProvider>
-        <Outlet />
+        <ProfileGate>
+          <Outlet />
+        </ProfileGate>
       </CreateActionProvider>
     </ProfileProvider>
   );
+}
+
+function ProfileGate({ children }) {
+  const { loading, error, retryProfile } = useProfile();
+
+  if (loading) {
+    return (
+      <div className="fixed inset-0 flex items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-3">
+          <ElysiumMark size={48} className="animate-pulse" />
+          <p className="text-sm text-muted-foreground">Loading your student profile...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-background px-4 py-10">
+        <div className="mx-auto max-w-xl">
+          <LoadFailedState message={error} onRetry={retryProfile} />
+        </div>
+      </div>
+    );
+  }
+
+  return children;
 }
 
 function App() {

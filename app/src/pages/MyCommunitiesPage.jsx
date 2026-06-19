@@ -12,14 +12,12 @@ import {
 import PageLayout from "@/components/layout/PageLayout";
 import EmptyState from "@/components/ui/EmptyState";
 import SkeletonCard from "@/components/ui/SkeletonCard";
+import LoadFailedState from "@/components/ui/LoadFailedState";
 import Modal from "@/components/ui/Modal";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { domainTones } from "@/lib/domainTones";
-
-function safeQuery(promise) {
-  return promise.catch(() => []);
-}
+import { base44ErrorMessage, loadBase44Collection } from "@/lib/base44LoadState";
 
 const COMMUNITY_FILTERS = [
   ["all", "All"],
@@ -75,6 +73,8 @@ export default function MyCommunitiesPage() {
   const [eventMembers, setEventMembers] = useState([]);
   const [sessionMembers, setSessionMembers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
+  const [loadKey, setLoadKey] = useState(0);
   const [savingId, setSavingId] = useState("");
   const [selected, setSelected] = useState(null);
   const [showCanceled, setShowCanceled] = useState(false);
@@ -97,23 +97,25 @@ export default function MyCommunitiesPage() {
     }
     let active = true;
     setLoading(true);
+    setLoadError("");
     Promise.all([
-      safeQuery(base44.entities.SocialEvent.filter({ university_id: profile.university_id })),
-      safeQuery(base44.entities.SocialEventMember.filter({ university_id: profile.university_id })),
-      safeQuery(base44.entities.SocialEventMember.filter({ user_id: user.id })),
-      safeQuery(base44.entities.StudySession.filter({ university_id: profile.university_id })),
-      safeQuery(base44.entities.StudySessionMember.filter({ university_id: profile.university_id })),
-      safeQuery(base44.entities.StudySessionMember.filter({ user_id: user.id })),
+      loadBase44Collection(() => base44.entities.SocialEvent.filter({ university_id: profile.university_id }), "My social events timed out"),
+      loadBase44Collection(() => base44.entities.SocialEventMember.filter({ university_id: profile.university_id }), "My social memberships timed out"),
+      loadBase44Collection(() => base44.entities.SocialEventMember.filter({ user_id: user.id }), "Your social memberships timed out"),
+      loadBase44Collection(() => base44.entities.StudySession.filter({ university_id: profile.university_id }), "My study groups timed out"),
+      loadBase44Collection(() => base44.entities.StudySessionMember.filter({ university_id: profile.university_id }), "My study memberships timed out"),
+      loadBase44Collection(() => base44.entities.StudySessionMember.filter({ user_id: user.id }), "Your study memberships timed out"),
     ]).then(([eventRows, memberRows, ownMemberRows, sessionRows, sessionMemberRows, ownSessionMemberRows]) => {
       if (!active) return;
       setEvents((eventRows || []).filter((event) => event.organizer_id === user.id));
       setSessions((sessionRows || []).filter((session) => session.host_id === user.id));
       setEventMembers(filterMembershipsForUniversity(mergeRecordsById(memberRows, ownMemberRows), profile.university_id));
       setSessionMembers(filterMembershipsForUniversity(mergeRecordsById(sessionMemberRows, ownSessionMemberRows), profile.university_id));
-      setLoading(false);
-    });
+    }).catch((error) => {
+      if (active) setLoadError(base44ErrorMessage(error));
+    }).finally(() => active && setLoading(false));
     return () => { active = false; };
-  }, [profile?.university_id, user?.id]);
+  }, [profile?.university_id, user?.id, loadKey]);
 
   useEffect(() => {
     const handleCreated = (event) => {
@@ -140,6 +142,24 @@ export default function MyCommunitiesPage() {
   const sortedSessions = useMemo(() => [...visibleSessions].sort((a, b) => (b.session_date || "").localeCompare(a.session_date || "")), [visibleSessions]);
 
   const participantsFor = (type, id) => uniqueParticipants(type === "social" ? eventMembers : sessionMembers, type === "social" ? "event_id" : "session_id", id);
+  const socialEmptyCopy = events.length && !showCanceled
+    ? {
+      title: "No open activities right now",
+      message: "You have created activities, but none are open. Turn on Show canceled to review closed or canceled activities.",
+    }
+    : {
+      title: "No activities created yet",
+      message: "Create one when you are ready to bring students together.",
+    };
+  const studyEmptyCopy = sessions.length && !showCanceled
+    ? {
+      title: "No open study groups right now",
+      message: "You have created study groups, but none are open. Turn on Show canceled to review canceled groups.",
+    }
+    : {
+      title: "No study groups created yet",
+      message: "Create one when you are ready to bring students together.",
+    };
 
   const cancelEvent = async (event) => {
     if (event.organizer_id !== user?.id || event.status === "canceled") return;
@@ -197,14 +217,16 @@ export default function MyCommunitiesPage() {
         ))}
       </div>
 
-      {loading ? (
+      {loadError ? (
+        <LoadFailedState message={loadError} onRetry={() => setLoadKey((key) => key + 1)} />
+      ) : loading ? (
         <div className="grid gap-4 md:grid-cols-2">{[1, 2, 3, 4].map((item) => <SkeletonCard key={item} lines={3} />)}</div>
       ) : (
         <div className={cn("grid gap-5", showSocial && showStudy ? "lg:grid-cols-2" : "max-w-3xl")}>
           {showSocial && <CommunitySection
             title="Activities I created"
-            emptyTitle={events.length && !showCanceled ? "No open activities" : "No activities created yet"}
-            emptyMessage={events.length && !showCanceled ? "Canceled or closed activities are hidden. Use Show canceled to review them." : "Create one when you are ready to bring students together."}
+            emptyTitle={socialEmptyCopy.title}
+            emptyMessage={socialEmptyCopy.message}
             emptyAction={<Button size="sm" onClick={() => openCreateAction("social")}>Create activity</Button>}
             icon={Users}
             tone="social"
@@ -231,8 +253,8 @@ export default function MyCommunitiesPage() {
 
           {showStudy && <CommunitySection
             title="Study groups I created"
-            emptyTitle={sessions.length && !showCanceled ? "No open study groups" : "No study groups created yet"}
-            emptyMessage={sessions.length && !showCanceled ? "Canceled study groups are hidden. Use Show canceled to review them." : "Create one when you are ready to bring students together."}
+            emptyTitle={studyEmptyCopy.title}
+            emptyMessage={studyEmptyCopy.message}
             emptyAction={<Button size="sm" onClick={() => openCreateAction("study")}>Create study group</Button>}
             icon={BookOpenCheck}
             tone="study"

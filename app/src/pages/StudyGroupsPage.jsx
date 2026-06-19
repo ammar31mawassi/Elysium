@@ -9,6 +9,8 @@ import { buildCourseOptions } from "@/lib/creationOptions";
 import { domainTones } from "@/lib/domainTones";
 import PageLayout from "@/components/layout/PageLayout";
 import SkeletonCard from "@/components/ui/SkeletonCard";
+import EmptyState from "@/components/ui/EmptyState";
+import LoadFailedState from "@/components/ui/LoadFailedState";
 import Modal from "@/components/ui/Modal";
 import SearchableChoice from "@/components/elysium/SearchableChoice";
 import { Button } from "@/components/ui/button";
@@ -25,6 +27,7 @@ import {
   participantSnapshot,
   uniqueParticipants,
 } from "@/lib/communityMatching";
+import { base44ErrorMessage, loadBase44Collection } from "@/lib/base44LoadState";
 
 const emptyForm = { title: "", course_name: "", preferred_language: "", session_date: "", end_time: "", location: "", notes: "", max_spots: 8, is_marathon: false };
 const FIND_PROMPT = "Didn't find what you are looking for? Why not make one yourself!";
@@ -45,6 +48,8 @@ export default function StudyGroupsPage() {
   const [members, setMembers] = useState([]);
   const [calendarItems, setCalendarItems] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
+  const [loadKey, setLoadKey] = useState(0);
   const [saving, setSaving] = useState(false);
   const [selected, setSelected] = useState(null);
   const [showForm, setShowForm] = useState(false);
@@ -55,20 +60,22 @@ export default function StudyGroupsPage() {
     if (!profile?.university_id || !user?.id) return;
     let active = true;
     setLoading(true);
+    setLoadError("");
     Promise.all([
-      safeQuery(base44.entities.StudySession.filter({ university_id: profile.university_id })),
-      safeQuery(base44.entities.StudySessionMember.filter({ university_id: profile.university_id })),
-      safeQuery(base44.entities.StudySessionMember.filter({ user_id: user.id })),
-      safeQuery(base44.entities.CalendarItem.filter({ owner_user_id: user.id, source_type: "study_session" })),
+      loadBase44Collection(() => base44.entities.StudySession.filter({ university_id: profile.university_id }), "Study sessions timed out"),
+      loadBase44Collection(() => base44.entities.StudySessionMember.filter({ university_id: profile.university_id }), "Study memberships timed out"),
+      loadBase44Collection(() => base44.entities.StudySessionMember.filter({ user_id: user.id }), "Your study memberships timed out"),
+      loadBase44Collection(() => base44.entities.CalendarItem.filter({ owner_user_id: user.id, source_type: "study_session" }), "Study calendar items timed out"),
     ]).then(([sessionRows, memberRows, ownMemberRows, calendarRows]) => {
       if (!active) return;
       setSessions(sessionRows || []);
       setMembers(filterMembershipsForUniversity(mergeRecordsById(memberRows, ownMemberRows), profile.university_id));
       setCalendarItems(calendarRows || []);
-      setLoading(false);
-    });
+    }).catch((error) => {
+      if (active) setLoadError(base44ErrorMessage(error));
+    }).finally(() => active && setLoading(false));
     return () => { active = false; };
-  }, [profile?.university_id, user?.id]);
+  }, [profile?.university_id, user?.id, loadKey]);
 
   useEffect(() => {
     const handleCreated = (event) => {
@@ -101,6 +108,41 @@ export default function StudyGroupsPage() {
     return filterByParticipation(filtered, mySessionIds, participationFilter)
       .sort((a, b) => new Date(a.session_date) - new Date(b.session_date));
   }, [activeCourses, sessions, user?.id, mySessionIds, participationFilter]);
+  const studyEmptyState = useMemo(() => {
+    if (!activeCourses.length) {
+      return {
+        title: "Add active courses to find study groups",
+        message: "Study groups are matched to the courses in your profile.",
+        action: "courses",
+      };
+    }
+    if (!sessions.length) {
+      return {
+        title: "No study groups yet",
+        message: "Start the first group for one of your active courses.",
+        action: "create",
+      };
+    }
+    if (participationFilter === PARTICIPATION_FILTERS.joined) {
+      return {
+        title: "No joined study groups yet",
+        message: "Switch to All or Not joined to find a group for your courses.",
+        action: "create",
+      };
+    }
+    if (participationFilter === PARTICIPATION_FILTERS.notJoined) {
+      return {
+        title: "No new study groups to join",
+        message: "You have already joined the visible course matches, or the remaining sessions are outside your active courses.",
+        action: "create",
+      };
+    }
+    return {
+      title: "No study groups match your active courses",
+      message: "Add courses in Me or start a new group for the course you need.",
+      action: "create",
+    };
+  }, [activeCourses.length, participationFilter, sessions.length]);
 
   useEffect(() => {
     const requested = ["1", "session"].includes(new URLSearchParams(location.search).get("create"));
@@ -182,11 +224,22 @@ export default function StudyGroupsPage() {
 
       {!activeCourses.length && <div className="mb-5 rounded-lg border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-foreground">Add an active course in <Link to="/me" className="font-semibold text-primary underline">Me</Link> before creating or discovering study groups.</div>}
 
-      {loading ? <div className="grid gap-3 md:grid-cols-2">{[1, 2, 3, 4].map((item) => <SkeletonCard key={item} lines={3} />)}</div> : <div className="grid gap-3 md:grid-cols-2">{visibleSessions.map((session) => {
+      {loadError ? <LoadFailedState message={loadError} onRetry={() => setLoadKey((key) => key + 1)} /> : loading ? <div className="grid gap-3 md:grid-cols-2">{[1, 2, 3, 4].map((item) => <SkeletonCard key={item} lines={3} />)}</div> : <div className="grid gap-3 md:grid-cols-2">{visibleSessions.length ? (<>{visibleSessions.map((session) => {
         const joined = mySessionIds.has(session.id);
         const count = memberCount(session.id);
         return <button key={session.id} onClick={() => setSelected(session)} className={cn("rounded-lg border border-border bg-card p-4 text-start", domainTones.study.border)}><div className="flex items-start gap-3"><span className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-md", domainTones.study.icon)}><BookOpenCheck className="h-5 w-5" /></span><div className="min-w-0 flex-1" dir="auto"><div className="flex justify-between gap-3"><h2 className="font-semibold text-foreground">{session.title}</h2><span className={cn("shrink-0 text-xs font-semibold", session.status === "canceled" ? "text-destructive" : "text-emerald-600")}>{session.status === "canceled" ? "Canceled" : joined ? "Joined" : "Open"}</span></div><p className={cn("mt-1 text-xs font-semibold", domainTones.study.text)}>{session.is_marathon ? "Study marathon" : "Study group"} · {session.course_name}</p><p className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground"><CalendarClock className="h-3.5 w-3.5" />{new Date(session.session_date).toLocaleString()}</p>{session.location && <p className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground"><MapPin className="h-3.5 w-3.5" />{session.location}</p>}{session.preferred_language && <p className="mt-1 text-xs text-muted-foreground">Preferred language: {session.preferred_language}</p>}<p className="mt-2 text-xs text-muted-foreground">{count} / {session.max_spots} joined</p></div></div></button>;
-      })}<CreateStudyPrompt onClick={() => setShowForm(true)} /></div>}
+      })}<CreateStudyPrompt onClick={() => setShowForm(true)} /></>) : (
+        <div className="rounded-lg border border-dashed border-border bg-card md:col-span-2">
+          <EmptyState
+            icon={BookOpenCheck}
+            title={studyEmptyState.title}
+            message={studyEmptyState.message}
+            action={studyEmptyState.action === "courses"
+              ? <Button size="sm" asChild><Link to="/me">Add courses</Link></Button>
+              : <Button size="sm" onClick={() => setShowForm(true)} disabled={!activeCourses.length}>Start a study group</Button>}
+          />
+        </div>
+      )}</div>}
 
       {selected && (
         <Modal title={selected.title} onClose={() => setSelected(null)}>

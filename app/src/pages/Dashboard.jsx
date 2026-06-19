@@ -10,10 +10,12 @@ import { demoContent, withDemoFallback } from "@/lib/demoData";
 import { sortByUrgency } from "@/lib/productUtils";
 import PageLayout from "@/components/layout/PageLayout";
 import SkeletonCard from "@/components/ui/SkeletonCard";
+import LoadFailedState from "@/components/ui/LoadFailedState";
 import { cn } from "@/lib/utils";
 import { activeCourseNames } from "@/lib/profileCourses";
 import { domainTones } from "@/lib/domainTones";
 import { useCreateAction } from "@/components/elysium/CreateActionProvider";
+import { base44ErrorMessage, loadBase44Collection } from "@/lib/base44LoadState";
 
 const itemMeta = {
   personal: { icon: Flag, tone: domainTones.calendar.icon, path: "/calendar" },
@@ -35,10 +37,6 @@ function timelineTone(item, fallbackTone) {
   return fallbackTone;
 }
 
-function safeQuery(promise, fallback = []) {
-  return Promise.race([promise.catch(() => fallback), new Promise((resolve) => setTimeout(() => resolve(fallback), 7000))]);
-}
-
 function calendarSourceIsActive(item, events, sessions) {
   if (item.source_type === "social_activity") {
     const source = events.find((event) => event.id === item.source_id);
@@ -57,6 +55,8 @@ export default function Dashboard() {
   const p = (key) => productText(locale, key);
   const [data, setData] = useState({ calendar: [], events: [], eventMembers: [], sessions: [], sessionMembers: [], tutors: [], helpers: [] });
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
+  const [loadKey, setLoadKey] = useState(0);
 
   useEffect(() => {
     if (!user?.id || !profile?.university_id) {
@@ -65,14 +65,15 @@ export default function Dashboard() {
     }
     let active = true;
     setLoading(true);
+    setLoadError("");
     Promise.all([
-      safeQuery(base44.entities.CalendarItem.filter({ owner_user_id: user.id })),
-      safeQuery(base44.entities.SocialEvent.filter({ university_id: profile.university_id })),
-      safeQuery(base44.entities.SocialEventMember.filter({ user_id: user.id })),
-      safeQuery(base44.entities.StudySession.filter({ university_id: profile.university_id })),
-      safeQuery(base44.entities.StudySessionMember.filter({ user_id: user.id })),
-      safeQuery(base44.entities.PrivateTeacher.filter({ university_id: profile.university_id, is_active: true, is_approved: true })),
-      safeQuery(base44.entities.PeerHelper.filter({ university_id: profile.university_id, is_visible: true })),
+      loadBase44Collection(() => base44.entities.CalendarItem.filter({ owner_user_id: user.id }), "Dashboard calendar timed out"),
+      loadBase44Collection(() => base44.entities.SocialEvent.filter({ university_id: profile.university_id }), "Dashboard events timed out"),
+      loadBase44Collection(() => base44.entities.SocialEventMember.filter({ user_id: user.id }), "Dashboard event memberships timed out"),
+      loadBase44Collection(() => base44.entities.StudySession.filter({ university_id: profile.university_id }), "Dashboard study sessions timed out"),
+      loadBase44Collection(() => base44.entities.StudySessionMember.filter({ user_id: user.id }), "Dashboard study memberships timed out"),
+      loadBase44Collection(() => base44.entities.PrivateTeacher.filter({ university_id: profile.university_id, is_active: true, is_approved: true }), "Dashboard tutors timed out"),
+      loadBase44Collection(() => base44.entities.PeerHelper.filter({ university_id: profile.university_id, is_visible: true }), "Dashboard helpers timed out"),
     ]).then(([calendar, events, eventMembers, sessions, sessionMembers, tutors, helpers]) => {
       if (!active) return;
       const allowBguDemo = !university?.name || /Ben-Gurion|בן-גוריון|بن غوريون/i.test(university.name);
@@ -85,9 +86,11 @@ export default function Dashboard() {
         tutors: allowBguDemo ? withDemoFallback(tutors, demoContent.tutors) : tutors || [],
         helpers: allowBguDemo ? withDemoFallback(helpers, demoContent.helpers) : helpers || [],
       });
+    }).catch((error) => {
+      if (active) setLoadError(base44ErrorMessage(error));
     }).finally(() => active && setLoading(false));
     return () => { active = false; };
-  }, [user?.id, profile?.university_id, profileLoading, university?.name]);
+  }, [user?.id, profile?.university_id, profileLoading, university?.name, loadKey]);
 
   useEffect(() => {
     const handleCreated = (event) => {
@@ -126,6 +129,14 @@ export default function Dashboard() {
 
   if (profileLoading || loading) {
     return <PageLayout wide><div className="grid gap-4 lg:grid-cols-3"><SkeletonCard lines={4} className="lg:col-span-2" /><SkeletonCard lines={4} />{[1, 2, 3].map((item) => <SkeletonCard key={item} lines={3} />)}</div></PageLayout>;
+  }
+
+  if (loadError) {
+    return (
+      <PageLayout wide>
+        <LoadFailedState message={loadError} onRetry={() => setLoadKey((key) => key + 1)} />
+      </PageLayout>
+    );
   }
 
   const firstName = profile?.preferred_name || user?.full_name?.split(" ")[0] || "Student";

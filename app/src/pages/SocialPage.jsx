@@ -17,6 +17,8 @@ import { useProfile } from "@/lib/useProfile";
 import { useLanguage } from "@/lib/LanguageContext";
 import PageLayout from "@/components/layout/PageLayout";
 import SkeletonCard from "@/components/ui/SkeletonCard";
+import EmptyState from "@/components/ui/EmptyState";
+import LoadFailedState from "@/components/ui/LoadFailedState";
 import Modal from "@/components/ui/Modal";
 import SearchableChoice from "@/components/elysium/SearchableChoice";
 import { Button } from "@/components/ui/button";
@@ -38,6 +40,7 @@ import {
 } from "@/lib/communityMatching";
 import { domainTones } from "@/lib/domainTones";
 import { toast } from "@/components/ui/use-toast";
+import { base44ErrorMessage, loadBase44Collection } from "@/lib/base44LoadState";
 
 const categoryIcons = {
   social: Users,
@@ -67,6 +70,8 @@ export default function SocialPage() {
   const [memberships, setMemberships] = useState([]);
   const [calendarItems, setCalendarItems] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
+  const [loadKey, setLoadKey] = useState(0);
   const [openOnly, setOpenOnly] = useState(false);
   const [participationFilter, setParticipationFilter] = useState(PARTICIPATION_FILTERS.all);
   const [selected, setSelected] = useState(null);
@@ -96,22 +101,24 @@ export default function SocialPage() {
     if (!profile?.university_id || !user?.id) return;
     let active = true;
     setLoading(true);
+    setLoadError("");
     Promise.all([
-      safeQuery(base44.entities.SocialEvent.filter({ university_id: profile.university_id })),
-      safeQuery(base44.entities.SocialEventMember.filter({ university_id: profile.university_id })),
-      safeQuery(base44.entities.SocialEventMember.filter({ user_id: user.id })),
-      safeQuery(base44.entities.CalendarItem.filter({ owner_user_id: user.id, source_type: "social_activity" })),
-      safeQuery(base44.entities.Interest.filter({ is_active: true })),
+      loadBase44Collection(() => base44.entities.SocialEvent.filter({ university_id: profile.university_id }), "Social events timed out"),
+      loadBase44Collection(() => base44.entities.SocialEventMember.filter({ university_id: profile.university_id }), "Social memberships timed out"),
+      loadBase44Collection(() => base44.entities.SocialEventMember.filter({ user_id: user.id }), "Your social memberships timed out"),
+      loadBase44Collection(() => base44.entities.CalendarItem.filter({ owner_user_id: user.id, source_type: "social_activity" }), "Social calendar items timed out"),
+      loadBase44Collection(() => base44.entities.Interest.filter({ is_active: true }), "Interests timed out"),
     ]).then(([eventRows, memberRows, ownMemberRows, calendarRows, interestRows]) => {
       if (!active) return;
       setEvents(eventRows || []);
       setMemberships(filterMembershipsForUniversity(mergeRecordsById(memberRows, ownMemberRows), profile.university_id));
       setCalendarItems(calendarRows || []);
       setInterestOptions(mergeInterestOptions(interestRows));
-      setLoading(false);
-    });
+    }).catch((error) => {
+      if (active) setLoadError(base44ErrorMessage(error));
+    }).finally(() => active && setLoading(false));
     return () => { active = false; };
-  }, [profile?.university_id, user?.id]);
+  }, [profile?.university_id, user?.id, loadKey]);
 
   useEffect(() => {
     const handleCreated = (event) => {
@@ -142,6 +149,36 @@ export default function SocialPage() {
       .filter((event) => !openOnly || (event.status !== "canceled" && event.is_open));
     return sortSocialEventsByInterests(filterByParticipation(filtered, myEventIds, participationFilter), selectedInterests);
   }, [events, openOnly, myEventIds, participationFilter, selectedInterests]);
+  const socialEmptyState = useMemo(() => {
+    if (!events.length) {
+      return {
+        title: "No social activities yet",
+        message: "Create the first campus activity so students with similar interests can join.",
+      };
+    }
+    if (participationFilter === PARTICIPATION_FILTERS.joined) {
+      return {
+        title: "No joined activities yet",
+        message: "Switch to All or Not joined to find something open, or create your own activity.",
+      };
+    }
+    if (participationFilter === PARTICIPATION_FILTERS.notJoined) {
+      return {
+        title: "No new activities to join",
+        message: "You have already joined the available matches, or the remaining activities are hidden by the current filters.",
+      };
+    }
+    if (openOnly) {
+      return {
+        title: "No open activities right now",
+        message: "Closed and canceled activities are hidden while Open only is on.",
+      };
+    }
+    return {
+      title: "No activities match these filters",
+      message: "Adjust the filters above or create an activity for the campus community.",
+    };
+  }, [events.length, openOnly, participationFilter]);
   const activityChoices = useMemo(() => interestOptions.map((interest) => ({
     value: interest.en,
     label: localizedOption(interest, locale),
@@ -272,11 +309,15 @@ export default function SocialPage() {
         </div>
       </header>
 
-      {loading ? (
+      {loadError ? (
+        <LoadFailedState message={loadError} onRetry={() => setLoadKey((key) => key + 1)} />
+      ) : loading ? (
         <div className="grid gap-3 md:grid-cols-2">{[1, 2, 3, 4].map((item) => <SkeletonCard key={item} lines={3} />)}</div>
       ) : (
         <div className="grid gap-3 md:grid-cols-2">
-          {visibleEvents.map((event) => {
+          {visibleEvents.length ? (
+            <>
+              {visibleEvents.map((event) => {
             const Icon = categoryIcons[event.category] || Users;
             const count = memberCount(event.id);
             const full = count >= event.max_spots;
@@ -296,7 +337,18 @@ export default function SocialPage() {
               </button>
             );
           })}
-          <CreateSocialPrompt onClick={() => setShowCreate(true)} />
+              <CreateSocialPrompt onClick={() => setShowCreate(true)} />
+            </>
+          ) : (
+            <div className="rounded-lg border border-dashed border-border bg-card md:col-span-2">
+              <EmptyState
+                icon={Users}
+                title={socialEmptyState.title}
+                message={socialEmptyState.message}
+                action={<Button size="sm" onClick={() => setShowCreate(true)}>Create activity</Button>}
+              />
+            </div>
+          )}
         </div>
       )}
 

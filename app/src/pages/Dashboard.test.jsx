@@ -120,4 +120,19 @@ describe("Dashboard", () => {
     const normalIcon = screen.getByText("Normal homework").closest("a").querySelector("span");
     expect(normalIcon.className).toContain("text-amber-700");
   });
+
+  it("shows a retryable load failure when Base44 rate limits dashboard data", async () => {
+    base44.entities.CalendarItem.filter.mockRejectedValue({ status: 429, message: "Rate limit exceeded" });
+
+    render(
+      <MemoryRouter>
+        <Dashboard />
+      </MemoryRouter>
+    );
+
+    expect(await screen.findByText("Loading failed")).toBeInTheDocument();
+    expect(screen.getByText("Base44 rate limit exceeded. Wait a moment, then retry.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Retry" })).toBeInTheDocument();
+    expect(screen.queryByText("Coming up")).not.toBeInTheDocument();
+  });
 });

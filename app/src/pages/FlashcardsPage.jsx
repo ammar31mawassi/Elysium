@@ -30,6 +30,8 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "@/components/ui/use-toast";
 import { cn } from "@/lib/utils";
+import LoadFailedState from "@/components/ui/LoadFailedState";
+import { base44ErrorMessage, loadBase44Collection } from "@/lib/base44LoadState";
 
 const DECK_COLORS = [
   "#2563eb",
@@ -141,6 +143,8 @@ export default function FlashcardsPage() {
   const [deckCardCounts, setDeckCardCounts] = useState({});
   const [createdCardsByDeck, setCreatedCardsByDeck] = useState({});
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
+  const [loadKey, setLoadKey] = useState(0);
   const [activeTab, setActiveTab] = useState("created");
   const [search, setSearch] = useState("");
   const [editorOpen, setEditorOpen] = useState(false);
@@ -175,15 +179,16 @@ export default function FlashcardsPage() {
     }
 
     setLoading(true);
+    setLoadError("");
     try {
       const [mine, publicRows, favoriteRows] = await Promise.all([
-        safeQuery(() => base44.entities.FlashcardDeck.filter({ owner_user_id: user.id })),
-        safeQuery(() => base44.entities.FlashcardDeck.filter({ is_public: true }), [], { retry: false }),
-        safeQuery(() => base44.entities.FlashcardDeckFavorite.filter({ owner_user_id: user.id }), [], { retry: false }),
+        loadBase44Collection(() => base44.entities.FlashcardDeck.filter({ owner_user_id: user.id }), "Your flashcard packs timed out"),
+        loadBase44Collection(() => base44.entities.FlashcardDeck.filter({ is_public: true }), "Published flashcard packs timed out"),
+        loadBase44Collection(() => base44.entities.FlashcardDeckFavorite.filter({ owner_user_id: user.id }), "Favorite flashcard packs timed out"),
       ]);
       const mineRows = sortedDecks(mine || []);
       const cardPairs = await Promise.all(mineRows.map(async (deck) => {
-        const cards = await safeQuery(() => base44.entities.Flashcard.filter({ deck_id: deck.id }));
+        const cards = await loadBase44Collection(() => base44.entities.Flashcard.filter({ deck_id: deck.id }), "Flashcard cards timed out");
         return [deck.id, sortedCards(cards || [])];
       }));
       const cardCountPairs = cardPairs.map(([deckId, cards]) => [deckId, cards.length]);
@@ -196,10 +201,12 @@ export default function FlashcardsPage() {
       setCreatedDecks(mineRows);
       setPublishedDecks(sortedDecks(publicForCampus));
       setFavorites(favoriteRows || []);
+    } catch (error) {
+      setLoadError(base44ErrorMessage(error));
     } finally {
       setLoading(false);
     }
-  }, [profile?.university_id, user?.id]);
+  }, [profile?.university_id, user?.id, loadKey]);
 
   useEffect(() => {
     if (profileUser?.id || fallbackUser?.id) return;
@@ -404,7 +411,9 @@ export default function FlashcardsPage() {
         </Button>
       </header>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+      {loadError ? (
+        <LoadFailedState message={loadError} onRetry={() => setLoadKey((key) => key + 1)} />
+      ) : <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList className="grid h-auto w-full grid-cols-3 bg-muted/70 p-1 sm:w-auto">
           <TabsTrigger value="created">Created</TabsTrigger>
           <TabsTrigger value="favorites">Favorites</TabsTrigger>
@@ -432,7 +441,8 @@ export default function FlashcardsPage() {
           <DeckGrid
             decks={favoriteDecks}
             emptyTitle="No favorite packs yet"
-            emptyBody="Heart any pack to keep it here for faster studying."
+            emptyBody="Use the heart button on a created or published pack to keep it here for faster studying."
+            emptyIcon={Heart}
             deckCardCounts={deckCardCounts}
             createdCardsByDeck={createdCardsByDeck}
             favoriteDeckIds={favoriteDeckIds}
@@ -457,8 +467,9 @@ export default function FlashcardsPage() {
           </div>
           <DeckGrid
             decks={searchablePublishedDecks}
-            emptyTitle="No published packs found"
-            emptyBody="Published packs from your university will show here."
+            emptyTitle={search.trim() ? "No published packs match your search" : "No published packs from your university yet"}
+            emptyBody={search.trim() ? "Try another course, subject, or student name." : "Shared packs from other students at your university will show here once they are published."}
+            emptyIcon={search.trim() ? Search : Layers3}
             deckCardCounts={deckCardCounts}
             createdCardsByDeck={createdCardsByDeck}
             favoriteDeckIds={favoriteDeckIds}
@@ -468,7 +479,7 @@ export default function FlashcardsPage() {
             userId={user?.id}
           />
         </TabsContent>
-      </Tabs>
+      </Tabs>}
 
       <Dialog open={editorOpen} onOpenChange={setEditorOpen}>
         <DialogContent className="max-h-[92vh] max-w-4xl overflow-y-auto">
@@ -678,6 +689,7 @@ function DeckGrid({
   createdCardsByDeck = {},
   emptyTitle,
   emptyBody,
+  emptyIcon: EmptyIcon = Layers3,
   favoriteDeckIds,
   loading,
   onCreate,
@@ -697,7 +709,7 @@ function DeckGrid({
   if (!decks.length) {
     return (
       <div className="rounded-lg border border-dashed border-border bg-card px-4 py-10 text-center">
-        <Layers3 className="mx-auto h-9 w-9 text-muted-foreground" />
+        <EmptyIcon className="mx-auto h-9 w-9 text-muted-foreground" />
         <h2 className="mt-3 text-base font-bold text-foreground">{emptyTitle}</h2>
         <p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">{emptyBody}</p>
         {onCreate && <Button className="mt-4 gap-2" onClick={onCreate}><Plus className="h-4 w-4" />Create pack</Button>}

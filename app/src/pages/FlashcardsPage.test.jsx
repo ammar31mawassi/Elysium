@@ -191,4 +191,15 @@ describe("FlashcardsPage", () => {
       is_public: true,
     }));
   });
+
+  it("shows a retryable load failure when Base44 rate limits deck loading", async () => {
+    base44.entities.FlashcardDeck.filter.mockRejectedValue({ status: 429, message: "Rate limit exceeded" });
+
+    render(<MemoryRouter><FlashcardsPage /></MemoryRouter>);
+
+    expect(await screen.findByText("Loading failed")).toBeInTheDocument();
+    expect(screen.getByText("Base44 rate limit exceeded. Wait a moment, then retry.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Retry" })).toBeInTheDocument();
+    expect(screen.queryByText("No flashcard packs yet")).not.toBeInTheDocument();
+  });
 });

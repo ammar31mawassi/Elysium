@@ -43,10 +43,12 @@ import PageLayout from "@/components/layout/PageLayout";
 import { useCreateAction } from "@/components/elysium/CreateActionProvider";
 import SkeletonCard from "@/components/ui/SkeletonCard";
 import EmptyState from "@/components/ui/EmptyState";
+import LoadFailedState from "@/components/ui/LoadFailedState";
 import Modal from "@/components/ui/Modal";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { base44ErrorMessage, loadBase44Collection } from "@/lib/base44LoadState";
 
 const eventIcons = {
   sports: Dumbbell,
@@ -75,6 +77,8 @@ export default function DiscoverPage() {
   const [tab, setTab] = useState(requestedTab);
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
+  const [loadKey, setLoadKey] = useState(0);
   const [saving, setSaving] = useState(false);
   const [selected, setSelected] = useState(null);
   const [data, setData] = useState({ events: [], eventMembers: [], sessions: [], sessionMembers: [], calendarItems: [], tutors: [], helpers: [], guides: [], links: [] });
@@ -88,18 +92,19 @@ export default function DiscoverPage() {
     }
     let active = true;
     setLoading(true);
+    setLoadError("");
     Promise.all([
-      safeQuery(base44.entities.SocialEvent.filter({ university_id: profile.university_id })),
-      safeQuery(base44.entities.SocialEventMember.filter({ university_id: profile.university_id })),
-      safeQuery(base44.entities.SocialEventMember.filter({ user_id: user.id })),
-      safeQuery(base44.entities.StudySession.filter({ university_id: profile.university_id })),
-      safeQuery(base44.entities.StudySessionMember.filter({ university_id: profile.university_id })),
-      safeQuery(base44.entities.StudySessionMember.filter({ user_id: user.id })),
-      safeQuery(base44.entities.CalendarItem.filter({ owner_user_id: user.id })),
-      safeQuery(base44.entities.PrivateTeacher.filter({ university_id: profile.university_id, is_active: true, is_approved: true })),
-      safeQuery(base44.entities.PeerHelper.filter({ university_id: profile.university_id, is_visible: true })),
-      safeQuery(base44.entities.Guide.filter({ is_published: true })),
-      safeQuery(base44.entities.HelpfulLink.filter({ is_published: true })),
+      loadBase44Collection(() => base44.entities.SocialEvent.filter({ university_id: profile.university_id }), "Discover events timed out"),
+      loadBase44Collection(() => base44.entities.SocialEventMember.filter({ university_id: profile.university_id }), "Discover event memberships timed out"),
+      loadBase44Collection(() => base44.entities.SocialEventMember.filter({ user_id: user.id }), "Discover own event memberships timed out"),
+      loadBase44Collection(() => base44.entities.StudySession.filter({ university_id: profile.university_id }), "Discover study sessions timed out"),
+      loadBase44Collection(() => base44.entities.StudySessionMember.filter({ university_id: profile.university_id }), "Discover study memberships timed out"),
+      loadBase44Collection(() => base44.entities.StudySessionMember.filter({ user_id: user.id }), "Discover own study memberships timed out"),
+      loadBase44Collection(() => base44.entities.CalendarItem.filter({ owner_user_id: user.id }), "Discover calendar timed out"),
+      loadBase44Collection(() => base44.entities.PrivateTeacher.filter({ university_id: profile.university_id, is_active: true, is_approved: true }), "Discover tutors timed out"),
+      loadBase44Collection(() => base44.entities.PeerHelper.filter({ university_id: profile.university_id, is_visible: true }), "Discover helpers timed out"),
+      loadBase44Collection(() => base44.entities.Guide.filter({ is_published: true }), "Discover guides timed out"),
+      loadBase44Collection(() => base44.entities.HelpfulLink.filter({ is_published: true }), "Discover links timed out"),
     ]).then(([events, eventMembers, ownEventMembers, sessions, sessionMembers, ownSessionMembers, calendarItems, tutors, helpers, guides, links]) => {
       if (!active) return;
       const allowBguDemo = !university?.name || /Ben-Gurion/i.test(university.name);
@@ -115,9 +120,11 @@ export default function DiscoverPage() {
         guides: allowBguDemo ? withDemoFallback(forUniversity(guides), demoContent.guides) : forUniversity(guides),
         links: allowBguDemo ? withDemoFallback(forUniversity(links), demoContent.links) : forUniversity(links),
       });
+    }).catch((error) => {
+      if (active) setLoadError(base44ErrorMessage(error));
     }).finally(() => active && setLoading(false));
     return () => { active = false; };
-  }, [profile?.university_id, user?.id, university?.name]);
+  }, [profile?.university_id, user?.id, university?.name, loadKey]);
 
   useEffect(() => {
     const handleCreated = (event) => {
@@ -303,7 +310,9 @@ export default function DiscoverPage() {
         </div>
       </div>
 
-      {loading ? (
+      {loadError ? (
+        <LoadFailedState message={loadError} onRetry={() => setLoadKey((key) => key + 1)} />
+      ) : loading ? (
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">{[1, 2, 3, 4, 5, 6].map((item) => <SkeletonCard key={item} lines={3} />)}</div>
       ) : (
         <div className="grid min-w-0 gap-3 md:grid-cols-2 xl:grid-cols-3">
@@ -317,7 +326,7 @@ export default function DiscoverPage() {
         </div>
       )}
 
-      {!loading && activeItems.length === 0 && !isActivityTab && <EmptyState icon={Search} title={emptyCopy.title} message={emptyCopy.message} action={emptyCopy.action} />}
+      {!loadError && !loading && activeItems.length === 0 && !isActivityTab && <EmptyState icon={Search} title={emptyCopy.title} message={emptyCopy.message} action={emptyCopy.action} />}
 
       {selected && (
         <DetailsModal

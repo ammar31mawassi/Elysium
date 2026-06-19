@@ -27,7 +27,11 @@ import { demoContent, withDemoFallback } from "@/lib/demoData";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import PageLayout from "@/components/layout/PageLayout";
+import LoadFailedState from "@/components/ui/LoadFailedState";
+import EmptyState from "@/components/ui/EmptyState";
+import SkeletonCard from "@/components/ui/SkeletonCard";
 import { cn } from "@/lib/utils";
+import { base44ErrorMessage, loadBase44Collection } from "@/lib/base44LoadState";
 
 const toolDefinitions = [
   { key: "grade", icon: Target, component: GradeNeeded },
@@ -51,10 +55,6 @@ function makeRequirementRow(requirement = {}) {
   return { name: "", weight: "", grade: "", ...requirement, _rowId: `${Date.now()}-${Math.random()}` };
 }
 
-function safeQuery(promise) {
-  return promise.catch(() => []);
-}
-
 export default function ToolsPage() {
   const [params] = useSearchParams();
   const navigate = useNavigate();
@@ -63,6 +63,9 @@ export default function ToolsPage() {
   const p = (key) => productText(locale, key);
   const [guides, setGuides] = useState([]);
   const [links, setLinks] = useState([]);
+  const [resourcesLoading, setResourcesLoading] = useState(true);
+  const [resourcesError, setResourcesError] = useState("");
+  const [resourcesLoadKey, setResourcesLoadKey] = useState(0);
   const [activeTool, setActiveTool] = useState(params.get("tool") || null);
   const [expandedGuide, setExpandedGuide] = useState(null);
 
@@ -77,14 +80,21 @@ export default function ToolsPage() {
 
   useEffect(() => {
     if (!profile) return;
+    let active = true;
+    setResourcesLoading(true);
+    setResourcesError("");
     Promise.all([
-      safeQuery(base44.entities.Guide.filter({ is_published: true })),
-      safeQuery(base44.entities.HelpfulLink.filter({ is_published: true })),
+      loadBase44Collection(() => base44.entities.Guide.filter({ is_published: true }), "Guides timed out"),
+      loadBase44Collection(() => base44.entities.HelpfulLink.filter({ is_published: true }), "Helpful links timed out"),
     ]).then(([guideRows, linkRows]) => {
+      if (!active) return;
       setGuides(withDemoFallback((guideRows || []).filter((item) => !item.university_id || item.university_id === profile.university_id), demoContent.guides));
       setLinks(withDemoFallback((linkRows || []).filter((item) => !item.university_id || item.university_id === profile.university_id), demoContent.links));
-    });
-  }, [profile]);
+    }).catch((error) => {
+      if (active) setResourcesError(base44ErrorMessage(error));
+    }).finally(() => active && setResourcesLoading(false));
+    return () => { active = false; };
+  }, [profile, resourcesLoadKey]);
 
   const toolLabels = { gpa: t("tools_gpa"), grade: t("tools_grade"), flashcards: t("tools_flashcards") };
   const activeDefinition = toolDefinitions.find((tool) => tool.key === activeTool);
@@ -108,10 +118,34 @@ export default function ToolsPage() {
       </div>
 
       <SectionHeader label={t("tools_links")} />
-      <div className="mb-7 grid gap-2 md:grid-cols-2">{links.map((link) => <a key={link.id} href={link.official_url} target="_blank" rel="noreferrer" className="flex min-h-20 items-center gap-3 rounded-lg border border-border bg-card p-3 hover:border-primary/40" dir="auto"><div className="min-w-0 flex-1"><p className="text-sm font-semibold text-foreground">{localizedField(link, "title", locale)}</p><p className="mt-1 text-xs text-muted-foreground">{localizedField(link, "description", locale)}</p>{link.last_reviewed_date && <p className="mt-1 text-[11px] text-muted-foreground">Reviewed {link.last_reviewed_date}</p>}</div><ExternalLink className="h-4 w-4 shrink-0 text-muted-foreground" /></a>)}</div>
+      {resourcesError ? (
+        <div className="mb-7">
+          <LoadFailedState message={resourcesError} onRetry={() => setResourcesLoadKey((key) => key + 1)} />
+        </div>
+      ) : resourcesLoading ? (
+        <div className="mb-7 grid gap-2 md:grid-cols-2"><SkeletonCard lines={2} /><SkeletonCard lines={2} /></div>
+      ) : (
+        links.length ? (
+          <div className="mb-7 grid gap-2 md:grid-cols-2">{links.map((link) => <a key={link.id} href={link.official_url} target="_blank" rel="noreferrer" className="flex min-h-20 items-center gap-3 rounded-lg border border-border bg-card p-3 hover:border-primary/40" dir="auto"><div className="min-w-0 flex-1"><p className="text-sm font-semibold text-foreground">{localizedField(link, "title", locale)}</p><p className="mt-1 text-xs text-muted-foreground">{localizedField(link, "description", locale)}</p>{link.last_reviewed_date && <p className="mt-1 text-[11px] text-muted-foreground">Reviewed {link.last_reviewed_date}</p>}</div><ExternalLink className="h-4 w-4 shrink-0 text-muted-foreground" /></a>)}</div>
+        ) : (
+          <div className="mb-7 rounded-lg border border-dashed border-border bg-card">
+            <EmptyState icon={ExternalLink} title="No helpful links yet" message="Official links for your university will appear here once they are published." />
+          </div>
+        )
+      )}
 
       <SectionHeader label={t("tools_guides")} />
-      <div className="mb-7 space-y-2">{guides.map((guide) => <GuideRow key={guide.id} guide={guide} locale={locale} expanded={expandedGuide === guide.id} onToggle={() => setExpandedGuide(expandedGuide === guide.id ? null : guide.id)} />)}</div>
+      {resourcesError ? null : resourcesLoading ? (
+        <div className="mb-7 space-y-2"><SkeletonCard lines={2} /><SkeletonCard lines={2} /></div>
+      ) : (
+        guides.length ? (
+          <div className="mb-7 space-y-2">{guides.map((guide) => <GuideRow key={guide.id} guide={guide} locale={locale} expanded={expandedGuide === guide.id} onToggle={() => setExpandedGuide(expandedGuide === guide.id ? null : guide.id)} />)}</div>
+        ) : (
+          <div className="mb-7 rounded-lg border border-dashed border-border bg-card">
+            <EmptyState icon={GraduationCap} title="No guides yet" message="Campus guides for your university will appear here once they are published." />
+          </div>
+        )
+      )}
 
       <SectionHeader label="Coming soon" />
       <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">{plannedFeatures.map(([Icon, label]) => <div key={label} className="flex min-h-16 items-center gap-3 rounded-lg border border-dashed border-border bg-muted/20 p-3 opacity-70"><Icon className="h-4 w-4 shrink-0 text-muted-foreground" /><span className="text-sm font-medium text-muted-foreground">{label}</span></div>)}</div>

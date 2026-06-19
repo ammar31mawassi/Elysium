@@ -2181,6 +2181,260 @@ html:not(.dark) .landing-final-cta {
   }
 }
 
+.ely-float-shell {
+  display: grid;
+  justify-items: end;
+  gap: 0.625rem;
+  pointer-events: none;
+}
+
+.ely-float-button {
+  pointer-events: auto;
+  display: grid;
+  place-items: center;
+  width: 4rem;
+  height: 4rem;
+  border: 1px solid hsl(var(--primary) / 0.32);
+  border-radius: 999px;
+  background:
+    linear-gradient(180deg, hsl(var(--card)) 0%, hsl(var(--muted)) 100%);
+  color: hsl(var(--primary));
+  box-shadow:
+    0 18px 38px hsl(180 24% 10% / 0.18),
+    inset 0 1px 0 hsl(0 0% 100% / 0.7);
+  transition:
+    border-color 180ms cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 180ms cubic-bezier(0.4, 0, 0.2, 1),
+    transform 180ms cubic-bezier(0.4, 0, 0.2, 1);
+  animation: ely-float-breathe 4.8s ease-in-out infinite;
+}
+
+.ely-float-button:hover,
+.ely-float-button:focus-visible {
+  border-color: hsl(var(--primary) / 0.62);
+  transform: translateY(-2px) scale(1.04);
+  box-shadow:
+    0 22px 48px hsl(180 24% 10% / 0.24),
+    0 0 0 5px hsl(var(--primary) / 0.08),
+    inset 0 1px 0 hsl(0 0% 100% / 0.82);
+}
+
+.ely-chat-callout {
+  position: relative;
+  pointer-events: none;
+  max-width: min(15rem, calc(100vw - 2rem));
+  border: 1px solid hsl(var(--primary) / 0.18);
+  border-radius: 0.5rem;
+  background: hsl(var(--card) / 0.96);
+  color: hsl(var(--foreground));
+  box-shadow:
+    0 14px 34px hsl(180 24% 10% / 0.14),
+    inset 0 1px 0 hsl(0 0% 100% / 0.62);
+  padding: 0.625rem 0.75rem;
+  font-size: 0.76rem;
+  font-weight: 750;
+  line-height: 1.35;
+  transform-origin: bottom right;
+  animation: ely-callout-enter 520ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.ely-chat-callout::after {
+  content: "";
+  position: absolute;
+  inset-inline-end: 1.35rem;
+  bottom: -0.43rem;
+  width: 0.8rem;
+  height: 0.8rem;
+  border-inline-end: 1px solid hsl(var(--primary) / 0.18);
+  border-bottom: 1px solid hsl(var(--primary) / 0.18);
+  background: hsl(var(--card) / 0.96);
+  transform: rotate(45deg);
+}
+
+.ely-chat-callout-text {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  animation: ely-generated-text 3.2s steps(44, end) 480ms both;
+}
+
+.ely-chat-callout-text::after {
+  content: "";
+  display: inline-block;
+  width: 0.42rem;
+  height: 1em;
+  margin-inline-start: 0.15rem;
+  border-radius: 999px;
+  background: hsl(var(--primary));
+  vertical-align: -0.12em;
+  animation: ely-caret-blink 820ms steps(1, end) infinite;
+}
+
+.ely-robot-avatar {
+  display: block;
+  overflow: visible;
+  filter: drop-shadow(0 7px 14px hsl(var(--primary) / 0.18));
+  transform-origin: 50% 58%;
+  animation: ely-robot-bob 4.6s ease-in-out infinite;
+}
+
+.ely-robot-avatar-large {
+  filter: drop-shadow(0 12px 22px hsl(var(--primary) / 0.16));
+}
+
+.ely-robot-body,
+.ely-robot-mouth,
+.ely-robot-eye-right-open,
+.ely-robot-wink {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.ely-robot-body {
+  animation: ely-robot-tilt 5.4s ease-in-out infinite;
+}
+
+.ely-robot-antenna,
+.ely-robot-ear-left,
+.ely-robot-ear-right {
+  fill: none;
+  stroke: hsl(var(--primary));
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+
+.ely-robot-antenna-dot {
+  fill: hsl(var(--secondary));
+  stroke: hsl(var(--background));
+  stroke-width: 1.5;
+}
+
+.ely-robot-hair {
+  fill: hsl(var(--primary));
+  opacity: 0.92;
+}
+
+.ely-robot-eye {
+  fill: hsl(var(--primary));
+}
+
+.ely-robot-eye-right-open {
+  animation: ely-eye-open 5.2s ease-in-out infinite;
+}
+
+.ely-robot-wink {
+  fill: none;
+  stroke: hsl(var(--primary));
+  stroke-width: 3;
+  stroke-linecap: round;
+  opacity: 0;
+  animation: ely-eye-wink 5.2s ease-in-out infinite;
+}
+
+.ely-robot-lash {
+  fill: none;
+  stroke: hsl(var(--primary));
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  opacity: 0.82;
+}
+
+.ely-robot-blush {
+  fill: hsl(var(--secondary) / 0.28);
+}
+
+.ely-robot-mouth {
+  fill: none;
+  stroke: hsl(var(--primary));
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  animation: ely-mouth-talk 3.6s ease-in-out infinite;
+}
+
+@keyframes ely-float-breathe {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+
+@keyframes ely-callout-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes ely-generated-text {
+  from { clip-path: inset(0 100% 0 0); }
+  to { clip-path: inset(0 0 0 0); }
+}
+
+@keyframes ely-caret-blink {
+  0%, 48% { opacity: 1; }
+  49%, 100% { opacity: 0; }
+}
+
+@keyframes ely-robot-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
+}
+
+@keyframes ely-robot-tilt {
+  0%, 100% { transform: rotate(0deg); }
+  45% { transform: rotate(-2deg); }
+  70% { transform: rotate(2deg); }
+}
+
+@keyframes ely-eye-open {
+  0%, 63%, 77%, 100% {
+    opacity: 1;
+    transform: scaleY(1);
+  }
+  67%, 73% {
+    opacity: 0;
+    transform: scaleY(0.1);
+  }
+}
+
+@keyframes ely-eye-wink {
+  0%, 62%, 78%, 100% { opacity: 0; }
+  67%, 73% { opacity: 1; }
+}
+
+@keyframes ely-mouth-talk {
+  0%, 100% { transform: scaleY(1); }
+  40% { transform: scaleY(0.72); }
+  58% { transform: scaleY(1.12); }
+}
+
+@media (max-width: 480px) {
+  .ely-chat-callout {
+    max-width: min(13.5rem, calc(100vw - 1.5rem));
+    font-size: 0.72rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ely-float-button,
+  .ely-chat-callout,
+  .ely-chat-callout-text,
+  .ely-chat-callout-text::after,
+  .ely-robot-avatar,
+  .ely-robot-body,
+  .ely-robot-eye-right-open,
+  .ely-robot-wink,
+  .ely-robot-mouth {
+    animation: none !important;
+  }
+
+  .ely-chat-callout-text {
+    clip-path: none !important;
+  }
+}
+
 [dir="rtl"] {
   direction: rtl;
   text-align: right;

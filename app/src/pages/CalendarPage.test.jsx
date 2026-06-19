@@ -126,11 +126,11 @@ describe("CalendarPage", () => {
     );
 
     expect(await screen.findByText("No upcoming events yet.")).toBeInTheDocument();
-    expect(screen.queryByText("no upcoming deadlines, want to add a new one")).not.toBeInTheDocument();
+    expect(screen.queryByText("No upcoming deadlines yet.")).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Deadlines" }));
 
-    expect(await screen.findByText("no upcoming deadlines, want to add a new one")).toBeInTheDocument();
+    expect(await screen.findByText("No upcoming deadlines yet.")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Add deadline" }));
 
     expect(screen.getByText("Add homework")).toBeInTheDocument();
@@ -287,11 +287,11 @@ describe("CalendarPage", () => {
     );
 
     expect(await screen.findByText("Campus football")).toBeInTheDocument();
-    expect(screen.queryByText("no upcoming deadlines, want to add a new one")).not.toBeInTheDocument();
+    expect(screen.queryByText("No upcoming deadlines yet.")).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Deadlines" }));
 
-    expect(await screen.findByText("no upcoming deadlines, want to add a new one")).toBeInTheDocument();
+    expect(await screen.findByText("No upcoming deadlines yet.")).toBeInTheDocument();
   });
 
   it("shows only the activity create prompt when social or study filters are empty", async () => {
@@ -371,5 +371,20 @@ describe("CalendarPage", () => {
     expect(await screen.findByText("Past football")).toBeInTheDocument();
     expect(screen.getByText("Past algorithms")).toBeInTheDocument();
     expect(screen.queryByText("Future football")).not.toBeInTheDocument();
+  });
+
+  it("shows a retryable load failure when Base44 rate limits calendar data", async () => {
+    base44.entities.CalendarItem.filter.mockRejectedValue({ status: 429, message: "Rate limit exceeded" });
+
+    render(
+      <MemoryRouter initialEntries={["/calendar"]}>
+        <CalendarPage />
+      </MemoryRouter>
+    );
+
+    expect(await screen.findByText("Loading failed")).toBeInTheDocument();
+    expect(screen.getByText("Base44 rate limit exceeded. Wait a moment, then retry.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Retry" })).toBeInTheDocument();
+    expect(screen.queryByText("No upcoming events yet.")).not.toBeInTheDocument();
   });
 });

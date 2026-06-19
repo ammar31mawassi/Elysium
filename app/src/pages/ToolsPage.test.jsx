@@ -77,4 +77,18 @@ describe("ToolsPage", () => {
 
     expect(screen.getByRole("link", { name: "GPA Calculator" })).toHaveAttribute("href", "/tools/gpa");
   });
+
+  it("shows a retryable resources failure instead of empty guides and links", async () => {
+    base44.entities.Guide.filter.mockRejectedValue({ status: 429, message: "Rate limit exceeded" });
+
+    render(
+      <MemoryRouter initialEntries={["/tools"]}>
+        <ToolsPage />
+      </MemoryRouter>
+    );
+
+    expect(await screen.findByText("Loading failed")).toBeInTheDocument();
+    expect(screen.getByText("Base44 rate limit exceeded. Wait a moment, then retry.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Retry" })).toBeInTheDocument();
+  });
 });

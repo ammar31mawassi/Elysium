@@ -239,7 +239,7 @@ export default function ElyAssistant({ embedded = false, defaultOpen = false }) 
           <div className="ely-chat-callout" aria-hidden="true">
             <span className="ely-chat-callout-text">{FLOATING_MESSAGE}</span>
           </div>
-          <button onClick={() => setOpen(true)} className="ely-float-button" aria-label={copy.open} title={copy.open}>
+          <button data-tour="ely-assistant" onClick={() => setOpen(true)} className="ely-float-button" aria-label={copy.open} title={copy.open}>
             <ElyRobotAvatar size={52} />
           </button>
         </div>

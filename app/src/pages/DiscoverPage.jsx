@@ -370,7 +370,7 @@ export default function DiscoverPage() {
 
   return (
     <PageLayout wide>
-      <header className="mb-6 max-w-2xl">
+      <header data-tour="discover-overview" className="mb-6 max-w-2xl">
         <h1 className="text-2xl font-bold text-foreground sm:text-3xl">{p("discover_title")}</h1>
         <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{p("discover_body")}</p>
       </header>

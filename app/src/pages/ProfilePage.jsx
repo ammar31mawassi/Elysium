@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Edit2, GraduationCap, HelpCircle, LogOut, Monitor, Moon, Sun } from "lucide-react";
+import { CircleHelp, Edit2, GraduationCap, HelpCircle, LogOut, Monitor, Moon, Play, Sun } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { buildCanonicalAppUrl } from "@/lib/app-params";
 import { useProfile } from "@/lib/useProfile";
@@ -30,6 +30,7 @@ import { toast } from "@/components/ui/use-toast";
 import { cn } from "@/lib/utils";
 import { domainTones } from "@/lib/domainTones";
 import { getCachedQueryData, loadCachedQuery, setCachedQueryData, invalidateAppDataCaches } from "@/lib/base44Cache";
+import { useTutorial } from "@/components/tutorial/ProductTour";
 
 const YEARS = ["Preparatory", "1st Year", "2nd Year", "3rd Year", "4th Year+"];
 const SPOKEN_LANGUAGES = ["English", "Hebrew", "Arabic"];
@@ -42,6 +43,7 @@ export default function ProfilePage() {
   const { user, profile, university, setProfile, setUniversity } = useProfile();
   const { locale, setLocale, t } = useLanguage();
   const { preference, setTheme } = useTheme();
+  const { startTutorial } = useTutorial();
   const p = (key) => productText(locale, key);
   const [universities, setUniversities] = useState([]);
   const [teacherProfile, setTeacherProfile] = useState(null);
@@ -287,6 +289,13 @@ export default function ProfilePage() {
           <SettingsCard title={t("profile_theme")} className="mb-0"><div className="flex gap-2">{[["light", t("profile_theme_light") || "Light", Sun], ["dark", t("profile_theme_dark") || "Dark", Moon], ["system", t("profile_theme_system") || "System", Monitor]].map(([key, label, Icon]) => <button key={key} onClick={() => handleThemeChange(key)} className={cn("flex flex-1 items-center justify-center gap-1.5 rounded-md border py-2 text-xs font-medium", preference === key ? "border-primary bg-primary text-primary-foreground" : "border-border text-muted-foreground hover:border-primary/40")}><Icon className="h-3.5 w-3.5" />{label}</button>)}</div></SettingsCard>
         </div>
       </section>
+
+      <SettingsCard title="Elysium tutorial" icon={<CircleHelp className="h-4 w-4 text-primary" />}>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <p className="max-w-xl text-xs leading-relaxed text-muted-foreground">Replay the quick tour of your dashboard, Create action, calendar, discovery tools, and Ely.</p>
+          <Button type="button" size="sm" variant="outline" className="shrink-0 gap-2" onClick={startTutorial}><Play className="h-3.5 w-3.5" />Replay tutorial</Button>
+        </div>
+      </SettingsCard>
 
       <section className="mb-3">
         <h2 className="mb-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">Helping others</h2>

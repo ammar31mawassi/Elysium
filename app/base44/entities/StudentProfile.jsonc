@@ -29,7 +29,8 @@
     "interests": { "type": "array", "items": { "type": "string" } },
     "help_needs": { "type": "array", "items": { "type": "string" } },
     "theme_preference": { "type": "string", "enum": ["light", "dark", "system"], "default": "system" },
-    "onboarding_complete": { "type": "boolean", "default": false }
+    "onboarding_complete": { "type": "boolean", "default": false },
+    "tutorial_version": { "type": "integer", "default": 0 }
   },
   "required": ["user_id"],
   "rls": {

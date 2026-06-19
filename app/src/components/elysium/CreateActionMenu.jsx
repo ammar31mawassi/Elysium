@@ -31,6 +31,7 @@ export default function CreateActionMenu({ className, compact = false, label, ic
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <button
+          data-tour="create-action"
           className={cn(
             "flex items-center gap-2 rounded-md px-3 text-sm font-semibold",
             isFeatured ? "featured-surface featured-action h-11" : "border border-border bg-card text-foreground hover:border-primary/40",

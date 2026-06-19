@@ -461,7 +461,7 @@ export default function CalendarPage() {
 
   return (
     <PageLayout wide>
-      <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+      <header data-tour="calendar-overview" className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground sm:text-3xl">{p("calendar_title")}</h1>
           <p className="mt-2 text-sm text-muted-foreground">{p("calendar_body")}</p>

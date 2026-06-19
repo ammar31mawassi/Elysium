@@ -180,7 +180,7 @@ export default function Dashboard() {
       <div className="grid grid-cols-[minmax(0,1fr)] gap-5 lg:grid-cols-[minmax(0,1.6fr)_minmax(300px,.85fr)]">
         <div className="min-w-0 space-y-7">
           <AnimatedList as="section" className="grid gap-3 sm:grid-cols-[1.45fr_.75fr]">
-            <Link to={nextMeta.path} className="featured-surface group flex min-h-48 flex-col justify-between rounded-lg p-5">
+            <Link data-tour="dashboard-overview" to={nextMeta.path} className="featured-surface group flex min-h-48 flex-col justify-between rounded-lg p-5">
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <p className="text-xs font-bold uppercase opacity-75">{p("home_next")}</p>

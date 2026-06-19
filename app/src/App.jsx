@@ -10,6 +10,7 @@ import { ThemeProvider } from '@/lib/ThemeContext';
 import { LanguageProvider } from '@/lib/LanguageContext';
 import ElysiumMark from '@/components/elysium/ElysiumMark';
 import { CreateActionProvider } from '@/components/elysium/CreateActionProvider';
+import { TutorialProvider } from '@/components/tutorial/ProductTour';
 import LoadFailedState from '@/components/ui/LoadFailedState';
 
 import Onboarding from '@/pages/Onboarding';
@@ -113,9 +114,11 @@ const AuthenticatedApp = () => {
 function ProfileWrapper() {
   return (
     <CreateActionProvider>
-      <ProfileGate>
-        <Outlet />
-      </ProfileGate>
+      <TutorialProvider>
+        <ProfileGate>
+          <Outlet />
+        </ProfileGate>
+      </TutorialProvider>
     </CreateActionProvider>
   );
 }

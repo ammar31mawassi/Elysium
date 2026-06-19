@@ -235,7 +235,7 @@ export default function ElyAssistant({ embedded = false, defaultOpen = false }) 
     <>
       {open && <><button className="fixed inset-0 z-[80] bg-black/55 sm:block" onClick={() => setOpen(false)} aria-label={copy.close} />{panel}</>}
       {!open && (
-        <div className="ely-float-shell fixed bottom-[calc(132px+env(safe-area-inset-bottom))] end-4 z-[60] md:bottom-24 md:end-6" dir={isRTL ? "rtl" : "ltr"}>
+        <div className="ely-float-shell fixed bottom-[calc(112px+env(safe-area-inset-bottom))] end-4 z-[60] md:bottom-[5.5rem] md:end-6" dir={isRTL ? "rtl" : "ltr"}>
           <div className="ely-chat-callout" aria-hidden="true">
             <span className="ely-chat-callout-text">{FLOATING_MESSAGE}</span>
           </div>

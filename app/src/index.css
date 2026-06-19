@@ -2417,6 +2417,19 @@ html:not(.dark) .landing-final-cta {
   }
 }
 
+@media (min-width: 768px) {
+  .ely-chat-callout {
+    max-width: min(10.75rem, calc(100vw - 2rem));
+    padding: 0.5rem 0.625rem;
+    font-size: 0.72rem;
+    line-height: 1.28;
+  }
+
+  .ely-chat-callout::after {
+    inset-inline-end: 1.05rem;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .ely-float-button,
   .ely-chat-callout,

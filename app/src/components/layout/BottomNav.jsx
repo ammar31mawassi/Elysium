@@ -65,7 +65,7 @@ export default function BottomNav() {
         <div className="mx-auto grid h-[70px] max-w-lg grid-cols-5 items-end px-1">
           {nav.map((item, index) => {
             if (!item) return (
-              <button key="add" data-tour="create-action" onClick={() => setShowAdd(true)} className="flex h-16 flex-col items-center justify-center gap-1 active:scale-[0.98]" aria-label={t("nav_add")}>
+              <button key="add" data-tour="create-action" data-tour-surface="mobile" onClick={() => setShowAdd(true)} className="flex h-16 flex-col items-center justify-center gap-1 active:scale-[0.98]" aria-label={t("nav_add")}>
                 <span className="-mt-5 flex h-14 w-14 items-center justify-center rounded-full border-4 border-background bg-primary text-primary-foreground shadow-xl shadow-primary/20"><Plus className="h-5 w-5" /></span>
               </button>
             );

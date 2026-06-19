@@ -32,9 +32,11 @@ import EmptyState from "@/components/ui/EmptyState";
 import SkeletonCard from "@/components/ui/SkeletonCard";
 import ElCard from "@/components/ui/ElCard";
 import SectionHeading from "@/components/ui/SectionHeading";
+import AnimatedList from "@/components/ui/AnimatedList";
 import { cn } from "@/lib/utils";
 import { domainTones } from "@/lib/domainTones";
 import { base44ErrorMessage, loadBase44Collection } from "@/lib/base44LoadState";
+import { getCachedQueryData, loadCachedQuery } from "@/lib/base44Cache";
 
 const toolDefinitions = [
   { key: "grade", icon: Target, component: GradeNeeded },
@@ -54,6 +56,8 @@ const plannedFeatures = [
   [Sparkles, "Advanced Ely automation"],
 ];
 
+const EMPTY_RESOURCES = { guides: [], links: [] };
+
 function makeRequirementRow(requirement = {}) {
   return { name: "", weight: "", grade: "", ...requirement, _rowId: `${Date.now()}-${Math.random()}` };
 }
@@ -64,9 +68,11 @@ export default function ToolsPage() {
   const { profile } = useProfile();
   const { t, locale } = useLanguage();
   const p = (key) => productText(locale, key);
-  const [guides, setGuides] = useState([]);
-  const [links, setLinks] = useState([]);
-  const [resourcesLoading, setResourcesLoading] = useState(true);
+  const resourcesQueryKey = useMemo(() => ["tools-resources", profile?.university_id || "", locale], [profile?.university_id, locale]);
+  const cachedResources = getCachedQueryData(resourcesQueryKey);
+  const [guides, setGuides] = useState(() => cachedResources?.guides || []);
+  const [links, setLinks] = useState(() => cachedResources?.links || []);
+  const [resourcesLoading, setResourcesLoading] = useState(() => cachedResources === undefined);
   const [resourcesError, setResourcesError] = useState("");
   const [resourcesLoadKey, setResourcesLoadKey] = useState(0);
   const [activeTool, setActiveTool] = useState(params.get("tool") || null);
@@ -84,20 +90,37 @@ export default function ToolsPage() {
   useEffect(() => {
     if (!profile) return;
     let active = true;
-    setResourcesLoading(true);
+    const cached = getCachedQueryData(resourcesQueryKey);
+    if (cached) {
+      setGuides(cached.guides || []);
+      setLinks(cached.links || []);
+      setResourcesLoading(false);
+    } else {
+      setResourcesLoading(true);
+    }
     setResourcesError("");
-    Promise.all([
-      loadBase44Collection(() => base44.entities.Guide.filter({ is_published: true }), "Guides timed out"),
-      loadBase44Collection(() => base44.entities.HelpfulLink.filter({ is_published: true }), "Helpful links timed out"),
-    ]).then(([guideRows, linkRows]) => {
+    loadCachedQuery({
+      queryKey: resourcesQueryKey,
+      force: resourcesLoadKey > 0,
+      queryFn: async () => {
+        const [guideRows, linkRows] = await Promise.all([
+          loadBase44Collection(() => base44.entities.Guide.filter({ is_published: true }), "Guides timed out"),
+          loadBase44Collection(() => base44.entities.HelpfulLink.filter({ is_published: true }), "Helpful links timed out"),
+        ]);
+        return {
+          guides: withDemoFallback((guideRows || []).filter((item) => !item.university_id || item.university_id === profile.university_id), demoContent.guides),
+          links: withDemoFallback((linkRows || []).filter((item) => !item.university_id || item.university_id === profile.university_id), demoContent.links),
+        };
+      },
+    }).then((resources = EMPTY_RESOURCES) => {
       if (!active) return;
-      setGuides(withDemoFallback((guideRows || []).filter((item) => !item.university_id || item.university_id === profile.university_id), demoContent.guides));
-      setLinks(withDemoFallback((linkRows || []).filter((item) => !item.university_id || item.university_id === profile.university_id), demoContent.links));
+      setGuides(resources.guides || []);
+      setLinks(resources.links || []);
     }).catch((error) => {
       if (active) setResourcesError(base44ErrorMessage(error));
     }).finally(() => active && setResourcesLoading(false));
     return () => { active = false; };
-  }, [profile, resourcesLoadKey]);
+  }, [profile, resourcesLoadKey, resourcesQueryKey]);
 
   const toolLabels = { gpa: t("tools_gpa"), grade: t("tools_grade"), flashcards: t("tools_flashcards") };
   const activeDefinition = toolDefinitions.find((tool) => tool.key === activeTool);
@@ -107,7 +130,7 @@ export default function ToolsPage() {
       <header className="mb-7 max-w-2xl"><h1 className="text-2xl font-bold text-foreground sm:text-3xl">{p("tools_title")}</h1><p className="mt-2 text-sm leading-relaxed text-muted-foreground">{p("tools_body")}</p></header>
 
       <SectionHeading title={t("tools_calculators")} description="Start with the tools students use most, then open smaller calculators when needed." />
-      <div className="mb-6 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+      <AnimatedList className="mb-6 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
         {toolLinks.map(({ key, icon: Icon, to, description, tone }) => (
           <ElCard key={key} variant="interactive" tone={tone} className="overflow-hidden">
             <Link to={to} aria-label={toolLabels[key]} className="flex min-h-36 flex-col p-4 text-start">
@@ -127,15 +150,15 @@ export default function ToolsPage() {
             </button>
           </ElCard>
         ))}
-      </div>
+      </AnimatedList>
 
       {activeDefinition && <section className="mb-7 rounded-lg border border-border bg-card p-4"><div className="mb-4 flex items-center justify-between"><h2 className="text-sm font-semibold text-foreground">{toolLabels[activeDefinition.key]}</h2><button className="flex h-10 w-10 items-center justify-center rounded-md text-muted-foreground hover:bg-muted" onClick={() => setActiveTool(null)} aria-label="Close tool"><X className="h-4 w-4" /></button></div>{React.createElement(activeDefinition.component)}</section>}
 
       <SectionHeading title={t("tools_find_person")} />
-      <div className="mb-7 grid grid-cols-2 gap-2">
+      <AnimatedList className="mb-7 grid grid-cols-2 gap-2">
         <Link to="/discover?tab=tutors" className={cn("min-h-28 rounded-lg border border-border bg-card p-3", domainTones.tutor.border)}><span className={cn("flex h-9 w-9 items-center justify-center rounded-md", domainTones.tutor.icon)}><GraduationCap className="h-4 w-4" /></span><p className="mt-3 text-sm font-semibold text-foreground">{t("nav_tutors")}</p><p className="mt-1 text-xs text-muted-foreground">{t("tools_tutor_short")}</p></Link>
         <Link to="/discover?tab=helpers" className={cn("min-h-28 rounded-lg border border-border bg-card p-3", domainTones.helper.border)}><span className={cn("flex h-9 w-9 items-center justify-center rounded-md", domainTones.helper.icon)}><HelpCircle className="h-4 w-4" /></span><p className="mt-3 text-sm font-semibold text-foreground">{t("nav_helpers")}</p><p className="mt-1 text-xs text-muted-foreground">{t("tools_helper_short")}</p></Link>
-      </div>
+      </AnimatedList>
 
       <SectionHeading title={t("tools_links")} />
       {resourcesError ? (
@@ -143,10 +166,10 @@ export default function ToolsPage() {
           <LoadFailedState message={resourcesError} onRetry={() => setResourcesLoadKey((key) => key + 1)} />
         </div>
       ) : resourcesLoading ? (
-        <div className="mb-7 grid gap-2 md:grid-cols-2"><SkeletonCard lines={2} /><SkeletonCard lines={2} /></div>
+        <AnimatedList className="mb-7 grid gap-2 md:grid-cols-2"><SkeletonCard lines={2} /><SkeletonCard lines={2} /></AnimatedList>
       ) : (
         links.length ? (
-          <div className="mb-7 grid gap-2 md:grid-cols-2">{links.map((link) => <a key={link.id} href={link.official_url} target="_blank" rel="noreferrer" className="flex min-h-20 items-center gap-3 rounded-lg border border-border bg-card p-3 hover:border-primary/40" dir="auto"><div className="min-w-0 flex-1"><p className="text-sm font-semibold text-foreground">{localizedField(link, "title", locale)}</p><p className="mt-1 text-xs text-muted-foreground">{localizedField(link, "description", locale)}</p>{link.last_reviewed_date && <p className="mt-1 text-[11px] text-muted-foreground">Reviewed {link.last_reviewed_date}</p>}</div><ExternalLink className="h-4 w-4 shrink-0 text-muted-foreground" /></a>)}</div>
+          <AnimatedList className="mb-7 grid gap-2 md:grid-cols-2">{links.map((link) => <a key={link.id} href={link.official_url} target="_blank" rel="noreferrer" className="flex min-h-20 items-center gap-3 rounded-lg border border-border bg-card p-3 hover:border-primary/40" dir="auto"><div className="min-w-0 flex-1"><p className="text-sm font-semibold text-foreground">{localizedField(link, "title", locale)}</p><p className="mt-1 text-xs text-muted-foreground">{localizedField(link, "description", locale)}</p>{link.last_reviewed_date && <p className="mt-1 text-[11px] text-muted-foreground">Reviewed {link.last_reviewed_date}</p>}</div><ExternalLink className="h-4 w-4 shrink-0 text-muted-foreground" /></a>)}</AnimatedList>
         ) : (
           <div className="mb-7 rounded-lg border border-dashed border-border bg-card">
             <EmptyState icon={ExternalLink} title="No helpful links yet" message="Official links for your university will appear here once they are published." />
@@ -156,10 +179,10 @@ export default function ToolsPage() {
 
       <SectionHeading title={t("tools_guides")} />
       {resourcesError ? null : resourcesLoading ? (
-        <div className="mb-7 space-y-2"><SkeletonCard lines={2} /><SkeletonCard lines={2} /></div>
+        <AnimatedList className="mb-7 space-y-2"><SkeletonCard lines={2} /><SkeletonCard lines={2} /></AnimatedList>
       ) : (
         guides.length ? (
-          <div className="mb-7 space-y-2">{guides.map((guide) => <GuideRow key={guide.id} guide={guide} locale={locale} expanded={expandedGuide === guide.id} onToggle={() => setExpandedGuide(expandedGuide === guide.id ? null : guide.id)} />)}</div>
+          <AnimatedList className="mb-7 space-y-2">{guides.map((guide) => <GuideRow key={guide.id} guide={guide} locale={locale} expanded={expandedGuide === guide.id} onToggle={() => setExpandedGuide(expandedGuide === guide.id ? null : guide.id)} />)}</AnimatedList>
         ) : (
           <div className="mb-7 rounded-lg border border-dashed border-border bg-card">
             <EmptyState icon={GraduationCap} title="No guides yet" message="Campus guides for your university will appear here once they are published." />
@@ -168,7 +191,7 @@ export default function ToolsPage() {
       )}
 
       <SectionHeading title="Later upgrades" description="Planned ideas are shown quietly so they do not compete with tools that work now." />
-      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">{plannedFeatures.map(([Icon, label]) => <div key={label} className="flex min-h-14 items-center gap-3 rounded-lg border border-dashed border-border/80 bg-muted/10 p-3 opacity-60"><Icon className="h-4 w-4 shrink-0 text-muted-foreground" /><span className="text-sm font-medium text-muted-foreground">{label}</span></div>)}</div>
+      <AnimatedList className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">{plannedFeatures.map(([Icon, label]) => <div key={label} className="flex min-h-14 items-center gap-3 rounded-lg border border-dashed border-border/80 bg-muted/10 p-3 opacity-60"><Icon className="h-4 w-4 shrink-0 text-muted-foreground" /><span className="text-sm font-medium text-muted-foreground">{label}</span></div>)}</AnimatedList>
     </PageLayout>
   );
 }

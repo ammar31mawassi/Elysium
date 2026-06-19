@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { domainTones } from "@/lib/domainTones";
 import { base44ErrorMessage, loadBase44Collection } from "@/lib/base44LoadState";
+import { getCachedQueryData, loadCachedQuery, setCachedQueryData, invalidateAppDataCaches } from "@/lib/base44Cache";
 
 const COMMUNITY_FILTERS = [
   ["all", "All"],
@@ -68,11 +69,13 @@ export default function MyCommunitiesPage() {
   const [params, setParams] = useSearchParams();
   const { user, profile } = useProfile();
   const { openCreateAction } = useCreateAction();
-  const [events, setEvents] = useState([]);
-  const [sessions, setSessions] = useState([]);
-  const [eventMembers, setEventMembers] = useState([]);
-  const [sessionMembers, setSessionMembers] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const communitiesQueryKey = useMemo(() => ["my-communities", user?.id || "", profile?.university_id || ""], [user?.id, profile?.university_id]);
+  const cachedCommunitiesData = getCachedQueryData(communitiesQueryKey);
+  const [events, setEvents] = useState(() => cachedCommunitiesData?.events || []);
+  const [sessions, setSessions] = useState(() => cachedCommunitiesData?.sessions || []);
+  const [eventMembers, setEventMembers] = useState(() => cachedCommunitiesData?.eventMembers || []);
+  const [sessionMembers, setSessionMembers] = useState(() => cachedCommunitiesData?.sessionMembers || []);
+  const [loading, setLoading] = useState(() => cachedCommunitiesData === undefined);
   const [loadError, setLoadError] = useState("");
   const [loadKey, setLoadKey] = useState(0);
   const [savingId, setSavingId] = useState("");
@@ -96,26 +99,47 @@ export default function MyCommunitiesPage() {
       return;
     }
     let active = true;
-    setLoading(true);
+    const cached = getCachedQueryData(communitiesQueryKey);
+    if (cached) {
+      setEvents(cached.events || []);
+      setSessions(cached.sessions || []);
+      setEventMembers(cached.eventMembers || []);
+      setSessionMembers(cached.sessionMembers || []);
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
     setLoadError("");
-    Promise.all([
-      loadBase44Collection(() => base44.entities.SocialEvent.filter({ university_id: profile.university_id }), "My social events timed out"),
-      loadBase44Collection(() => base44.entities.SocialEventMember.filter({ university_id: profile.university_id }), "My social memberships timed out"),
-      loadBase44Collection(() => base44.entities.SocialEventMember.filter({ user_id: user.id }), "Your social memberships timed out"),
-      loadBase44Collection(() => base44.entities.StudySession.filter({ university_id: profile.university_id }), "My study groups timed out"),
-      loadBase44Collection(() => base44.entities.StudySessionMember.filter({ university_id: profile.university_id }), "My study memberships timed out"),
-      loadBase44Collection(() => base44.entities.StudySessionMember.filter({ user_id: user.id }), "Your study memberships timed out"),
-    ]).then(([eventRows, memberRows, ownMemberRows, sessionRows, sessionMemberRows, ownSessionMemberRows]) => {
+    loadCachedQuery({
+      queryKey: communitiesQueryKey,
+      force: loadKey > 0,
+      queryFn: async () => {
+        const [eventRows, memberRows, ownMemberRows, sessionRows, sessionMemberRows, ownSessionMemberRows] = await Promise.all([
+          loadBase44Collection(() => base44.entities.SocialEvent.filter({ university_id: profile.university_id }), "My social events timed out"),
+          loadBase44Collection(() => base44.entities.SocialEventMember.filter({ university_id: profile.university_id }), "My social memberships timed out"),
+          loadBase44Collection(() => base44.entities.SocialEventMember.filter({ user_id: user.id }), "Your social memberships timed out"),
+          loadBase44Collection(() => base44.entities.StudySession.filter({ university_id: profile.university_id }), "My study groups timed out"),
+          loadBase44Collection(() => base44.entities.StudySessionMember.filter({ university_id: profile.university_id }), "My study memberships timed out"),
+          loadBase44Collection(() => base44.entities.StudySessionMember.filter({ user_id: user.id }), "Your study memberships timed out"),
+        ]);
+        return {
+          events: (eventRows || []).filter((event) => event.organizer_id === user.id),
+          sessions: (sessionRows || []).filter((session) => session.host_id === user.id),
+          eventMembers: filterMembershipsForUniversity(mergeRecordsById(memberRows, ownMemberRows), profile.university_id),
+          sessionMembers: filterMembershipsForUniversity(mergeRecordsById(sessionMemberRows, ownSessionMemberRows), profile.university_id),
+        };
+      },
+    }).then((rows) => {
       if (!active) return;
-      setEvents((eventRows || []).filter((event) => event.organizer_id === user.id));
-      setSessions((sessionRows || []).filter((session) => session.host_id === user.id));
-      setEventMembers(filterMembershipsForUniversity(mergeRecordsById(memberRows, ownMemberRows), profile.university_id));
-      setSessionMembers(filterMembershipsForUniversity(mergeRecordsById(sessionMemberRows, ownSessionMemberRows), profile.university_id));
+      setEvents(rows.events || []);
+      setSessions(rows.sessions || []);
+      setEventMembers(rows.eventMembers || []);
+      setSessionMembers(rows.sessionMembers || []);
     }).catch((error) => {
       if (active) setLoadError(base44ErrorMessage(error));
     }).finally(() => active && setLoading(false));
     return () => { active = false; };
-  }, [profile?.university_id, user?.id, loadKey]);
+  }, [profile?.university_id, user?.id, loadKey, communitiesQueryKey]);
 
   useEffect(() => {
     const handleCreated = (event) => {
@@ -128,10 +152,20 @@ export default function MyCommunitiesPage() {
         setSessions((current) => [detail.session, ...current.filter((item) => item.id !== detail.session.id)]);
         if (detail.membership) setSessionMembers((current) => mergeRecordsById(current, [detail.membership]));
       }
+      setCachedQueryData(communitiesQueryKey, (current) => {
+        if (!current) return current;
+        return {
+          ...current,
+          events: detail?.type === "social" ? [detail.event, ...current.events.filter((item) => item.id !== detail.event.id)] : current.events,
+          eventMembers: detail?.type === "social" && detail.membership ? mergeRecordsById(current.eventMembers, [detail.membership]) : current.eventMembers,
+          sessions: detail?.type === "study" ? [detail.session, ...current.sessions.filter((item) => item.id !== detail.session.id)] : current.sessions,
+          sessionMembers: detail?.type === "study" && detail.membership ? mergeRecordsById(current.sessionMembers, [detail.membership]) : current.sessionMembers,
+        };
+      });
     };
     window.addEventListener("elysium:create-action-complete", handleCreated);
     return () => window.removeEventListener("elysium:create-action-complete", handleCreated);
-  }, []);
+  }, [communitiesQueryKey]);
 
   const openEvents = useMemo(() => events.filter((event) => event.status !== "canceled" && event.is_open !== false), [events]);
   const openSessions = useMemo(() => sessions.filter((session) => session.status !== "canceled"), [sessions]);
@@ -166,7 +200,10 @@ export default function MyCommunitiesPage() {
     setSavingId(event.id);
     try {
       await base44.entities.SocialEvent.update(event.id, { status: "canceled", is_open: false });
-      setEvents((current) => current.map((item) => item.id === event.id ? { ...item, status: "canceled", is_open: false } : item));
+      const updateEvents = (current) => current.map((item) => item.id === event.id ? { ...item, status: "canceled", is_open: false } : item);
+      setEvents(updateEvents);
+      setCachedQueryData(communitiesQueryKey, (current) => current ? { ...current, events: updateEvents(current.events) } : current);
+      invalidateAppDataCaches();
       setSelected(null);
     } finally {
       setSavingId("");
@@ -178,7 +215,10 @@ export default function MyCommunitiesPage() {
     setSavingId(session.id);
     try {
       await base44.entities.StudySession.update(session.id, { status: "canceled" });
-      setSessions((current) => current.map((item) => item.id === session.id ? { ...item, status: "canceled" } : item));
+      const updateSessions = (current) => current.map((item) => item.id === session.id ? { ...item, status: "canceled" } : item);
+      setSessions(updateSessions);
+      setCachedQueryData(communitiesQueryKey, (current) => current ? { ...current, sessions: updateSessions(current.sessions) } : current);
+      invalidateAppDataCaches();
       setSelected(null);
     } finally {
       setSavingId("");

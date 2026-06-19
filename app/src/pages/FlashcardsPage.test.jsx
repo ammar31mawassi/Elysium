@@ -110,6 +110,9 @@ describe("FlashcardsPage", () => {
     expect(screen.getByText("Question preview")).toBeInTheDocument();
     expect(screen.getByText("1. Question A")).toBeInTheDocument();
     expect(screen.queryByText("Answer A")).not.toBeInTheDocument();
+    expect(screen.getByText("2 cards")).toBeInTheDocument();
+    expect(base44.entities.Flashcard.filter).toHaveBeenCalledTimes(1);
+    expect(base44.entities.Flashcard.filter).toHaveBeenCalledWith({ owner_user_id: "user-1" });
 
     openTab("Published");
     expect(await screen.findByText("Chemistry Basics")).toBeInTheDocument();

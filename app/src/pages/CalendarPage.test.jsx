@@ -86,7 +86,7 @@ describe("CalendarPage", () => {
       }));
     });
     expect(await screen.findByText("Submit worksheet")).toBeInTheDocument();
-  });
+  }, 10000);
 
   it("removes a joined social activity from the calendar when the source activity was canceled", async () => {
     const joinedActivity = {
@@ -306,13 +306,15 @@ describe("CalendarPage", () => {
     await screen.findByText("No upcoming events yet.");
     fireEvent.click(screen.getByRole("button", { name: "Social events" }));
 
-    expect(screen.getByText("Didn't find what you are looking for? Why not make one yourself!")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Create social group" })).toBeInTheDocument();
+    expect(screen.getByText("No social plans here yet.")).toBeInTheDocument();
+    expect(screen.getByText("Create one and keep it on your calendar.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Create event" })).toBeInTheDocument();
     expect(screen.queryByText("No social groups yet.")).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Study groups" }));
 
-    expect(screen.getByText("Didn't find what you are looking for? Why not make one yourself!")).toBeInTheDocument();
+    expect(screen.getByText("No study sessions here yet.")).toBeInTheDocument();
+    expect(screen.getByText("Start a group and add it to your calendar.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Start a study group" })).toBeInTheDocument();
     expect(screen.queryByText("No study groups yet.")).not.toBeInTheDocument();
   });

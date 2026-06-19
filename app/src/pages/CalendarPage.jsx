@@ -17,11 +17,21 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { normalizeCourseRecords } from "@/lib/profileCourses";
 import { base44ErrorMessage, loadBase44Collection } from "@/lib/base44LoadState";
+import { getCachedQueryData, loadCachedQuery, setCachedQueryData, mergeRecordsById, removeRecordsById, invalidateAppDataCaches } from "@/lib/base44Cache";
 
 const PERSONAL_KINDS = ["homework", "exam", "other"];
 const PRIORITIES = ["normal", "important", "urgent"];
 const DEADLINE_KINDS = new Set(["homework", "exam"]);
-const FIND_PROMPT = "Didn't find what you are looking for? Why not make one yourself!";
+const calendarCreatePrompts = {
+  study: {
+    title: "No study sessions here yet.",
+    body: "Start a group and add it to your calendar.",
+  },
+  social: {
+    title: "No social plans here yet.",
+    body: "Create one and keep it on your calendar.",
+  },
+};
 const CALENDAR_REFRESH_MS = 60 * 1000;
 const CATEGORY_FILTERS = [
   ["all", "All events"],
@@ -221,8 +231,10 @@ export default function CalendarPage() {
   const { user, profile } = useProfile();
   const { locale, t } = useLanguage();
   const p = (key) => productText(locale, key);
-  const [items, setItems] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const calendarQueryKey = useMemo(() => ["calendar-page", user?.id || "", profile?.university_id || ""], [user?.id, profile?.university_id]);
+  const cachedCalendarItems = getCachedQueryData(calendarQueryKey);
+  const [items, setItems] = useState(() => cachedCalendarItems || []);
+  const [loading, setLoading] = useState(() => cachedCalendarItems === undefined);
   const [loadError, setLoadError] = useState("");
   const [loadKey, setLoadKey] = useState(0);
   const [saving, setSaving] = useState(false);
@@ -238,6 +250,14 @@ export default function CalendarPage() {
   const [visibleDate, setVisibleDate] = useState(() => new Date());
   const [selectedCalendarDate, setSelectedCalendarDate] = useState(null);
 
+  const syncCalendarItems = (updater) => {
+    setItems((current) => {
+      const next = typeof updater === "function" ? updater(current) : updater;
+      setCachedQueryData(calendarQueryKey, next);
+      return next;
+    });
+  };
+
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const kind = PERSONAL_KINDS.includes(params.get("type")) ? params.get("type") : "other";
@@ -252,24 +272,36 @@ export default function CalendarPage() {
   useEffect(() => {
     if (!user?.id) return;
     let active = true;
-    setLoading(true);
+    const cached = getCachedQueryData(calendarQueryKey);
+    if (cached) {
+      setItems(cached);
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
     setLoadError("");
-    Promise.all([
-      loadBase44Collection(() => base44.entities.CalendarItem.filter({ owner_user_id: user.id }), "Calendar items timed out"),
-      profile?.university_id ? loadBase44Collection(() => base44.entities.SocialEvent.filter({ university_id: profile.university_id }), "Calendar social events timed out") : Promise.resolve([]),
-      profile?.university_id ? loadBase44Collection(() => base44.entities.StudySession.filter({ university_id: profile.university_id }), "Calendar study sessions timed out") : Promise.resolve([]),
-    ]).then(async ([rows, events, sessions]) => {
-      const staleItems = (rows || []).filter((item) => sourceIsCanceled(item, events, sessions));
-      await Promise.all(staleItems.map((item) => base44.entities.CalendarItem.delete(item.id).catch(() => null)));
+    loadCachedQuery({
+      queryKey: calendarQueryKey,
+      force: loadKey > 0,
+      queryFn: async () => {
+        const [rows, events, sessions] = await Promise.all([
+          loadBase44Collection(() => base44.entities.CalendarItem.filter({ owner_user_id: user.id }), "Calendar items timed out"),
+          profile?.university_id ? loadBase44Collection(() => base44.entities.SocialEvent.filter({ university_id: profile.university_id }), "Calendar social events timed out") : Promise.resolve([]),
+          profile?.university_id ? loadBase44Collection(() => base44.entities.StudySession.filter({ university_id: profile.university_id }), "Calendar study sessions timed out") : Promise.resolve([]),
+        ]);
+        const staleItems = (rows || []).filter((item) => sourceIsCanceled(item, events, sessions));
+        await Promise.all(staleItems.map((item) => base44.entities.CalendarItem.delete(item.id).catch(() => null)));
+        return (rows || []).filter((item) => !staleItems.some((stale) => stale.id === item.id));
+      },
+    }).then((rows) => {
       if (active) {
-        setItems((rows || []).filter((item) => !staleItems.some((stale) => stale.id === item.id)));
-        setLoading(false);
+        setItems(rows || []);
       }
     }).catch((error) => {
       if (active) setLoadError(base44ErrorMessage(error));
     }).finally(() => active && setLoading(false));
     return () => { active = false; };
-  }, [user?.id, profile?.university_id, loadKey]);
+  }, [user?.id, profile?.university_id, loadKey, calendarQueryKey]);
 
   useEffect(() => {
     const timer = window.setInterval(() => setCurrentTime(Date.now()), CALENDAR_REFRESH_MS);
@@ -280,11 +312,11 @@ export default function CalendarPage() {
     const handleCreated = (event) => {
       const item = event.detail?.calendarItem;
       if (!item) return;
-      setItems((current) => current.some((row) => row.id === item.id) ? current.map((row) => row.id === item.id ? item : row) : [...current, item]);
+      syncCalendarItems((current) => mergeRecordsById(current, [item]));
     };
     window.addEventListener("elysium:create-action-complete", handleCreated);
     return () => window.removeEventListener("elysium:create-action-complete", handleCreated);
-  }, []);
+  }, [calendarQueryKey]);
 
   const timeFilteredItems = useMemo(() => {
     return items
@@ -359,7 +391,7 @@ export default function CalendarPage() {
   const activityPrompt = categoryFilter === "study_session"
     ? { icon: BookOpenCheck, tone: "study", buttonLabel: "Start a study group", action: "study" }
     : categoryFilter === "social_activity"
-      ? { icon: Users, tone: "social", buttonLabel: "Create social group", action: "social" }
+      ? { icon: Users, tone: "social", buttonLabel: "Create event", action: "social" }
       : null;
 
   const openEdit = (item) => {
@@ -396,7 +428,7 @@ export default function CalendarPage() {
       const payload = calendarPayloadFromForm(form);
       if (editingItem) {
         await base44.entities.CalendarItem.update(editingItem.id, payload);
-        setItems((current) => current.map((row) => row.id === editingItem.id ? { ...row, ...payload } : row));
+        syncCalendarItems((current) => current.map((row) => row.id === editingItem.id ? { ...row, ...payload } : row));
       } else {
         const item = await base44.entities.CalendarItem.create({
           owner_user_id: user.id,
@@ -405,8 +437,9 @@ export default function CalendarPage() {
           completed: false,
           status: "active",
         });
-        setItems((current) => [...current, item]);
+        syncCalendarItems((current) => mergeRecordsById(current, [item]));
       }
+      invalidateAppDataCaches();
       closeEditor();
     } finally {
       setSaving(false);
@@ -416,12 +449,14 @@ export default function CalendarPage() {
   const toggleComplete = async (item) => {
     const completed = !item.completed;
     await base44.entities.CalendarItem.update(item.id, { completed, status: completed ? "completed" : "active" });
-    setItems((current) => current.map((row) => row.id === item.id ? { ...row, completed, status: completed ? "completed" : "active" } : row));
+    syncCalendarItems((current) => current.map((row) => row.id === item.id ? { ...row, completed, status: completed ? "completed" : "active" } : row));
+    invalidateAppDataCaches();
   };
 
   const removeItem = async (item) => {
     await base44.entities.CalendarItem.delete(item.id);
-    setItems((current) => current.filter((row) => row.id !== item.id));
+    syncCalendarItems((current) => removeRecordsById(current, [item.id]));
+    invalidateAppDataCaches();
   };
 
   return (
@@ -833,13 +868,15 @@ function CalendarDayModal({ date, items, locale, onClose, onEdit }) {
 
 function CalendarCreatePrompt({ icon: Icon, tone, buttonLabel, onClick, standalone = false }) {
   const toneClass = tone === "study" ? "bg-primary/10 text-primary" : "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300";
+  const prompt = calendarCreatePrompts[tone];
   return (
     <article className={cn("flex items-start gap-3 border-dashed border-border bg-muted/20 p-4 sm:p-5", !standalone && "border-t")}>
       <span className={cn("flex h-11 w-11 shrink-0 items-center justify-center rounded-md", toneClass)}>
         <Icon className="h-5 w-5" />
       </span>
       <div className="min-w-0 flex-1">
-        <h2 className="text-sm font-semibold text-foreground">{FIND_PROMPT}</h2>
+        <h2 className="text-sm font-semibold text-foreground">{prompt.title}</h2>
+        <p className="mt-1 text-sm text-muted-foreground">{prompt.body}</p>
         <div className="mt-3">
           <Button size="sm" onClick={onClick}>{buttonLabel}</Button>
         </div>

@@ -46,6 +46,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { base44ErrorMessage, loadBase44Collection } from "@/lib/base44LoadState";
+import { getCachedQueryData, isCachedQueryFresh, loadCachedQuery, setCachedQueryData, invalidateAppDataCaches } from "@/lib/base44Cache";
 
 const eventIcons = {
   sports: Dumbbell,
@@ -57,7 +58,20 @@ const eventIcons = {
 };
 
 const tabAliases = { study: "sessions", groups: "sessions", teachers: "tutors", mentors: "helpers", guides: "resources" };
-const FIND_PROMPT = "Didn't find what you are looking for? Why not make one yourself!";
+const createPrompts = {
+  social: {
+    title: "No matching event yet.",
+    body: "Start one for students with similar interests.",
+    button: "Create event",
+  },
+  sessions: {
+    title: "No matching study group yet.",
+    body: "Create one around your course.",
+    button: "Start study group",
+  },
+};
+
+const EMPTY_DISCOVER_DATA = { events: [], eventMembers: [], sessions: [], sessionMembers: [], calendarItems: [], tutors: [], helpers: [], guides: [], links: [] };
 
 function safeQuery(promise) {
   return Promise.race([promise.catch(() => []), new Promise((resolve) => setTimeout(() => resolve([]), 7000))]);
@@ -72,13 +86,15 @@ export default function DiscoverPage() {
   const rawTab = new URLSearchParams(location.search).get("tab") || "social";
   const requestedTab = tabAliases[rawTab] || rawTab;
   const [tab, setTab] = useState(requestedTab);
+  const discoverQueryKey = useMemo(() => ["discover-tab", tab, user?.id || "", profile?.university_id || "", university?.name || ""], [tab, user?.id, profile?.university_id, university?.name]);
+  const cachedDiscoverData = getCachedQueryData(discoverQueryKey);
   const [query, setQuery] = useState("");
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => cachedDiscoverData === undefined);
   const [loadError, setLoadError] = useState("");
   const [loadKey, setLoadKey] = useState(0);
   const [saving, setSaving] = useState(false);
   const [selected, setSelected] = useState(null);
-  const [data, setData] = useState({ events: [], eventMembers: [], sessions: [], sessionMembers: [], calendarItems: [], tutors: [], helpers: [], guides: [], links: [] });
+  const [data, setData] = useState(() => cachedDiscoverData ? { ...EMPTY_DISCOVER_DATA, ...cachedDiscoverData } : EMPTY_DISCOVER_DATA);
 
   useEffect(() => setTab(requestedTab), [requestedTab]);
 
@@ -87,41 +103,95 @@ export default function DiscoverPage() {
       setLoading(false);
       return;
     }
+
     let active = true;
-    setLoading(true);
-    setLoadError("");
-    Promise.all([
-      loadBase44Collection(() => base44.entities.SocialEvent.filter({ university_id: profile.university_id }), "Discover events timed out"),
-      loadBase44Collection(() => base44.entities.SocialEventMember.filter({ university_id: profile.university_id }), "Discover event memberships timed out"),
-      loadBase44Collection(() => base44.entities.SocialEventMember.filter({ user_id: user.id }), "Discover own event memberships timed out"),
-      loadBase44Collection(() => base44.entities.StudySession.filter({ university_id: profile.university_id }), "Discover study sessions timed out"),
-      loadBase44Collection(() => base44.entities.StudySessionMember.filter({ university_id: profile.university_id }), "Discover study memberships timed out"),
-      loadBase44Collection(() => base44.entities.StudySessionMember.filter({ user_id: user.id }), "Discover own study memberships timed out"),
-      loadBase44Collection(() => base44.entities.CalendarItem.filter({ owner_user_id: user.id }), "Discover calendar timed out"),
-      loadBase44Collection(() => base44.entities.PrivateTeacher.filter({ university_id: profile.university_id, is_active: true, is_approved: true }), "Discover tutors timed out"),
-      loadBase44Collection(() => base44.entities.PeerHelper.filter({ university_id: profile.university_id, is_visible: true }), "Discover helpers timed out"),
-      loadBase44Collection(() => base44.entities.Guide.filter({ is_published: true }), "Discover guides timed out"),
-      loadBase44Collection(() => base44.entities.HelpfulLink.filter({ is_published: true }), "Discover links timed out"),
-    ]).then(([events, eventMembers, ownEventMembers, sessions, sessionMembers, ownSessionMembers, calendarItems, tutors, helpers, guides, links]) => {
-      if (!active) return;
-      const allowBguDemo = !university?.name || /Ben-Gurion/i.test(university.name);
-      const forUniversity = (items) => (items || []).filter((item) => !item.university_id || item.university_id === profile.university_id);
-      setData({
-        events: events || [],
-        eventMembers: filterMembershipsForUniversity(mergeRecordsById(eventMembers, ownEventMembers), profile.university_id),
-        sessions: sessions || [],
-        sessionMembers: filterMembershipsForUniversity(mergeRecordsById(sessionMembers, ownSessionMembers), profile.university_id),
-        calendarItems: calendarItems || [],
-        tutors: allowBguDemo ? withDemoFallback(tutors, demoContent.tutors) : tutors || [],
-        helpers: allowBguDemo ? withDemoFallback(helpers, demoContent.helpers) : helpers || [],
+    const allowBguDemo = !university?.name || /Ben-Gurion/i.test(university.name);
+    const forUniversity = (items) => (items || []).filter((item) => !item.university_id || item.university_id === profile.university_id);
+    const cached = getCachedQueryData(discoverQueryKey);
+    const applyPatch = (patch) => {
+      setData((current) => ({
+        ...current,
+        ...patch,
+        calendarItems: patch.calendarItems ? mergeRecordsById(current.calendarItems, patch.calendarItems) : current.calendarItems,
+        eventMembers: patch.eventMembers ? mergeRecordsById(current.eventMembers, patch.eventMembers) : current.eventMembers,
+        sessionMembers: patch.sessionMembers ? mergeRecordsById(current.sessionMembers, patch.sessionMembers) : current.sessionMembers,
+      }));
+    };
+
+    if (cached) {
+      applyPatch(cached);
+      setLoading(false);
+      setLoadError("");
+      if (isCachedQueryFresh(discoverQueryKey) && loadKey === 0) return;
+    } else {
+      setLoading(true);
+    }
+
+    const loadActiveTab = async () => {
+      setLoadError("");
+      if (tab === "social") {
+        const [events, eventMembers, ownEventMembers, calendarItems] = await Promise.all([
+          loadBase44Collection(() => base44.entities.SocialEvent.filter({ university_id: profile.university_id }), "Discover events timed out"),
+          loadBase44Collection(() => base44.entities.SocialEventMember.filter({ university_id: profile.university_id }), "Discover event memberships timed out"),
+          loadBase44Collection(() => base44.entities.SocialEventMember.filter({ user_id: user.id }), "Discover own event memberships timed out"),
+          loadBase44Collection(() => base44.entities.CalendarItem.filter({ owner_user_id: user.id }), "Discover calendar timed out"),
+        ]);
+        return {
+          events: events || [],
+          eventMembers: filterMembershipsForUniversity(mergeRecordsById(eventMembers, ownEventMembers), profile.university_id),
+          calendarItems: calendarItems || [],
+        };
+      }
+
+      if (tab === "sessions") {
+        const [sessions, sessionMembers, ownSessionMembers, calendarItems] = await Promise.all([
+          loadBase44Collection(() => base44.entities.StudySession.filter({ university_id: profile.university_id }), "Discover study sessions timed out"),
+          loadBase44Collection(() => base44.entities.StudySessionMember.filter({ university_id: profile.university_id }), "Discover study memberships timed out"),
+          loadBase44Collection(() => base44.entities.StudySessionMember.filter({ user_id: user.id }), "Discover own study memberships timed out"),
+          loadBase44Collection(() => base44.entities.CalendarItem.filter({ owner_user_id: user.id }), "Discover calendar timed out"),
+        ]);
+        return {
+          sessions: sessions || [],
+          sessionMembers: filterMembershipsForUniversity(mergeRecordsById(sessionMembers, ownSessionMembers), profile.university_id),
+          calendarItems: calendarItems || [],
+        };
+      }
+
+      if (tab === "tutors") {
+        const tutors = await loadBase44Collection(() => base44.entities.PrivateTeacher.filter({ university_id: profile.university_id, is_active: true, is_approved: true }), "Discover tutors timed out");
+        return { tutors: allowBguDemo ? withDemoFallback(tutors, demoContent.tutors) : tutors || [] };
+      }
+
+      if (tab === "helpers") {
+        const helpers = await loadBase44Collection(() => base44.entities.PeerHelper.filter({ university_id: profile.university_id, is_visible: true }), "Discover helpers timed out");
+        return { helpers: allowBguDemo ? withDemoFallback(helpers, demoContent.helpers) : helpers || [] };
+      }
+
+      const [guides, links] = await Promise.all([
+        loadBase44Collection(() => base44.entities.Guide.filter({ is_published: true }), "Discover guides timed out"),
+        loadBase44Collection(() => base44.entities.HelpfulLink.filter({ is_published: true }), "Discover links timed out"),
+      ]);
+      return {
         guides: allowBguDemo ? withDemoFallback(forUniversity(guides), demoContent.guides) : forUniversity(guides),
         links: allowBguDemo ? withDemoFallback(forUniversity(links), demoContent.links) : forUniversity(links),
-      });
-    }).catch((error) => {
-      if (active) setLoadError(base44ErrorMessage(error));
-    }).finally(() => active && setLoading(false));
+      };
+    };
+
+    loadCachedQuery({
+      queryKey: discoverQueryKey,
+      force: loadKey > 0,
+      queryFn: loadActiveTab,
+    })
+      .then((patch) => {
+        if (active) applyPatch(patch);
+      })
+      .catch((error) => {
+        if (active) setLoadError(base44ErrorMessage(error));
+      })
+      .finally(() => active && setLoading(false));
+
     return () => { active = false; };
-  }, [profile?.university_id, user?.id, university?.name, loadKey]);
+  }, [profile?.university_id, user?.id, university?.name, tab, loadKey, discoverQueryKey]);
 
   useEffect(() => {
     const handleCreated = (event) => {
@@ -210,6 +280,8 @@ export default function DiscoverPage() {
       const membership = await base44.entities.SocialEventMember.create({ event_id: event.id, university_id: profile.university_id, owner_user_id: event.organizer_id, user_id: user.id, status: "approved", ...participantSnapshot({ profile, user }) });
       const calendarItem = await addCalendar("social_activity", event.id, event.title, `${event.date}T${event.start_time || "12:00"}`, event.location);
       setData((current) => ({ ...current, eventMembers: mergeRecordsById(current.eventMembers, [membership]), calendarItems: mergeRecordsById(current.calendarItems, [calendarItem]) }));
+      setCachedQueryData(discoverQueryKey, (current) => current ? { ...current, eventMembers: mergeRecordsById(current.eventMembers, [membership]), calendarItems: mergeRecordsById(current.calendarItems, [calendarItem]) } : current);
+      invalidateAppDataCaches();
       setSelected(null);
     } finally {
       setSaving(false);
@@ -225,6 +297,8 @@ export default function DiscoverPage() {
       if (membership) await base44.entities.SocialEventMember.delete(membership.id);
       await removeCalendar(eventId);
       setData((current) => ({ ...current, eventMembers: current.eventMembers.filter((item) => item.id !== membership?.id && !(item.event_id === eventId && item.user_id === user.id)), calendarItems: current.calendarItems.filter((item) => item.source_id !== eventId) }));
+      setCachedQueryData(discoverQueryKey, (current) => current ? { ...current, eventMembers: current.eventMembers.filter((item) => item.id !== membership?.id && !(item.event_id === eventId && item.user_id === user.id)), calendarItems: current.calendarItems.filter((item) => item.source_id !== eventId) } : current);
+      invalidateAppDataCaches();
       setSelected(null);
     } finally {
       setSaving(false);
@@ -242,6 +316,12 @@ export default function DiscoverPage() {
         events: current.events.map((item) => item.id === event.id ? { ...item, status: "canceled", is_open: false } : item),
         calendarItems: current.calendarItems.filter((item) => item.source_id !== event.id),
       }));
+      setCachedQueryData(discoverQueryKey, (current) => current ? {
+        ...current,
+        events: current.events.map((item) => item.id === event.id ? { ...item, status: "canceled", is_open: false } : item),
+        calendarItems: current.calendarItems.filter((item) => item.source_id !== event.id),
+      } : current);
+      invalidateAppDataCaches();
       setSelected(null);
     } finally {
       setSaving(false);
@@ -255,6 +335,8 @@ export default function DiscoverPage() {
       const membership = await base44.entities.StudySessionMember.create({ session_id: session.id, university_id: profile.university_id, owner_user_id: session.host_id, user_id: user.id, ...participantSnapshot({ profile, user }) });
       const calendarItem = await addCalendar("study_session", session.id, session.title || session.course_name || "Study group", session.session_date, session.location, session.course_name);
       setData((current) => ({ ...current, sessionMembers: mergeRecordsById(current.sessionMembers, [membership]), calendarItems: mergeRecordsById(current.calendarItems, [calendarItem]) }));
+      setCachedQueryData(discoverQueryKey, (current) => current ? { ...current, sessionMembers: mergeRecordsById(current.sessionMembers, [membership]), calendarItems: mergeRecordsById(current.calendarItems, [calendarItem]) } : current);
+      invalidateAppDataCaches();
       setSelected(null);
     } finally {
       setSaving(false);
@@ -270,6 +352,8 @@ export default function DiscoverPage() {
       if (membership) await base44.entities.StudySessionMember.delete(membership.id);
       await removeCalendar(sessionId);
       setData((current) => ({ ...current, sessionMembers: current.sessionMembers.filter((item) => item.id !== membership?.id && !(item.session_id === sessionId && item.user_id === user.id)), calendarItems: current.calendarItems.filter((item) => item.source_id !== sessionId) }));
+      setCachedQueryData(discoverQueryKey, (current) => current ? { ...current, sessionMembers: current.sessionMembers.filter((item) => item.id !== membership?.id && !(item.session_id === sessionId && item.user_id === user.id)), calendarItems: current.calendarItems.filter((item) => item.source_id !== sessionId) } : current);
+      invalidateAppDataCaches();
       setSelected(null);
     } finally {
       setSaving(false);
@@ -314,9 +398,9 @@ export default function DiscoverPage() {
       ) : (
         <div className="grid min-w-0 gap-3 md:grid-cols-2 xl:grid-cols-3">
           {tab === "social" && view.events.map((event) => <SocialCard key={event.id} event={event} members={countParticipants(data.eventMembers, "event_id", event.id, myEventIds)} joined={myEventIds.has(event.id)} onOpen={() => setSelected({ type: "social", item: event })} onJoin={() => joinEvent(event)} onLeave={() => leaveEvent(event.id)} p={p} />)}
-          {tab === "social" && <CreatePromptCard tone="social" icon={Users} buttonLabel="Create social group" onClick={() => openCreateAction("social")} />}
+          {tab === "social" && <CreatePromptCard tone="social" icon={Users} onClick={() => openCreateAction("social")} />}
           {tab === "sessions" && view.sessions.map((session) => <SessionCard key={session.id} session={session} members={countParticipants(data.sessionMembers, "session_id", session.id, mySessionIds)} joined={mySessionIds.has(session.id)} onOpen={() => setSelected({ type: "study", item: session })} onJoin={() => joinSession(session)} onLeave={() => leaveSession(session.id)} p={p} />)}
-          {tab === "sessions" && <CreatePromptCard tone="study" icon={BookOpenCheck} buttonLabel="Start a study group" onClick={() => openCreateAction("study")} />}
+          {tab === "sessions" && <CreatePromptCard tone="study" icon={BookOpenCheck} onClick={() => openCreateAction("study")} />}
           {tab === "tutors" && view.tutors.map((tutor) => <TutorCard key={tutor.id} tutor={tutor} whatsappUrl={tutor.contact_consent ? buildWhatsAppUrl(tutor.phone_number, `Hi ${tutor.display_name}, I found your tutor profile on Elysium and would like to ask about a lesson.`) : ""} />)}
           {tab === "helpers" && view.helpers.map((helper) => <HelperCard key={helper.id} helper={helper} whatsappUrl={helper.contact_consent && helper.contact_method === "whatsapp" ? buildWhatsAppUrl(helper.contact_value, `Hi ${helper.display_name}, I found your peer helper profile on Elysium and would like to ask for student help.`) : ""} />)}
           {tab === "resources" && view.resources.map((resource) => <ResourceCard key={`${resource.resourceType}-${resource.id}`} resource={resource} locale={locale} />)}
@@ -350,13 +434,15 @@ function Card({ children, tone }) {
 }
 
 function CreatePromptCard({ tone, icon: Icon, buttonLabel, onClick }) {
+  const prompt = createPrompts[tone];
   return (
     <Card tone={tone}>
       <span className={cn("flex h-10 w-10 items-center justify-center rounded-md", domainTones[tone].icon)}>
         <Icon className="h-5 w-5" />
       </span>
-      <h2 className="mt-4 text-base font-bold text-foreground">{FIND_PROMPT}</h2>
-      <Button size="sm" className="mt-auto self-start" onClick={onClick}>{buttonLabel}</Button>
+      <h2 className="mt-4 text-base font-bold text-foreground">{prompt.title}</h2>
+      <p className="mt-2 text-sm text-muted-foreground">{prompt.body}</p>
+      <Button size="sm" className="mt-auto self-start" onClick={onClick}>{buttonLabel || prompt.button}</Button>
     </Card>
   );
 }

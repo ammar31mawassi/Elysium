@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/use-toast";
 import { cn } from "@/lib/utils";
+import { patchCreatedActionCaches } from "@/lib/base44Cache";
 
 const CreateActionContext = createContext({ openCreateAction: () => {} });
 
@@ -72,6 +73,7 @@ function calendarStart(event) {
 }
 
 function broadcastCreated(detail) {
+  patchCreatedActionCaches(detail);
   window.dispatchEvent(new CustomEvent("elysium:create-action-complete", { detail }));
 }
 

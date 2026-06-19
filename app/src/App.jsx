@@ -1,7 +1,7 @@
 import { Toaster } from "@/components/ui/toaster";
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClientInstance } from '@/lib/query-client';
-import { BrowserRouter as Router, Navigate, Route, Routes, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Navigate, Outlet, Route, Routes, useLocation } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
@@ -84,40 +84,39 @@ const AuthenticatedApp = () => {
   }
 
   return (
-    <Routes>
-      <Route path="/onboarding" element={<Onboarding />} />
-      <Route element={<ProfileWrapper />}>
-        <Route path="/" element={<Dashboard />} />
-        <Route path="/social" element={<SocialPage />} />
-        <Route path="/groups" element={<StudyGroupsPage />} />
-        <Route path="/teachers" element={<Navigate to="/discover?tab=tutors" replace />} />
-        <Route path="/tools" element={<ToolsPage />} />
-        <Route path="/tools/gpa" element={<GpaPage />} />
-        <Route path="/flashcards" element={<FlashcardsPage />} />
-        <Route path="/profile" element={<ProfilePage />} />
-        <Route path="/me" element={<MePage />} />
-        <Route path="/me/communities" element={<MyCommunitiesPage />} />
-        <Route path="/communities" element={<Navigate to={`/me/communities${search}`} replace />} />
-        <Route path="/admin" element={<AdminPage />} />
-        <Route path="/discover" element={<DiscoverPage />} />
-        <Route path="/calendar" element={<CalendarPage />} />
-        <Route path="/ask" element={<AskPage />} />
-      </Route>
-      <Route path="*" element={<PageNotFound />} />
-    </Routes>
+    <ProfileProvider>
+      <Routes>
+        <Route path="/onboarding" element={<Onboarding />} />
+        <Route element={<ProfileWrapper />}>
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/social" element={<SocialPage />} />
+          <Route path="/groups" element={<StudyGroupsPage />} />
+          <Route path="/teachers" element={<Navigate to="/discover?tab=tutors" replace />} />
+          <Route path="/tools" element={<ToolsPage />} />
+          <Route path="/tools/gpa" element={<GpaPage />} />
+          <Route path="/flashcards" element={<FlashcardsPage />} />
+          <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/me" element={<MePage />} />
+          <Route path="/me/communities" element={<MyCommunitiesPage />} />
+          <Route path="/communities" element={<Navigate to={`/me/communities${search}`} replace />} />
+          <Route path="/admin" element={<AdminPage />} />
+          <Route path="/discover" element={<DiscoverPage />} />
+          <Route path="/calendar" element={<CalendarPage />} />
+          <Route path="/ask" element={<AskPage />} />
+        </Route>
+        <Route path="*" element={<PageNotFound />} />
+      </Routes>
+    </ProfileProvider>
   );
 };
 
-import { Outlet } from 'react-router-dom';
 function ProfileWrapper() {
   return (
-    <ProfileProvider>
-      <CreateActionProvider>
-        <ProfileGate>
-          <Outlet />
-        </ProfileGate>
-      </CreateActionProvider>
-    </ProfileProvider>
+    <CreateActionProvider>
+      <ProfileGate>
+        <Outlet />
+      </ProfileGate>
+    </CreateActionProvider>
   );
 }
 

@@ -1,4 +1,4 @@
-import { useState, useEffect, createContext, useContext } from "react";
+import { useState, useEffect, createContext, useContext, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { useNavigate } from "react-router-dom";
 import { useLanguage } from "@/lib/LanguageContext";
@@ -14,6 +14,7 @@ function withTimeout(promise, timeout = 8000) {
 
 export function ProfileProvider({ children }) {
   const navigate = useNavigate();
+  const navigateRef = useRef(navigate);
   const { setLocale } = useLanguage();
   const { setTheme } = useTheme();
   const [user, setUser] = useState(null);
@@ -24,6 +25,10 @@ export function ProfileProvider({ children }) {
   const [loadKey, setLoadKey] = useState(0);
 
   useEffect(() => {
+    navigateRef.current = navigate;
+  }, [navigate]);
+
+  useEffect(() => {
     const load = async () => {
       setLoading(true);
       setError("");
@@ -32,7 +37,7 @@ export function ProfileProvider({ children }) {
         setUser(u);
         const profiles = await withTimeout(base44.entities.StudentProfile.filter({ user_id: u.id }));
         if (profiles.length === 0) {
-          navigate("/onboarding");
+          navigateRef.current("/onboarding");
           return;
         }
         const p = profiles[0];
@@ -56,7 +61,7 @@ export function ProfileProvider({ children }) {
       }
     };
     load();
-  }, [navigate, setLocale, setTheme, loadKey]);
+  }, [setLocale, setTheme, loadKey]);
 
   const retryProfile = () => setLoadKey((key) => key + 1);
 

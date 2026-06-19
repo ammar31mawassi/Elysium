@@ -1,6 +1,7 @@
 import "@testing-library/jest-dom/vitest";
 import { afterEach } from "vitest";
 import { cleanup } from "@testing-library/react";
+import { queryClientInstance } from "@/lib/query-client";
 
 const createMemoryStorage = () => {
   const store = new Map();
@@ -44,6 +45,7 @@ ensureStorage();
 
 afterEach(() => {
   cleanup();
+  queryClientInstance.clear();
   ensureStorage();
   window.localStorage.clear();
   document.documentElement.className = "";

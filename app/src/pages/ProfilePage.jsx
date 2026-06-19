@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Edit2, GraduationCap, HelpCircle, LogOut, Monitor, Moon, Sun } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { buildCanonicalAppUrl } from "@/lib/app-params";
@@ -29,6 +29,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/use-toast";
 import { cn } from "@/lib/utils";
 import { domainTones } from "@/lib/domainTones";
+import { getCachedQueryData, loadCachedQuery, setCachedQueryData, invalidateAppDataCaches } from "@/lib/base44Cache";
 
 const YEARS = ["Preparatory", "1st Year", "2nd Year", "3rd Year", "4th Year+"];
 const SPOKEN_LANGUAGES = ["English", "Hebrew", "Arabic"];
@@ -53,6 +54,7 @@ export default function ProfilePage() {
   const [savingProfile, setSavingProfile] = useState(false);
   const [savingTutor, setSavingTutor] = useState(false);
   const [savingHelper, setSavingHelper] = useState(false);
+  const profilePageQueryKey = useMemo(() => ["profile-page", user?.id || "", profile?.university_id || ""], [user?.id, profile?.university_id]);
 
   useEffect(() => {
     if (!profile) return;
@@ -67,24 +69,37 @@ export default function ProfilePage() {
 
   useEffect(() => {
     if (!user?.id) return;
-    Promise.all([
-      base44.entities.University.list().catch(() => []),
-      base44.entities.PrivateTeacher.filter({ user_id: user.id }).catch(() => []),
-      base44.entities.PeerHelper.filter({ owner_user_id: user.id }).catch(() => []),
-    ]).then(([universityRows, teachers, helpers]) => {
+    let active = true;
+    const cached = getCachedQueryData(profilePageQueryKey);
+    const applyProfilePageData = ({ universityRows = [], teachers = [], helpers = [] } = {}) => {
       setUniversities(withDefaultUniversities(universityRows, { includePrivateIds: [profile?.university_id] }));
-      if (teachers?.length) {
+      if (teachers.length) {
         const record = teachers[0];
         setTeacherProfile(record);
         setTutorForm(tutorFormFromProfile(record));
       }
-      if (helpers?.length) {
+      if (helpers.length) {
         const record = helpers[0];
         setPeerHelper(record);
         setHelperForm({ topics_raw: (record.help_topics || []).join(", "), languages_raw: (record.languages || []).join(", "), bio: record.bio || "", availability: record.availability || "", contact_value: record.contact_value || "" });
       }
+    };
+    if (cached) applyProfilePageData(cached);
+    loadCachedQuery({
+      queryKey: profilePageQueryKey,
+      queryFn: async () => {
+        const [universityRows, teachers, helpers] = await Promise.all([
+          base44.entities.University.list().catch(() => []),
+          base44.entities.PrivateTeacher.filter({ user_id: user.id }).catch(() => []),
+          base44.entities.PeerHelper.filter({ owner_user_id: user.id }).catch(() => []),
+        ]);
+        return { universityRows, teachers, helpers };
+      },
+    }).then((rows) => {
+      if (active) applyProfilePageData(rows);
     });
-  }, [profile?.university_id, user?.id]);
+    return () => { active = false; };
+  }, [profile?.university_id, user?.id, profilePageQueryKey]);
 
   const saveProfile = async () => {
     if (!profile?.id) return;
@@ -93,6 +108,7 @@ export default function ProfilePage() {
       await base44.entities.StudentProfile.update(profile.id, profileForm);
       setProfile((current) => ({ ...current, ...profileForm }));
       setUniversity(universities.find((item) => item.id === profileForm.university_id) || university);
+      invalidateAppDataCaches();
       toast({ title: "Profile saved", description: "Your profile information is up to date." });
     } catch (error) {
       console.error(error);
@@ -108,6 +124,7 @@ export default function ProfilePage() {
     try {
       await base44.entities.StudentProfile.update(profile.id, { preferred_locale: nextLocale });
       setProfile((current) => ({ ...current, preferred_locale: nextLocale }));
+      invalidateAppDataCaches();
     } catch (error) {
       console.error(error);
       toast({ variant: "destructive", title: "Language was not saved" });
@@ -145,6 +162,8 @@ export default function ProfilePage() {
       const persisted = saved?.id ? await base44.entities.PrivateTeacher.get(saved.id).catch(() => saved) : saved;
       setTeacherProfile(persisted || { ...existing, ...data });
       setTutorForm(tutorFormFromProfile(persisted || data));
+      setCachedQueryData(profilePageQueryKey, (current) => current ? { ...current, teachers: [persisted || { ...existing, ...data }] } : current);
+      invalidateAppDataCaches();
       setShowTutorForm(false);
       toast({
         title: "Tutoring profile saved",
@@ -184,9 +203,13 @@ export default function ProfilePage() {
       if (peerHelper) {
         await base44.entities.PeerHelper.update(peerHelper.id, data);
         setPeerHelper((current) => ({ ...current, ...data }));
+        setCachedQueryData(profilePageQueryKey, (current) => current ? { ...current, helpers: current.helpers.map((helper) => helper.id === peerHelper.id ? { ...helper, ...data } : helper) } : current);
       } else {
-        setPeerHelper(await base44.entities.PeerHelper.create(data));
+        const created = await base44.entities.PeerHelper.create(data);
+        setPeerHelper(created);
+        setCachedQueryData(profilePageQueryKey, (current) => current ? { ...current, helpers: [created] } : current);
       }
+      invalidateAppDataCaches();
       setShowHelperForm(false);
       toast({ title: "Peer Helper is on", description: "Students can now find your public helper profile." });
     } catch (error) {
@@ -206,6 +229,8 @@ export default function ProfilePage() {
     try {
       await base44.entities.PeerHelper.update(peerHelper.id, { is_visible: checked });
       setPeerHelper((current) => ({ ...current, is_visible: checked }));
+      setCachedQueryData(profilePageQueryKey, (current) => current ? { ...current, helpers: current.helpers.map((helper) => helper.id === peerHelper.id ? { ...helper, is_visible: checked } : helper) } : current);
+      invalidateAppDataCaches();
       toast({ title: checked ? "Peer Helper is on" : "Peer Helper is off" });
     } catch (error) {
       console.error(error);

@@ -32,6 +32,7 @@ import { toast } from "@/components/ui/use-toast";
 import { cn } from "@/lib/utils";
 import LoadFailedState from "@/components/ui/LoadFailedState";
 import { base44ErrorMessage, loadBase44Collection } from "@/lib/base44LoadState";
+import { getCachedQueryData, loadCachedQuery, setCachedQueryData, invalidateAppDataCaches } from "@/lib/base44Cache";
 
 const DECK_COLORS = [
   "#2563eb",
@@ -137,12 +138,15 @@ export default function FlashcardsPage() {
   const { user: profileUser, profile } = useProfile();
   const { locale, isRTL } = useLanguage();
   const [fallbackUser, setFallbackUser] = useState(null);
-  const [createdDecks, setCreatedDecks] = useState([]);
-  const [publishedDecks, setPublishedDecks] = useState([]);
-  const [favorites, setFavorites] = useState([]);
-  const [deckCardCounts, setDeckCardCounts] = useState({});
-  const [createdCardsByDeck, setCreatedCardsByDeck] = useState({});
-  const [loading, setLoading] = useState(true);
+  const user = profileUser || fallbackUser;
+  const flashcardsQueryKey = useMemo(() => ["flashcards", user?.id || "", profile?.university_id || ""], [user?.id, profile?.university_id]);
+  const cachedFlashcardsData = getCachedQueryData(flashcardsQueryKey);
+  const [createdDecks, setCreatedDecks] = useState(() => cachedFlashcardsData?.createdDecks || []);
+  const [publishedDecks, setPublishedDecks] = useState(() => cachedFlashcardsData?.publishedDecks || []);
+  const [favorites, setFavorites] = useState(() => cachedFlashcardsData?.favorites || []);
+  const [deckCardCounts, setDeckCardCounts] = useState(() => cachedFlashcardsData?.deckCardCounts || {});
+  const [createdCardsByDeck, setCreatedCardsByDeck] = useState(() => cachedFlashcardsData?.createdCardsByDeck || {});
+  const [loading, setLoading] = useState(() => cachedFlashcardsData === undefined);
   const [loadError, setLoadError] = useState("");
   const [loadKey, setLoadKey] = useState(0);
   const [activeTab, setActiveTab] = useState("created");
@@ -157,7 +161,6 @@ export default function FlashcardsPage() {
   const [studyIndex, setStudyIndex] = useState(0);
   const [flipped, setFlipped] = useState(false);
   const [studyLoading, setStudyLoading] = useState(false);
-  const user = profileUser || fallbackUser;
 
   const favoriteDeckIds = useMemo(() => new Set(favorites.map((favorite) => favorite.deck_id)), [favorites]);
   const visibleDecksById = useMemo(() => {
@@ -172,41 +175,68 @@ export default function FlashcardsPage() {
   ), [favorites, visibleDecksById]);
   const searchablePublishedDecks = useMemo(() => publishedDecks.filter((deck) => deckMatchesSearch(deck, search)), [publishedDecks, search]);
 
-  const loadDecks = useCallback(async () => {
+  const loadDecks = useCallback(async ({ force = false } = {}) => {
     if (!user?.id) {
       setLoading(false);
       return;
     }
 
-    setLoading(true);
+    const cached = getCachedQueryData(flashcardsQueryKey);
+    if (cached) {
+      setCreatedDecks(cached.createdDecks || []);
+      setPublishedDecks(cached.publishedDecks || []);
+      setFavorites(cached.favorites || []);
+      setDeckCardCounts(cached.deckCardCounts || {});
+      setCreatedCardsByDeck(cached.createdCardsByDeck || {});
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
     setLoadError("");
     try {
-      const [mine, publicRows, favoriteRows] = await Promise.all([
-        loadBase44Collection(() => base44.entities.FlashcardDeck.filter({ owner_user_id: user.id }), "Your flashcard packs timed out"),
-        loadBase44Collection(() => base44.entities.FlashcardDeck.filter({ is_public: true }), "Published flashcard packs timed out"),
-        loadBase44Collection(() => base44.entities.FlashcardDeckFavorite.filter({ owner_user_id: user.id }), "Favorite flashcard packs timed out"),
-      ]);
-      const mineRows = sortedDecks(mine || []);
-      const cardPairs = await Promise.all(mineRows.map(async (deck) => {
-        const cards = await loadBase44Collection(() => base44.entities.Flashcard.filter({ deck_id: deck.id }), "Flashcard cards timed out");
-        return [deck.id, sortedCards(cards || [])];
-      }));
-      const cardCountPairs = cardPairs.map(([deckId, cards]) => [deckId, cards.length]);
-      const publicForCampus = (publicRows || []).filter((deck) => (
-        deck.owner_user_id !== user.id
-        && (!profile?.university_id || deck.university_id === profile.university_id)
-      ));
-      setDeckCardCounts(Object.fromEntries(cardCountPairs));
-      setCreatedCardsByDeck(Object.fromEntries(cardPairs));
-      setCreatedDecks(mineRows);
-      setPublishedDecks(sortedDecks(publicForCampus));
-      setFavorites(favoriteRows || []);
+      const nextData = await loadCachedQuery({
+        queryKey: flashcardsQueryKey,
+        force: force || loadKey > 0,
+        queryFn: async () => {
+          const [mine, publicRows, favoriteRows, ownerCards] = await Promise.all([
+            loadBase44Collection(() => base44.entities.FlashcardDeck.filter({ owner_user_id: user.id }), "Your flashcard packs timed out"),
+            loadBase44Collection(() => base44.entities.FlashcardDeck.filter({ is_public: true }), "Published flashcard packs timed out"),
+            loadBase44Collection(() => base44.entities.FlashcardDeckFavorite.filter({ owner_user_id: user.id }), "Favorite flashcard packs timed out"),
+            loadBase44Collection(() => base44.entities.Flashcard.filter({ owner_user_id: user.id }), "Your flashcard previews timed out"),
+          ]);
+          const mineRows = sortedDecks(mine || []);
+          const cardsByDeck = (ownerCards || []).reduce((groups, card) => {
+            if (!card?.deck_id) return groups;
+            groups[card.deck_id] = [...(groups[card.deck_id] || []), card];
+            return groups;
+          }, {});
+          Object.keys(cardsByDeck).forEach((deckId) => {
+            cardsByDeck[deckId] = sortedCards(cardsByDeck[deckId]);
+          });
+          const publicForCampus = (publicRows || []).filter((deck) => (
+            deck.owner_user_id !== user.id
+            && (!profile?.university_id || deck.university_id === profile.university_id)
+          ));
+          return {
+            createdDecks: mineRows,
+            publishedDecks: sortedDecks(publicForCampus),
+            favorites: favoriteRows || [],
+            deckCardCounts: Object.fromEntries(mineRows.map((deck) => [deck.id, deck.card_count ?? 0])),
+            createdCardsByDeck: cardsByDeck,
+          };
+        },
+      });
+      setDeckCardCounts(nextData.deckCardCounts || {});
+      setCreatedCardsByDeck(nextData.createdCardsByDeck || {});
+      setCreatedDecks(nextData.createdDecks || []);
+      setPublishedDecks(nextData.publishedDecks || []);
+      setFavorites(nextData.favorites || []);
     } catch (error) {
       setLoadError(base44ErrorMessage(error));
     } finally {
       setLoading(false);
     }
-  }, [profile?.university_id, user?.id, loadKey]);
+  }, [profile?.university_id, user?.id, loadKey, flashcardsQueryKey]);
 
   useEffect(() => {
     if (profileUser?.id || fallbackUser?.id) return;
@@ -323,7 +353,8 @@ export default function FlashcardsPage() {
 
       toast({ title: deckForm.id ? "Flashcard pack updated" : "Flashcard pack created" });
       setEditorOpen(false);
-      await loadDecks();
+      await loadDecks({ force: true });
+      invalidateAppDataCaches();
     } catch (error) {
       console.error(error);
       toast({ variant: "destructive", title: "Flashcard pack was not saved" });
@@ -338,7 +369,9 @@ export default function FlashcardsPage() {
     try {
       if (existing) {
         await base44.entities.FlashcardDeckFavorite.delete(existing.id);
-        setFavorites((current) => current.filter((favorite) => favorite.id !== existing.id));
+        const updateFavorites = (current) => current.filter((favorite) => favorite.id !== existing.id);
+        setFavorites(updateFavorites);
+        setCachedQueryData(flashcardsQueryKey, (current) => current ? { ...current, favorites: updateFavorites(current.favorites || []) } : current);
       } else {
         const favorite = await base44.entities.FlashcardDeckFavorite.create({
           owner_user_id: user.id,
@@ -346,7 +379,9 @@ export default function FlashcardsPage() {
           deck_owner_user_id: deck.owner_user_id || user.id,
           university_id: deck.university_id || profile?.university_id || "",
         });
-        setFavorites((current) => [...current, favorite]);
+        const updateFavorites = (current) => [...current, favorite];
+        setFavorites(updateFavorites);
+        setCachedQueryData(flashcardsQueryKey, (current) => current ? { ...current, favorites: updateFavorites(current.favorites || []) } : current);
       }
     } catch (error) {
       console.error(error);
@@ -427,9 +462,9 @@ export default function FlashcardsPage() {
             emptyBody="Create your first pack, add questions, and decide if other students can use it."
             favoriteDeckIds={favoriteDeckIds}
             loading={loading}
-            onCreate={openCreateEditor}
-            deckCardCounts={deckCardCounts}
-            createdCardsByDeck={createdCardsByDeck}
+              onCreate={openCreateEditor}
+              deckCardCounts={deckCardCounts}
+              createdCardsByDeck={createdCardsByDeck}
             onEdit={openEditEditor}
             onStudy={startStudy}
             onToggleFavorite={toggleFavorite}
@@ -443,8 +478,8 @@ export default function FlashcardsPage() {
             emptyTitle="No favorite packs yet"
             emptyBody="Use the heart button on a created or published pack to keep it here for faster studying."
             emptyIcon={Heart}
-            deckCardCounts={deckCardCounts}
-            createdCardsByDeck={createdCardsByDeck}
+              deckCardCounts={deckCardCounts}
+              createdCardsByDeck={createdCardsByDeck}
             favoriteDeckIds={favoriteDeckIds}
             loading={loading}
             onStudy={startStudy}
@@ -470,8 +505,8 @@ export default function FlashcardsPage() {
             emptyTitle={search.trim() ? "No published packs match your search" : "No published packs from your university yet"}
             emptyBody={search.trim() ? "Try another course, subject, or student name." : "Shared packs from other students at your university will show here once they are published."}
             emptyIcon={search.trim() ? Search : Layers3}
-            deckCardCounts={deckCardCounts}
-            createdCardsByDeck={createdCardsByDeck}
+              deckCardCounts={deckCardCounts}
+              createdCardsByDeck={createdCardsByDeck}
             favoriteDeckIds={favoriteDeckIds}
             loading={loading}
             onStudy={startStudy}

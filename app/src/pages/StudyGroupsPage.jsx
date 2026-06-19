@@ -31,7 +31,10 @@ import {
 import { base44ErrorMessage, loadBase44Collection } from "@/lib/base44LoadState";
 
 const emptyForm = { title: "", course_name: "", preferred_language: "", session_date: "", end_time: "", location: "", notes: "", max_spots: 8, is_marathon: false };
-const FIND_PROMPT = "Didn't find what you are looking for? Why not make one yourself!";
+const CREATE_STUDY_PROMPT = {
+  title: "No group fits yet.",
+  body: "Start one for your course.",
+};
 
 function safeQuery(promise) {
   return promise.catch(() => []);
@@ -306,7 +309,8 @@ function CreateStudyPrompt({ onClick }) {
           <BookOpenCheck className="h-5 w-5" />
         </span>
         <div className="min-w-0 flex-1">
-          <h2 className="font-semibold text-foreground">{FIND_PROMPT}</h2>
+          <h2 className="font-semibold text-foreground">{CREATE_STUDY_PROMPT.title}</h2>
+          <p className="mt-1 text-sm text-muted-foreground">{CREATE_STUDY_PROMPT.body}</p>
           <Button size="sm" className="mt-4" onClick={onClick}>Start a study group</Button>
         </div>
       </div>

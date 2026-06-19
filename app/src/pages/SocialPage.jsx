@@ -51,7 +51,10 @@ const categoryIcons = {
   volunteering: HandHeart,
   other: Users,
 };
-const FIND_PROMPT = "Didn't find what you are looking for? Why not make one yourself!";
+const CREATE_SOCIAL_PROMPT = {
+  title: "No activity fits yet.",
+  body: "Create one and invite classmates.",
+};
 
 function safeQuery(promise) {
   return promise.catch(() => []);
@@ -416,8 +419,9 @@ function CreateSocialPrompt({ onClick }) {
           <Users className="h-5 w-5" />
         </span>
         <div className="min-w-0 flex-1">
-          <h2 className="font-semibold text-foreground">{FIND_PROMPT}</h2>
-          <Button size="sm" className="mt-4" onClick={onClick}>Create social group</Button>
+          <h2 className="font-semibold text-foreground">{CREATE_SOCIAL_PROMPT.title}</h2>
+          <p className="mt-1 text-sm text-muted-foreground">{CREATE_SOCIAL_PROMPT.body}</p>
+          <Button size="sm" className="mt-4" onClick={onClick}>Create event</Button>
         </div>
       </div>
     </article>

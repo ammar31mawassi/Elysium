@@ -11,6 +11,8 @@ import { sortByUrgency } from "@/lib/productUtils";
 import PageLayout from "@/components/layout/PageLayout";
 import SkeletonCard from "@/components/ui/SkeletonCard";
 import LoadFailedState from "@/components/ui/LoadFailedState";
+import ElCard from "@/components/ui/ElCard";
+import SectionHeading from "@/components/ui/SectionHeading";
 import { cn } from "@/lib/utils";
 import { activeCourseNames } from "@/lib/profileCourses";
 import { domainTones } from "@/lib/domainTones";
@@ -19,14 +21,14 @@ import { base44ErrorMessage, loadBase44Collection } from "@/lib/base44LoadState"
 
 const itemMeta = {
   personal: { icon: Flag, tone: domainTones.calendar.icon, path: "/calendar" },
-  social: { icon: Users, tone: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300", path: "/discover?tab=social" },
-  session: { icon: BookOpenCheck, tone: "bg-primary/10 text-primary", path: "/discover?tab=sessions" },
+  social: { icon: Users, tone: domainTones.social.icon, path: "/discover?tab=social" },
+  session: { icon: BookOpenCheck, tone: domainTones.study.icon, path: "/discover?tab=sessions" },
   tutor: { icon: GraduationCap, tone: domainTones.tutor.icon, path: "/discover?tab=tutors" },
 };
 
 const quickActionTones = {
-  study: "border-primary/30 bg-primary/10 text-primary hover:border-primary/60 hover:bg-primary/15",
-  social: "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 hover:border-emerald-500/60 hover:bg-emerald-500/15 dark:text-emerald-300",
+  study: "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 hover:border-emerald-500/60 hover:bg-emerald-500/15 dark:text-emerald-300",
+  social: "border-sky-500/30 bg-sky-500/10 text-sky-700 hover:border-sky-500/60 hover:bg-sky-500/15 dark:text-sky-300",
   deadline: "border-amber-500/30 bg-amber-500/10 text-amber-700 hover:border-amber-500/60 hover:bg-amber-500/15 dark:text-amber-300",
 };
 
@@ -179,7 +181,7 @@ export default function Dashboard() {
           </section>
 
           <section>
-            <SectionTitle title={p("home_upcoming")} action={p("see_all")} to="/calendar" />
+            <SectionHeading title={p("home_upcoming")} action={p("see_all")} to="/calendar" />
             {model.timeline.length ? (
               <div className="overflow-hidden rounded-lg border border-border bg-card">
                 {model.timeline.slice(0, 4).map((item, index) => <TimelineRow key={`${item.type}-${item.id}`} item={item} last={index === Math.min(model.timeline.length, 4) - 1} />)}
@@ -190,7 +192,7 @@ export default function Dashboard() {
           </section>
 
           <section>
-            <SectionTitle title={p("home_for_you")} action={p("see_all")} to="/discover" />
+            <SectionHeading title={p("home_for_you")} action={p("see_all")} to="/discover" />
             <div className="grid gap-3 sm:grid-cols-2">
               <RecommendationCard icon={Users} tone="social" eyebrow={p("home_social")} title={model.event?.title || p("discover_social")} detail={model.event ? [format(model.event.parsedDate, "EEE, MMM d - HH:mm"), model.event.location].filter(Boolean).join(" - ") : p("discover_body")} to="/discover?tab=social" />
               <RecommendationCard icon={BookOpenCheck} tone="study" eyebrow={p("home_study")} title={model.session?.title || p("discover_groups")} detail={model.session?.course_name || model.session?.location || "Add active courses in Me"} to="/discover?tab=sessions" />
@@ -200,19 +202,19 @@ export default function Dashboard() {
 
         <aside className="min-w-0 space-y-7">
           <section>
-            <SectionTitle title={p("home_academic")} action={p("see_all")} to="/discover?tab=tutors" />
+            <SectionHeading title={p("home_academic")} action={p("see_all")} to="/discover?tab=tutors" />
             <div className="overflow-hidden rounded-lg border border-border bg-card">
-              <PersonRow icon={GraduationCap} title={model.tutor?.display_name || p("tutors")} detail={model.tutor?.subjects?.slice(0, 3).join(" - ") || p("request")} to="/discover?tab=tutors" />
-              <PersonRow icon={HelpCircle} title={model.helper?.display_name || p("helpers")} detail={model.helper?.help_topics?.slice(0, 3).join(" - ") || p("contact")} to="/discover?tab=helpers" border={false} />
+              <PersonRow icon={GraduationCap} tone="tutor" title={model.tutor?.display_name || p("tutors")} detail={model.tutor?.subjects?.slice(0, 3).join(" - ") || p("request")} to="/discover?tab=tutors" />
+              <PersonRow icon={HelpCircle} tone="helper" title={model.helper?.display_name || p("helpers")} detail={model.helper?.help_topics?.slice(0, 3).join(" - ") || p("contact")} to="/discover?tab=helpers" border={false} />
             </div>
           </section>
           <section>
-            <SectionTitle title={p("home_tools")} />
+            <SectionHeading title={p("home_tools")} />
             <div className="grid grid-cols-2 gap-2">
-              <ToolLink icon={Calculator} label="GPA" to="/tools/gpa" />
-              <ToolLink icon={Flag} label={p("add_deadline")} createKey="homework" />
-              <ToolLink icon={BookOpenCheck} label={t("tools_flashcards")} to="/flashcards" />
-              <ToolLink icon={CalendarDays} label={p("calendar_title")} to="/calendar" />
+              <ToolLink icon={Calculator} tone="tool" label="GPA" to="/tools/gpa" />
+              <ToolLink icon={Flag} tone="calendar" label={p("add_deadline")} createKey="homework" />
+              <ToolLink icon={BookOpenCheck} tone="study" label={t("tools_flashcards")} to="/flashcards" />
+              <ToolLink icon={CalendarDays} tone="calendar" label={p("calendar_title")} to="/calendar" />
             </div>
           </section>
           <section className="rounded-lg border border-border bg-card p-4">
@@ -228,10 +230,6 @@ export default function Dashboard() {
       </div>
     </PageLayout>
   );
-}
-
-function SectionTitle({ title, action, to }) {
-  return <div className="mb-3 flex items-center justify-between gap-3"><h2 className="text-sm font-bold text-foreground">{title}</h2>{action && to && <Link to={to} className="text-xs font-semibold text-primary hover:underline">{action}</Link>}</div>;
 }
 
 function QuickAction({ icon: Icon, label, createKey, tone, className }) {
@@ -258,18 +256,18 @@ function TimelineRow({ item, last }) {
 }
 
 function RecommendationCard({ icon: Icon, tone, eyebrow, title, detail, to }) {
-  return <Link to={to} className={cn("rounded-lg border border-border bg-card p-4", domainTones[tone].border)}><div className="flex items-start gap-3"><span className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-md", domainTones[tone].icon)}><Icon className="h-5 w-5" /></span><div className="min-w-0"><p className={cn("text-xs font-semibold", domainTones[tone].text)}>{eyebrow}</p><h3 className="mt-1 line-clamp-1 text-sm font-bold text-foreground">{title}</h3><p className="mt-1 line-clamp-2 text-xs leading-relaxed text-muted-foreground">{detail}</p></div></div></Link>;
+  return <ElCard variant="interactive" tone={tone} className="p-4"><Link to={to} className="block"><div className="flex items-start gap-3"><span className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-md", domainTones[tone].icon)}><Icon className="h-5 w-5" /></span><div className="min-w-0"><p className={cn("text-xs font-semibold", domainTones[tone].text)}>{eyebrow}</p><h3 className="mt-1 line-clamp-1 text-sm font-bold text-foreground">{title}</h3><p className="mt-1 line-clamp-2 text-xs leading-relaxed text-muted-foreground">{detail}</p></div></div></Link></ElCard>;
 }
 
-function PersonRow({ icon: Icon, title, detail, to, border = true }) {
-  return <Link to={to} className={cn("flex min-h-16 items-center gap-3 px-4 py-3 hover:bg-muted/50", border && "border-b border-border")}><span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary"><Icon className="h-4 w-4" /></span><div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold text-foreground">{title}</p><p className="truncate text-xs text-muted-foreground">{detail}</p></div><ChevronRight className="h-4 w-4 text-muted-foreground rtl:rotate-180" /></Link>;
+function PersonRow({ icon: Icon, tone, title, detail, to, border = true }) {
+  return <Link to={to} className={cn("flex min-h-16 items-center gap-3 px-4 py-3 hover:bg-muted/50", border && "border-b border-border")}><span className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-md", domainTones[tone].icon)}><Icon className="h-4 w-4" /></span><div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold text-foreground">{title}</p><p className="truncate text-xs text-muted-foreground">{detail}</p></div><ChevronRight className="h-4 w-4 text-muted-foreground rtl:rotate-180" /></Link>;
 }
 
-function ToolLink({ icon: Icon, label, to, createKey }) {
+function ToolLink({ icon: Icon, tone, label, to, createKey }) {
   const { openCreateAction } = useCreateAction();
-  const className = "flex min-h-24 flex-col justify-between rounded-lg border border-border bg-card p-3 text-start hover:border-primary/35";
+  const className = cn("flex min-h-24 flex-col justify-between rounded-lg border border-border bg-card p-3 text-start", domainTones[tone].border);
   if (createKey) {
-    return <button type="button" onClick={() => openCreateAction(createKey)} className={className}><Icon className="h-5 w-5 text-primary" /><span className="mt-3 text-xs font-semibold text-foreground">{label}</span></button>;
+    return <button type="button" onClick={() => openCreateAction(createKey)} className={className}><span className={cn("flex h-8 w-8 items-center justify-center rounded-md", domainTones[tone].icon)}><Icon className="h-4 w-4" /></span><span className="mt-3 text-xs font-semibold text-foreground">{label}</span></button>;
   }
-  return <Link to={to} className={className}><Icon className="h-5 w-5 text-primary" /><span className="mt-3 text-xs font-semibold text-foreground">{label}</span></Link>;
+  return <Link to={to} className={className}><span className={cn("flex h-8 w-8 items-center justify-center rounded-md", domainTones[tone].icon)}><Icon className="h-4 w-4" /></span><span className="mt-3 text-xs font-semibold text-foreground">{label}</span></Link>;
 }

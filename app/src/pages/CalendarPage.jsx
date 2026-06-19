@@ -457,18 +457,22 @@ export default function CalendarPage() {
         </div>
       </div>
 
-      <CalendarBoard
-        view={calendarView}
-        visibleDate={visibleDate}
-        itemsByDay={calendarItemsByDay}
-        categoryLabel={categoryLabel}
-        locale={locale}
-        onViewChange={setCalendarView}
-        onMove={moveCalendar}
-        onToday={() => setVisibleDate(new Date())}
-        onSelectDay={openCalendarDay}
-      />
+      <div className="flex flex-col gap-5 lg:block">
+        <div className="order-2 lg:order-none">
+          <CalendarBoard
+            view={calendarView}
+            visibleDate={visibleDate}
+            itemsByDay={calendarItemsByDay}
+            categoryLabel={categoryLabel}
+            locale={locale}
+            onViewChange={setCalendarView}
+            onMove={moveCalendar}
+            onToday={() => setVisibleDate(new Date())}
+            onSelectDay={openCalendarDay}
+          />
+        </div>
 
+        <div className="order-1 lg:order-none">
       {loadError ? (
         <LoadFailedState message={loadError} onRetry={() => setLoadKey((key) => key + 1)} />
       ) : loading ? (
@@ -527,6 +531,8 @@ export default function CalendarPage() {
           )}
         </div>
       )}
+        </div>
+      </div>
 
       {showEditor && (
         <Modal title={`${editingItem ? "Edit" : "Add"} ${form.personal_kind === "other" ? "calendar item" : form.personal_kind}`} onClose={closeEditor}>

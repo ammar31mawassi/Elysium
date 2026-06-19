@@ -121,7 +121,7 @@ export default function GpaPage() {
   const overall = useMemo(() => calculateGpa(savedCourses), [savedCourses]);
   const summaries = useMemo(() => buildSemesterSummaries(savedCourses), [savedCourses]);
   const visibleSummaries = useMemo(() => (
-    activeSemester === "all" ? summaries : summaries.filter((semester) => semester.value === activeSemester)
+    activeSemester === "all" ? summaries.filter((semester) => semester.courses.length) : summaries.filter((semester) => semester.value === activeSemester)
   ), [activeSemester, summaries]);
   const completedCourses = savedCourses.filter((course) => calculateGpa([course]));
   const enteredCredits = savedCourses.reduce((total, course) => {
@@ -196,10 +196,6 @@ export default function GpaPage() {
           <ArrowLeft className="h-4 w-4 rtl:rotate-180" />
           Tools
         </Link>
-        <Button className="hidden gap-2 sm:inline-flex" onClick={openAddDialog}>
-          <Plus className="h-4 w-4" />
-          Add course
-        </Button>
       </div>
 
       <section className="relative overflow-hidden rounded-[1.75rem] border border-primary/20 bg-[radial-gradient(circle_at_top_left,rgba(45,212,191,0.22),transparent_32%),linear-gradient(135deg,rgba(37,99,235,0.85),rgba(22,78,99,0.92)_52%,rgba(5,20,22,0.98))] p-5 text-white shadow-2xl shadow-primary/10 sm:p-6" dir={dir}>

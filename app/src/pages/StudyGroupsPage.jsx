@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { BookOpenCheck, CalendarClock, Check, MapPin, Plus, X } from "lucide-react";
+import { BookOpenCheck, Check, Plus, X } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useProfile } from "@/lib/useProfile";
 import { useLanguage } from "@/lib/LanguageContext";
@@ -12,6 +12,7 @@ import SkeletonCard from "@/components/ui/SkeletonCard";
 import EmptyState from "@/components/ui/EmptyState";
 import LoadFailedState from "@/components/ui/LoadFailedState";
 import Modal from "@/components/ui/Modal";
+import CommunitySummaryCard from "@/components/elysium/CommunitySummaryCard";
 import SearchableChoice from "@/components/elysium/SearchableChoice";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -227,7 +228,26 @@ export default function StudyGroupsPage() {
       {loadError ? <LoadFailedState message={loadError} onRetry={() => setLoadKey((key) => key + 1)} /> : loading ? <div className="grid gap-3 md:grid-cols-2">{[1, 2, 3, 4].map((item) => <SkeletonCard key={item} lines={3} />)}</div> : <div className="grid gap-3 md:grid-cols-2">{visibleSessions.length ? (<>{visibleSessions.map((session) => {
         const joined = mySessionIds.has(session.id);
         const count = memberCount(session.id);
-        return <button key={session.id} onClick={() => setSelected(session)} className={cn("rounded-lg border border-border bg-card p-4 text-start", domainTones.study.border)}><div className="flex items-start gap-3"><span className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-md", domainTones.study.icon)}><BookOpenCheck className="h-5 w-5" /></span><div className="min-w-0 flex-1" dir="auto"><div className="flex justify-between gap-3"><h2 className="font-semibold text-foreground">{session.title}</h2><span className={cn("shrink-0 text-xs font-semibold", session.status === "canceled" ? "text-destructive" : "text-emerald-600")}>{session.status === "canceled" ? "Canceled" : joined ? "Joined" : "Open"}</span></div><p className={cn("mt-1 text-xs font-semibold", domainTones.study.text)}>{session.is_marathon ? "Study marathon" : "Study group"} · {session.course_name}</p><p className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground"><CalendarClock className="h-3.5 w-3.5" />{new Date(session.session_date).toLocaleString()}</p>{session.location && <p className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground"><MapPin className="h-3.5 w-3.5" />{session.location}</p>}{session.preferred_language && <p className="mt-1 text-xs text-muted-foreground">Preferred language: {session.preferred_language}</p>}<p className="mt-2 text-xs text-muted-foreground">{count} / {session.max_spots} joined</p></div></div></button>;
+        const status = session.status === "canceled" ? "Canceled" : count >= session.max_spots ? "Full" : "Open";
+        return (
+          <CommunitySummaryCard
+            key={session.id}
+            type="study"
+            icon={BookOpenCheck}
+            label={`${session.is_marathon ? "Study marathon" : "Study group"} · ${session.course_name}`}
+            title={session.title}
+            description={session.notes}
+            date={new Date(session.session_date).toLocaleString()}
+            location={session.location}
+            language={session.preferred_language ? `Preferred language: ${session.preferred_language}` : ""}
+            participants={count}
+            capacity={session.max_spots}
+            status={status}
+            joined={joined}
+            onOpen={() => setSelected(session)}
+            footerLabel={joined ? "You joined" : "View details"}
+          />
+        );
       })}<CreateStudyPrompt onClick={() => setShowForm(true)} /></>) : (
         <div className="rounded-lg border border-dashed border-border bg-card md:col-span-2">
           <EmptyState

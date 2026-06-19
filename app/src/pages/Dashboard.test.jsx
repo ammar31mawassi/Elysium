@@ -98,8 +98,8 @@ describe("Dashboard", () => {
     expect(study).not.toHaveAttribute("href");
     expect(social).not.toHaveAttribute("href");
     expect(deadline).not.toHaveAttribute("href");
-    expect(study.className).toContain("bg-primary/10");
-    expect(social.className).toContain("bg-emerald-500/10");
+    expect(study.className).toContain("bg-emerald-500/10");
+    expect(social.className).toContain("bg-sky-500/10");
     expect(deadline.className).toContain("bg-amber-500/10");
     expect(container.textContent).toContain("Coming up");
   });

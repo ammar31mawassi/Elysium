@@ -107,6 +107,9 @@ describe("MyCommunitiesPage", () => {
 
     expect(await screen.findByRole("heading", { name: "My social events" })).toBeInTheDocument();
     expect(screen.getByText("Campus football")).toBeInTheDocument();
+    expect(screen.getByText("Open")).toBeInTheDocument();
+    expect(screen.getByText("1 / 8 joined")).toBeInTheDocument();
+    expect(screen.getByText("View joiners")).toBeInTheDocument();
     expect(screen.queryByText("Algorithms sprint")).not.toBeInTheDocument();
     expect(screen.queryByText("Study groups I created")).not.toBeInTheDocument();
   });

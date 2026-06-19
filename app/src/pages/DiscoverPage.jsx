@@ -3,16 +3,12 @@ import { useLocation } from "react-router-dom";
 import { format } from "date-fns";
 import {
   BookOpenCheck,
-  CalendarDays,
-  Clock,
   Coffee,
   Dumbbell,
   ExternalLink,
   Gamepad2,
   GraduationCap,
   HelpCircle,
-  Languages,
-  MapPin,
   MessageCircle,
   Music2,
   Search,
@@ -41,6 +37,7 @@ import {
 } from "@/lib/communityMatching";
 import PageLayout from "@/components/layout/PageLayout";
 import { useCreateAction } from "@/components/elysium/CreateActionProvider";
+import CommunitySummaryCard from "@/components/elysium/CommunitySummaryCard";
 import SkeletonCard from "@/components/ui/SkeletonCard";
 import EmptyState from "@/components/ui/EmptyState";
 import LoadFailedState from "@/components/ui/LoadFailedState";
@@ -364,24 +361,53 @@ function CreatePromptCard({ tone, icon: Icon, buttonLabel, onClick }) {
   );
 }
 
-function Meta({ icon: Icon, children }) {
-  return <span className="flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground"><Icon className="h-3.5 w-3.5 shrink-0" /><span className="truncate">{children}</span></span>;
-}
-
-function ActionButton({ joined, disabled, onJoin, onLeave, p }) {
-  return <button onClick={joined ? onLeave : onJoin} disabled={disabled} className={cn("mt-auto min-h-11 rounded-md px-3 text-sm font-semibold", joined ? "border border-border text-muted-foreground hover:bg-muted" : "bg-primary text-primary-foreground", disabled && "cursor-not-allowed bg-muted text-muted-foreground")}>{joined ? p("leave") : disabled ? "Full" : p("join")}</button>;
+function ActionButton({ joined, disabled, onJoin, onLeave, p, compact = false }) {
+  return <button onClick={joined ? onLeave : onJoin} disabled={disabled} className={cn(compact ? "min-h-9 shrink-0 rounded-md px-3 text-xs" : "mt-auto min-h-11 rounded-md px-3 text-sm", "font-semibold", joined ? "border border-border text-muted-foreground hover:bg-muted" : "bg-primary text-primary-foreground", disabled && "cursor-not-allowed bg-muted text-muted-foreground")}>{joined ? p("leave") : disabled ? "Full" : p("join")}</button>;
 }
 
 function SocialCard({ event, members, joined, onOpen, onJoin, onLeave, p }) {
   const Icon = eventIcons[event.category] || Users;
   const full = members >= (event.max_spots || Infinity);
-  return <Card tone="social"><button className="text-start" onClick={onOpen}><div className="flex items-start justify-between"><span className={cn("flex h-10 w-10 items-center justify-center rounded-md", domainTones.social.icon)}><Icon className="h-5 w-5" /></span><Meta icon={Users}>{members}/{event.max_spots || "-"}</Meta></div><p className={cn("mt-4 text-xs font-semibold", domainTones.social.text)}>{event.activity_name || event.category}</p><h2 className="mt-1 text-base font-bold text-foreground" dir="auto">{event.title}</h2><p className="mt-1 line-clamp-2 text-sm text-muted-foreground" dir="auto">{event.description}</p><div className="my-4 space-y-2"><Meta icon={CalendarDays}>{event.date}{event.start_time ? ` - ${event.start_time}` : ""}</Meta>{event.location && <Meta icon={MapPin}>{event.location}</Meta>}{event.preferred_language && <Meta icon={Languages}>{event.preferred_language}</Meta>}</div></button><ActionButton joined={joined} disabled={!joined && full} onJoin={onJoin} onLeave={onLeave} p={p} /></Card>;
+  return (
+    <CommunitySummaryCard
+      type="social"
+      icon={Icon}
+      label={event.activity_name || event.category}
+      title={event.title}
+      description={event.description}
+      date={`${event.date}${event.start_time ? ` - ${event.start_time}` : ""}`}
+      location={event.location}
+      language={event.preferred_language}
+      participants={members}
+      capacity={event.max_spots}
+      status={full ? "Full" : "Open"}
+      joined={joined}
+      onOpen={onOpen}
+      action={<ActionButton joined={joined} disabled={!joined && full} onJoin={onJoin} onLeave={onLeave} p={p} compact />}
+    />
+  );
 }
 
 function SessionCard({ session, members, joined, onOpen, onJoin, onLeave, p }) {
   const date = parseDate(session.session_date);
   const full = members >= (session.max_spots || Infinity);
-  return <Card tone="study"><button className="text-start" onClick={onOpen}><div className="flex items-start justify-between"><span className={cn("flex h-10 w-10 items-center justify-center rounded-md", domainTones.study.icon)}><BookOpenCheck className="h-5 w-5" /></span><Meta icon={Users}>{members}/{session.max_spots || "-"}</Meta></div><p className={cn("mt-4 text-xs font-semibold", domainTones.study.text)}>{session.is_marathon ? "Study marathon" : "Study group"} - {session.course_name || p("discover_groups")}</p><h2 className="mt-1 text-base font-bold text-foreground" dir="auto">{session.title || "Study group"}</h2><div className="my-4 space-y-2">{date && <Meta icon={Clock}>{format(date, "EEE, MMM d - HH:mm")}</Meta>}{session.location && <Meta icon={MapPin}>{session.location}</Meta>}{session.preferred_language && <Meta icon={Languages}>{session.preferred_language}</Meta>}</div></button><ActionButton joined={joined} disabled={!joined && full} onJoin={onJoin} onLeave={onLeave} p={p} /></Card>;
+  return (
+    <CommunitySummaryCard
+      type="study"
+      icon={BookOpenCheck}
+      label={`${session.is_marathon ? "Study marathon" : "Study group"} - ${session.course_name || p("discover_groups")}`}
+      title={session.title || "Study group"}
+      date={date ? format(date, "EEE, MMM d - HH:mm") : ""}
+      location={session.location}
+      language={session.preferred_language}
+      participants={members}
+      capacity={session.max_spots}
+      status={full ? "Full" : "Open"}
+      joined={joined}
+      onOpen={onOpen}
+      action={<ActionButton joined={joined} disabled={!joined && full} onJoin={onJoin} onLeave={onLeave} p={p} compact />}
+    />
+  );
 }
 
 function WhatsAppButton({ url }) {

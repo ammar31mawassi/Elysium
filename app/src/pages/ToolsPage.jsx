@@ -30,7 +30,10 @@ import PageLayout from "@/components/layout/PageLayout";
 import LoadFailedState from "@/components/ui/LoadFailedState";
 import EmptyState from "@/components/ui/EmptyState";
 import SkeletonCard from "@/components/ui/SkeletonCard";
+import ElCard from "@/components/ui/ElCard";
+import SectionHeading from "@/components/ui/SectionHeading";
 import { cn } from "@/lib/utils";
+import { domainTones } from "@/lib/domainTones";
 import { base44ErrorMessage, loadBase44Collection } from "@/lib/base44LoadState";
 
 const toolDefinitions = [
@@ -38,8 +41,8 @@ const toolDefinitions = [
 ];
 
 const toolLinks = [
-  { key: "gpa", icon: Calculator, to: "/tools/gpa" },
-  { key: "flashcards", icon: Layers3, to: "/flashcards" },
+  { key: "gpa", icon: Calculator, to: "/tools/gpa", description: "Track semester grades and saved courses.", tone: "tool" },
+  { key: "flashcards", icon: Layers3, to: "/flashcards", description: "Create, share, favorite, and study packs.", tone: "study" },
 ];
 
 const plannedFeatures = [
@@ -103,21 +106,38 @@ export default function ToolsPage() {
     <PageLayout wide>
       <header className="mb-7 max-w-2xl"><h1 className="text-2xl font-bold text-foreground sm:text-3xl">{p("tools_title")}</h1><p className="mt-2 text-sm leading-relaxed text-muted-foreground">{p("tools_body")}</p></header>
 
-      <SectionHeader label={t("tools_calculators")} />
-      <div className="mb-6 grid grid-cols-2 gap-2 md:grid-cols-3">
-        {toolLinks.map(({ key, icon: Icon, to }) => <Link key={key} to={to} className="min-h-28 rounded-lg border border-border bg-card p-3 text-start transition-colors hover:border-primary/40"><span className="flex h-9 w-9 items-center justify-center rounded-md bg-primary/10 text-primary"><Icon className="h-4 w-4" /></span><span className="mt-3 block text-sm font-semibold text-foreground">{toolLabels[key]}</span></Link>)}
-        {toolDefinitions.map(({ key, icon: Icon }) => <button key={key} onClick={() => setActiveTool(activeTool === key ? null : key)} className={cn("min-h-28 rounded-lg border p-3 text-start transition-colors", activeTool === key ? "border-primary bg-primary/5" : "border-border bg-card hover:border-primary/40")}><span className="flex h-9 w-9 items-center justify-center rounded-md bg-primary/10 text-primary"><Icon className="h-4 w-4" /></span><span className="mt-3 block text-sm font-semibold text-foreground">{toolLabels[key]}</span></button>)}
+      <SectionHeading title={t("tools_calculators")} description="Start with the tools students use most, then open smaller calculators when needed." />
+      <div className="mb-6 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+        {toolLinks.map(({ key, icon: Icon, to, description, tone }) => (
+          <ElCard key={key} variant="interactive" tone={tone} className="overflow-hidden">
+            <Link to={to} aria-label={toolLabels[key]} className="flex min-h-36 flex-col p-4 text-start">
+              <span className={cn("flex h-11 w-11 items-center justify-center rounded-xl", domainTones[tone].icon)}><Icon className="h-5 w-5" /></span>
+              <span className="mt-4 block text-base font-bold text-foreground">{toolLabels[key]}</span>
+              <span className="mt-1 block text-sm leading-relaxed text-muted-foreground">{description}</span>
+            </Link>
+          </ElCard>
+        ))}
+        {toolDefinitions.map(({ key, icon: Icon }) => (
+          <ElCard key={key} variant={activeTool === key ? "featured" : "interactive"} tone="tool" className="overflow-hidden md:col-span-2 xl:col-span-1">
+            <button type="button" onClick={() => setActiveTool(activeTool === key ? null : key)} className="flex min-h-36 w-full flex-col p-4 text-start">
+              <span className={cn("flex h-11 w-11 items-center justify-center rounded-xl", domainTones.tool.icon)}><Icon className="h-5 w-5" /></span>
+              <span className="mt-4 block text-base font-bold text-foreground">{toolLabels[key]}</span>
+              <span className="mt-1 block text-sm leading-relaxed text-muted-foreground">Calculate one course target.</span>
+              <span className={cn("mt-auto pt-4 text-xs font-bold", domainTones.tool.text)}>{activeTool === key ? "Close calculator" : "Open calculator"}</span>
+            </button>
+          </ElCard>
+        ))}
       </div>
 
       {activeDefinition && <section className="mb-7 rounded-lg border border-border bg-card p-4"><div className="mb-4 flex items-center justify-between"><h2 className="text-sm font-semibold text-foreground">{toolLabels[activeDefinition.key]}</h2><button className="flex h-10 w-10 items-center justify-center rounded-md text-muted-foreground hover:bg-muted" onClick={() => setActiveTool(null)} aria-label="Close tool"><X className="h-4 w-4" /></button></div>{React.createElement(activeDefinition.component)}</section>}
 
-      <SectionHeader label={t("tools_find_person")} />
+      <SectionHeading title={t("tools_find_person")} />
       <div className="mb-7 grid grid-cols-2 gap-2">
-        <Link to="/discover?tab=tutors" className="min-h-28 rounded-lg border border-border bg-card p-3 hover:border-primary/40"><GraduationCap className="h-5 w-5 text-primary" /><p className="mt-3 text-sm font-semibold text-foreground">{t("nav_tutors")}</p><p className="mt-1 text-xs text-muted-foreground">{t("tools_tutor_short")}</p></Link>
-        <Link to="/discover?tab=helpers" className="min-h-28 rounded-lg border border-border bg-card p-3 hover:border-primary/40"><HelpCircle className="h-5 w-5 text-primary" /><p className="mt-3 text-sm font-semibold text-foreground">{t("nav_helpers")}</p><p className="mt-1 text-xs text-muted-foreground">{t("tools_helper_short")}</p></Link>
+        <Link to="/discover?tab=tutors" className={cn("min-h-28 rounded-lg border border-border bg-card p-3", domainTones.tutor.border)}><span className={cn("flex h-9 w-9 items-center justify-center rounded-md", domainTones.tutor.icon)}><GraduationCap className="h-4 w-4" /></span><p className="mt-3 text-sm font-semibold text-foreground">{t("nav_tutors")}</p><p className="mt-1 text-xs text-muted-foreground">{t("tools_tutor_short")}</p></Link>
+        <Link to="/discover?tab=helpers" className={cn("min-h-28 rounded-lg border border-border bg-card p-3", domainTones.helper.border)}><span className={cn("flex h-9 w-9 items-center justify-center rounded-md", domainTones.helper.icon)}><HelpCircle className="h-4 w-4" /></span><p className="mt-3 text-sm font-semibold text-foreground">{t("nav_helpers")}</p><p className="mt-1 text-xs text-muted-foreground">{t("tools_helper_short")}</p></Link>
       </div>
 
-      <SectionHeader label={t("tools_links")} />
+      <SectionHeading title={t("tools_links")} />
       {resourcesError ? (
         <div className="mb-7">
           <LoadFailedState message={resourcesError} onRetry={() => setResourcesLoadKey((key) => key + 1)} />
@@ -134,7 +154,7 @@ export default function ToolsPage() {
         )
       )}
 
-      <SectionHeader label={t("tools_guides")} />
+      <SectionHeading title={t("tools_guides")} />
       {resourcesError ? null : resourcesLoading ? (
         <div className="mb-7 space-y-2"><SkeletonCard lines={2} /><SkeletonCard lines={2} /></div>
       ) : (
@@ -147,14 +167,10 @@ export default function ToolsPage() {
         )
       )}
 
-      <SectionHeader label="Coming soon" />
-      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">{plannedFeatures.map(([Icon, label]) => <div key={label} className="flex min-h-16 items-center gap-3 rounded-lg border border-dashed border-border bg-muted/20 p-3 opacity-70"><Icon className="h-4 w-4 shrink-0 text-muted-foreground" /><span className="text-sm font-medium text-muted-foreground">{label}</span></div>)}</div>
+      <SectionHeading title="Later upgrades" description="Planned ideas are shown quietly so they do not compete with tools that work now." />
+      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">{plannedFeatures.map(([Icon, label]) => <div key={label} className="flex min-h-14 items-center gap-3 rounded-lg border border-dashed border-border/80 bg-muted/10 p-3 opacity-60"><Icon className="h-4 w-4 shrink-0 text-muted-foreground" /><span className="text-sm font-medium text-muted-foreground">{label}</span></div>)}</div>
     </PageLayout>
   );
-}
-
-function SectionHeader({ label }) {
-  return <h2 className="mb-2 text-xs font-semibold uppercase text-muted-foreground">{label}</h2>;
 }
 
 function GuideRow({ guide, locale, expanded, onToggle }) {

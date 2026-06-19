@@ -116,11 +116,10 @@ export default function MePage() {
     <PageLayout wide>
       <header className="mb-6"><p className="text-xs font-bold uppercase tracking-wide text-primary">My Elysium</p><h1 className="mt-1 text-2xl font-bold text-foreground sm:text-3xl">Me</h1><p className="mt-2 max-w-2xl text-sm text-muted-foreground">Your courses, interests, calendar, and personal student tools in one place.</p></header>
 
-      <div className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mb-6 grid gap-3 sm:grid-cols-3">
         <PersonalLink to="/calendar" icon={CalendarDays} label="My calendar" detail="Deadlines and joined plans" tone="calendar" />
-        <PersonalLink to="/me/communities?type=social" icon={Users} label="My social events" detail="Events you created" tone="social" />
-        <PersonalLink to="/me/communities?type=study" icon={BookOpenCheck} label="My study groups" detail="Study groups you created" tone="study" />
-        <PersonalLink to="/tools" icon={Wrench} label="My tools" detail="Grades, GPA, and flashcards" tone="study" />
+        <PersonalLink to="/me/communities" icon={Users} label="My communities" detail="Activities and study groups you created" tone="social" />
+        <PersonalLink to="/tools" icon={Wrench} label="My tools" detail="Grades, GPA, and flashcards" tone="tool" />
       </div>
 
       <section className="mb-4 rounded-lg border border-border bg-card p-4">

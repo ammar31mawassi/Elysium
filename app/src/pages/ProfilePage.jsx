@@ -216,6 +216,11 @@ export default function ProfilePage() {
   };
 
   const teacherStatus = tutorStatus(teacherProfile);
+  const helperDetailsCopy = peerHelper
+    ? peerHelper.is_visible
+      ? "Peer Helper is on. Students can see your helper card and contact you on WhatsApp. Edit details any time."
+      : "Your Peer Helper details are saved but hidden. Turn the switch on when you want students to find you."
+    : "Turn Peer Helper on from the profile header. The first time, complete these public details. Your WhatsApp number is required and is only shown while Peer Helper is on.";
 
   return (
     <PageLayout title={t("profile_title")}>
@@ -250,19 +255,29 @@ export default function ProfilePage() {
         <Button className="mt-4 w-full sm:w-auto" disabled={savingProfile || !profileForm.preferred_name.trim() || !profileForm.university_id} onClick={saveProfile}>{savingProfile ? "Saving..." : "Save profile"}</Button>
       </SettingsCard>
 
-      <SettingsCard title={t("profile_language")}><div className="flex gap-2">{SUPPORTED_LOCALES.map((nextLocale) => <button key={nextLocale} onClick={() => handleLocaleChange(nextLocale)} className={cn("flex-1 rounded-md border py-2 text-xs font-semibold", locale === nextLocale ? "border-primary bg-primary text-primary-foreground" : "border-border text-muted-foreground hover:border-primary/40")}>{LOCALE_NAMES[nextLocale]}</button>)}</div></SettingsCard>
-      <SettingsCard title={t("profile_theme")}><div className="flex gap-2">{[["light", t("profile_theme_light") || "Light", Sun], ["dark", t("profile_theme_dark") || "Dark", Moon], ["system", t("profile_theme_system") || "System", Monitor]].map(([key, label, Icon]) => <button key={key} onClick={() => handleThemeChange(key)} className={cn("flex flex-1 items-center justify-center gap-1.5 rounded-md border py-2 text-xs font-medium", preference === key ? "border-primary bg-primary text-primary-foreground" : "border-border text-muted-foreground hover:border-primary/40")}><Icon className="h-3.5 w-3.5" />{label}</button>)}</div></SettingsCard>
+      <section className="mb-3">
+        <h2 className="mb-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">Preferences</h2>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <SettingsCard title={t("profile_language")} className="mb-0"><div className="flex gap-2">{SUPPORTED_LOCALES.map((nextLocale) => <button key={nextLocale} onClick={() => handleLocaleChange(nextLocale)} className={cn("flex-1 rounded-md border py-2 text-xs font-semibold", locale === nextLocale ? "border-primary bg-primary text-primary-foreground" : "border-border text-muted-foreground hover:border-primary/40")}>{LOCALE_NAMES[nextLocale]}</button>)}</div></SettingsCard>
+          <SettingsCard title={t("profile_theme")} className="mb-0"><div className="flex gap-2">{[["light", t("profile_theme_light") || "Light", Sun], ["dark", t("profile_theme_dark") || "Dark", Moon], ["system", t("profile_theme_system") || "System", Monitor]].map(([key, label, Icon]) => <button key={key} onClick={() => handleThemeChange(key)} className={cn("flex flex-1 items-center justify-center gap-1.5 rounded-md border py-2 text-xs font-medium", preference === key ? "border-primary bg-primary text-primary-foreground" : "border-border text-muted-foreground hover:border-primary/40")}><Icon className="h-3.5 w-3.5" />{label}</button>)}</div></SettingsCard>
+        </div>
+      </section>
 
-      <SettingsCard title={t("profile_offer_tutoring")} icon={<GraduationCap className={cn("h-4 w-4", domainTones.tutor.text)} />}>
-        <p className="mb-2 text-xs text-muted-foreground">{p("profile_public_note")}</p>
-        <p className={cn("mb-3 text-xs font-semibold", teacherStatus.tone)}>{teacherStatus.label}</p>
-        <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setShowTutorForm(true)}><Edit2 className="h-3.5 w-3.5" />{teacherProfile ? t("profile_edit") : t("profile_offer_tutoring")}</Button>
-      </SettingsCard>
+      <section className="mb-3">
+        <h2 className="mb-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">Helping others</h2>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <SettingsCard title={t("profile_offer_tutoring")} className="mb-0" icon={<GraduationCap className={cn("h-4 w-4", domainTones.tutor.text)} />}>
+            <p className="mb-2 text-xs text-muted-foreground">{p("profile_public_note")}</p>
+            <p className={cn("mb-3 text-xs font-semibold", teacherStatus.tone)}>{teacherStatus.label}</p>
+            <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setShowTutorForm(true)}><Edit2 className="h-3.5 w-3.5" />{teacherProfile ? t("profile_edit") : t("profile_offer_tutoring")}</Button>
+          </SettingsCard>
 
-      <SettingsCard title="Peer Helper details" icon={<HelpCircle className={cn("h-4 w-4", domainTones.helper.text)} />}>
-        <p className="mb-2 text-xs text-muted-foreground">Turn Peer Helper on in the profile header. The first time, complete these public details. Your WhatsApp number is required and is only shown while Peer Helper is on.</p>
-        <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setShowHelperForm(true)}><Edit2 className="h-3.5 w-3.5" />{peerHelper ? "Edit helper details" : "Sign up as Peer Helper"}</Button>
-      </SettingsCard>
+          <SettingsCard title="Peer Helper details" className="mb-0" icon={<HelpCircle className={cn("h-4 w-4", domainTones.helper.text)} />}>
+            <p className="mb-2 text-xs text-muted-foreground">{helperDetailsCopy}</p>
+            <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setShowHelperForm(true)}><Edit2 className="h-3.5 w-3.5" />{peerHelper ? "Edit helper details" : "Sign up as Peer Helper"}</Button>
+          </SettingsCard>
+        </div>
+      </section>
 
       <TutorDialog
         open={showTutorForm}
@@ -472,8 +487,8 @@ function PeerHelperDialog({ open, onOpenChange, helperForm, setHelperForm, savin
   );
 }
 
-function SettingsCard({ title, icon, children }) {
-  return <section className="mb-3 rounded-lg border border-border bg-card p-4"><div className="mb-3 flex items-center gap-2">{icon}<h2 className="text-sm font-semibold text-foreground">{title}</h2></div>{children}</section>;
+function SettingsCard({ title, icon, children, className = "" }) {
+  return <section className={cn("mb-3 rounded-lg border border-border bg-card p-4", className)}><div className="mb-3 flex items-center gap-2">{icon}<h2 className="text-sm font-semibold text-foreground">{title}</h2></div>{children}</section>;
 }
 
 function Field({ label, children }) {

@@ -5,7 +5,6 @@ import {
   Check,
   Gamepad2,
   HandHeart,
-  MapPin,
   Music2,
   Plus,
   Trophy,
@@ -20,6 +19,7 @@ import SkeletonCard from "@/components/ui/SkeletonCard";
 import EmptyState from "@/components/ui/EmptyState";
 import LoadFailedState from "@/components/ui/LoadFailedState";
 import Modal from "@/components/ui/Modal";
+import CommunitySummaryCard from "@/components/elysium/CommunitySummaryCard";
 import SearchableChoice from "@/components/elysium/SearchableChoice";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -321,20 +321,26 @@ export default function SocialPage() {
             const Icon = categoryIcons[event.category] || Users;
             const count = memberCount(event.id);
             const full = count >= event.max_spots;
+            const joined = myEventIds.has(event.id);
+            const status = event.status === "canceled" ? "Canceled" : full ? "Full" : "Open";
             return (
-              <button key={event.id} onClick={() => setSelected(event)} className={cn("min-h-36 rounded-lg border border-border bg-card p-4 text-start transition-colors", domainTones.social.border)}>
-                <div className="flex items-start gap-3">
-                  <span className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-md", domainTones.social.icon)}><Icon className="h-5 w-5" /></span>
-                  <div className="min-w-0 flex-1" dir="auto">
-                    <div className="flex items-start justify-between gap-3"><h2 className="font-semibold text-foreground">{event.title}</h2><span className={cn("shrink-0 text-xs font-semibold", event.status === "canceled" ? "text-destructive" : full ? "text-amber-600" : "text-emerald-600")}>{event.status === "canceled" ? "Canceled" : full ? "Full" : "Open"}</span></div>
-                    <p className={cn("mt-1 text-xs font-semibold", domainTones.social.text)}>{event.activity_name || event.category}</p>
-                    <p className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground"><CalendarClock className="h-3.5 w-3.5" />{event.date}{event.start_time ? `, ${event.start_time}` : ""}</p>
-                    {event.location && <p className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground"><MapPin className="h-3.5 w-3.5" />{event.location}</p>}
-                    {event.preferred_language && <p className="mt-1 text-xs text-muted-foreground">Preferred language: {event.preferred_language}</p>}
-                    <p className="mt-3 text-xs font-medium text-muted-foreground">{count} / {event.max_spots} joined{myEventIds.has(event.id) ? " · You joined" : ""}</p>
-                  </div>
-                </div>
-              </button>
+              <CommunitySummaryCard
+                key={event.id}
+                type="social"
+                icon={Icon}
+                label={event.activity_name || event.category || "Social activity"}
+                title={event.title}
+                description={event.description}
+                date={`${event.date}${event.start_time ? `, ${event.start_time}` : ""}`}
+                location={event.location}
+                language={event.preferred_language ? `Preferred language: ${event.preferred_language}` : ""}
+                participants={count}
+                capacity={event.max_spots}
+                status={status}
+                joined={joined}
+                onOpen={() => setSelected(event)}
+                footerLabel={joined ? "You joined" : "View details"}
+              />
             );
           })}
               <CreateSocialPrompt onClick={() => setShowCreate(true)} />

@@ -107,9 +107,9 @@ describe("FlashcardsPage", () => {
     render(<MemoryRouter><FlashcardsPage /></MemoryRouter>);
 
     expect(await screen.findByText("My Biology Pack")).toBeInTheDocument();
-    expect(screen.getByText("Cards you added")).toBeInTheDocument();
+    expect(screen.getByText("Question preview")).toBeInTheDocument();
     expect(screen.getByText("1. Question A")).toBeInTheDocument();
-    expect(screen.getByText("Answer A")).toBeInTheDocument();
+    expect(screen.queryByText("Answer A")).not.toBeInTheDocument();
 
     openTab("Published");
     expect(await screen.findByText("Chemistry Basics")).toBeInTheDocument();

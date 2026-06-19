@@ -740,11 +740,11 @@ function DeckCard({ deck, cardCount, cards = [], isFavorite, isOwner, onEdit, on
   const color = deckColor(deck);
 
   return (
-    <article className="overflow-hidden rounded-lg border border-border bg-card shadow-sm transition-colors hover:border-primary/35">
-      <div className="h-2" style={{ backgroundColor: color }} />
+    <article className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition-[border-color,box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:border-primary/35 hover:shadow-md">
+      <div className="h-2.5" style={{ backgroundColor: color }} />
       <div className="flex min-h-48 flex-col p-4">
         <div className="flex items-start justify-between gap-3">
-          <span className="flex h-10 w-10 items-center justify-center rounded-md" style={{ backgroundColor: withAlpha(color, "20"), color }}>
+          <span className="flex h-11 w-11 items-center justify-center rounded-xl border" style={{ backgroundColor: withAlpha(color, "18"), borderColor: withAlpha(color, "33"), color }}>
             <Layers3 className="h-5 w-5" />
           </span>
           <div className="flex items-center gap-1">
@@ -767,7 +767,7 @@ function DeckCard({ deck, cardCount, cards = [], isFavorite, isOwner, onEdit, on
           <p className="mt-1 line-clamp-1 text-sm text-muted-foreground">{deck.subject || "Flashcard pack"}</p>
           {deck.description && <p className="mt-3 line-clamp-2 text-xs leading-relaxed text-muted-foreground" dir="auto">{deck.description}</p>}
           <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px] font-semibold text-muted-foreground">
-            <span>{cardCount} cards</span>
+            <span className="rounded-full border border-border bg-background/60 px-2 py-1">{cardCount} cards</span>
             {!isOwner && <span>By {deck.owner_display_name || "Student"}</span>}
           </div>
           {isOwner && <OwnedCardsPreview cards={cards} cardCount={cardCount} />}
@@ -792,17 +792,14 @@ function OwnedCardsPreview({ cards, cardCount }) {
   const remainingCount = Math.max(0, cardCount - visibleCards.length);
 
   return (
-    <div className="mt-4 rounded-md border border-border bg-muted/30 p-3">
-      <p className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Cards you added</p>
+    <div className="mt-4 rounded-xl border border-border bg-muted/20 p-3">
+      <p className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Question preview</p>
       {visibleCards.length ? (
         <div className="mt-2 space-y-2">
           {visibleCards.map((card, index) => (
             <article key={card.id || card._rowId || `${card.front}-${index}`} className="rounded-md bg-background/70 p-2">
               <p className="line-clamp-1 text-xs font-semibold text-foreground" dir="auto">
                 {index + 1}. {card.front}
-              </p>
-              <p className="mt-1 line-clamp-1 text-xs text-muted-foreground" dir="auto">
-                {card.back}
               </p>
             </article>
           ))}

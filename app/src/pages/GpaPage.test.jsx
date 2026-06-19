@@ -76,6 +76,8 @@ describe("GpaPage", () => {
     expect(screen.getByText("Computer Systems")).toBeInTheDocument();
     expect(screen.getAllByText("77.32")[0]).toBeInTheDocument();
     expect(screen.getAllByText("Semester B")[0]).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: "Add course" })).toHaveLength(1);
+    expect(screen.queryByRole("heading", { name: "Summer" })).not.toBeInTheDocument();
     await waitFor(() => expect(base44.entities.CourseCatalog.filter).toHaveBeenCalledWith({ university_id: "bgu" }));
   });
 

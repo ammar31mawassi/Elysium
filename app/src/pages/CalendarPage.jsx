@@ -362,7 +362,9 @@ export default function CalendarPage() {
   };
 
   const openCalendarDay = (date) => {
-    setSelectedCalendarDate(startOfDay(date));
+    const selectedDate = startOfDay(date);
+    setVisibleDate(selectedDate);
+    setSelectedCalendarDate(selectedDate);
   };
 
   const openCreate = (kind = "other") => {

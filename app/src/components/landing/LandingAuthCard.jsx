@@ -1,8 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowRight, CheckCircle2, LockKeyhole, Mail, ShieldCheck } from "lucide-react";
-import { base44 } from "@/api/base44Client";
-import GoogleIcon from "@/components/GoogleIcon";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,10 +15,6 @@ export default function LandingAuthCard() {
     event.preventDefault();
     const query = email.trim() ? `?email=${encodeURIComponent(email.trim())}` : "";
     navigate(`${mode === "new" ? "/register" : "/login"}${query}`);
-  };
-
-  const handleGoogle = () => {
-    base44.auth.loginWithProvider("google", "/");
   };
 
   return (
@@ -83,10 +77,6 @@ export default function LandingAuthCard() {
           <ArrowRight data-icon="inline-end" className="size-4 rtl:rotate-180" aria-hidden="true" />
         </Button>
 
-        <Button type="button" variant="outline" className="h-12 bg-background/70" onClick={handleGoogle}>
-          <GoogleIcon className="size-5" />
-          Continue with Google
-        </Button>
       </form>
 
       <div className="mt-5 grid gap-2 text-sm text-muted-foreground">

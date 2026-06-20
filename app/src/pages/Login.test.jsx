@@ -20,7 +20,6 @@ vi.mock("@/api/base44Client", () => ({
   base44: {
     auth: {
       loginViaEmailPassword: vi.fn(),
-      loginWithProvider: vi.fn(),
     },
   },
 }));
@@ -40,10 +39,6 @@ vi.mock("@/components/AuthLayout", () => ({
       <footer>{footer}</footer>
     </main>
   ),
-}));
-
-vi.mock("@/components/GoogleIcon", () => ({
-  default: () => <span aria-hidden="true" />,
 }));
 
 describe("Login", () => {
@@ -69,6 +64,17 @@ describe("Login", () => {
     });
     expect(mockCheckUserAuth).toHaveBeenCalledTimes(1);
     expect(mockNavigate).toHaveBeenCalledWith("/calendar", { replace: true });
+  });
+
+  it("offers email login without a Google provider option", () => {
+    render(
+      <MemoryRouter initialEntries={["/login"]}>
+        <Login />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByRole("button", { name: "Log in" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Continue with Google" })).not.toBeInTheDocument();
   });
 
   it("does not keep the clear token flag in the post-login route", async () => {

@@ -64,7 +64,7 @@ const createPrompts = {
     body: "Start one for students with similar interests.",
     button: "Create event",
   },
-  sessions: {
+  study: {
     title: "No matching study group yet.",
     body: "Create one around your course.",
     button: "Start study group",
@@ -430,14 +430,15 @@ export default function DiscoverPage() {
 }
 
 function Card({ children, tone }) {
-  return <article className={cn("flex min-h-60 min-w-0 flex-col rounded-lg border border-border bg-card p-4", tone ? domainTones[tone].border : "")}>{children}</article>;
+  return <article className={cn("flex min-h-60 min-w-0 flex-col rounded-lg border border-border bg-card p-4", tone ? domainTones[tone]?.border : "")}>{children}</article>;
 }
 
 function CreatePromptCard({ tone, icon: Icon, buttonLabel, onClick }) {
-  const prompt = createPrompts[tone];
+  const prompt = createPrompts[tone] || createPrompts.social;
+  const toneConfig = domainTones[tone] || domainTones.social;
   return (
     <Card tone={tone}>
-      <span className={cn("flex h-10 w-10 items-center justify-center rounded-md", domainTones[tone].icon)}>
+      <span className={cn("flex h-10 w-10 items-center justify-center rounded-md", toneConfig.icon)}>
         <Icon className="h-5 w-5" />
       </span>
       <h2 className="mt-4 text-base font-bold text-foreground">{prompt.title}</h2>

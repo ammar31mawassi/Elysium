@@ -5,6 +5,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import DiscoverPage from "@/pages/DiscoverPage";
 import { base44 } from "@/api/base44Client";
 
+const mockOpenCreateAction = vi.hoisted(() => vi.fn());
+
 vi.mock("@/api/base44Client", () => ({
   base44: {
     entities: {
@@ -38,12 +40,13 @@ vi.mock("@/components/layout/PageLayout", () => ({
 }));
 
 vi.mock("@/components/elysium/CreateActionProvider", () => ({
-  useCreateAction: () => ({ openCreateAction: vi.fn() }),
+  useCreateAction: () => ({ openCreateAction: mockOpenCreateAction }),
 }));
 
 describe("DiscoverPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockOpenCreateAction.mockClear();
     base44.entities.SocialEvent.filter.mockResolvedValue([]);
     base44.entities.SocialEventMember.filter.mockResolvedValue([]);
     base44.entities.StudySession.filter.mockResolvedValue([]);
@@ -80,5 +83,39 @@ describe("DiscoverPage", () => {
     await waitFor(() => expect(base44.entities.PrivateTeacher.filter).toHaveBeenCalledTimes(1));
     expect(base44.entities.StudySession.filter).not.toHaveBeenCalled();
     expect(base44.entities.Guide.filter).not.toHaveBeenCalled();
+  });
+
+  it("renders the study group create prompt when the study groups tab is opened directly", async () => {
+    render(
+      <MemoryRouter initialEntries={["/discover?tab=sessions"]}>
+        <DiscoverPage />
+      </MemoryRouter>
+    );
+
+    expect(await screen.findByText("No matching study group yet.")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Start study group" }));
+
+    expect(mockOpenCreateAction).toHaveBeenCalledWith("study");
+    expect(base44.entities.StudySession.filter).toHaveBeenCalledTimes(1);
+    expect(base44.entities.StudySessionMember.filter).toHaveBeenCalledTimes(2);
+    expect(base44.entities.CalendarItem.filter).toHaveBeenCalledTimes(1);
+    expect(base44.entities.SocialEvent.filter).not.toHaveBeenCalled();
+  });
+
+  it("renders the social activity create prompt when the social tab is opened directly", async () => {
+    render(
+      <MemoryRouter initialEntries={["/discover?tab=social"]}>
+        <DiscoverPage />
+      </MemoryRouter>
+    );
+
+    expect(await screen.findByText("No matching event yet.")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Create event" }));
+
+    expect(mockOpenCreateAction).toHaveBeenCalledWith("social");
+    expect(base44.entities.SocialEvent.filter).toHaveBeenCalledTimes(1);
+    expect(base44.entities.SocialEventMember.filter).toHaveBeenCalledTimes(2);
+    expect(base44.entities.CalendarItem.filter).toHaveBeenCalledTimes(1);
+    expect(base44.entities.StudySession.filter).not.toHaveBeenCalled();
   });
 });

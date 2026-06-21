@@ -1,5 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { buildElyActionContext, syncElyActionSideEffects } from "@/components/elysium/ElyAssistant";
+import {
+  buildElyActionContext,
+  calendarItemToElyContext,
+  formatCalendarItemsForStudentContext,
+  getRelevantUpcomingCalendarItems,
+  syncElyActionSideEffects,
+} from "@/components/elysium/ElyAssistant";
 
 vi.mock("@/api/base44Client", () => ({
   base44: {
@@ -22,6 +28,14 @@ describe("ElyAssistant action helpers", () => {
       profile: { id: "profile-1", university_id: "bgu" },
       university: { name: "Test University" },
       locale: "en",
+      upcomingCalendarItems: [{
+        id: "calendar-1",
+        title: "Algorithms exam",
+        course_name: "Algorithms",
+        starts_at: "2099-07-01T09:00:00.000Z",
+        personal_kind: "exam",
+        priority: "urgent",
+      }],
     });
 
     expect(context).toEqual(expect.objectContaining({
@@ -31,11 +45,26 @@ describe("ElyAssistant action helpers", () => {
       university_id: "bgu",
       university_name: "Test University",
     }));
+    expect(context.calendar_planning).toEqual(expect.objectContaining({
+      mode: "text_first_calendar_planner",
+      create_only_when_user_clearly_asks_to_save: true,
+      can_create_multiple_items_from_one_message: true,
+    }));
+    expect(context.upcoming_calendar).toEqual([
+      expect.objectContaining({
+        title: "Algorithms exam",
+        course_name: "Algorithms",
+        starts_at: "2099-07-01T09:00:00.000Z",
+        kind: "exam",
+        priority: "urgent",
+      }),
+    ]);
     expect(context.writable_actions).toEqual(expect.arrayContaining([
       expect.objectContaining({
         action: "create_calendar_item",
         entity: "CalendarItem",
         fixed_fields: expect.objectContaining({ owner_user_id: "user-1", source_type: "personal" }),
+        can_create_multiple_from_one_message: true,
       }),
       expect.objectContaining({
         action: "update_profile_courses",
@@ -43,6 +72,26 @@ describe("ElyAssistant action helpers", () => {
         profile_id: "profile-1",
       }),
     ]));
+  });
+
+  it("filters, sorts, and formats active upcoming calendar context", () => {
+    const rows = [
+      { id: "old", title: "Yesterday", starts_at: "2026-06-20T09:00:00.000Z", status: "active" },
+      { id: "done", title: "Done", starts_at: "2026-06-22T09:00:00.000Z", status: "active", completed: true },
+      { id: "later", title: "Project draft", starts_at: "2026-06-23T12:00:00.000Z", status: "active", priority: "important" },
+      { id: "first", title: "Exam review", course_name: "Algorithms", starts_at: "2026-06-21T15:00:00.000Z", status: "active", personal_kind: "homework" },
+      { id: "canceled", title: "Canceled", starts_at: "2026-06-21T18:00:00.000Z", status: "canceled" },
+    ];
+
+    const upcoming = getRelevantUpcomingCalendarItems(rows, new Date("2026-06-21T10:00:00.000Z"));
+
+    expect(upcoming.map((item) => item.id)).toEqual(["first", "later"]);
+    expect(calendarItemToElyContext(upcoming[0])).toEqual(expect.objectContaining({
+      title: "Exam review",
+      course_name: "Algorithms",
+      kind: "homework",
+    }));
+    expect(formatCalendarItemsForStudentContext(upcoming)).toContain("Exam review | course: Algorithms | starts: 2026-06-21T15:00:00.000Z");
   });
 
   it("refreshes profile courses and broadcasts recently created calendar items", async () => {

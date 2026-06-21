@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 import { extractInternalPaths } from "@/lib/productUtils";
 import { normalizeCourseRecords } from "@/lib/profileCourses";
 import { registerCourses } from "@/lib/courseCatalog";
-import { invalidateAppDataCaches, patchCreatedActionCaches } from "@/lib/base44Cache";
+import { invalidateAppDataCaches, mergeRecordsById, patchCreatedActionCaches } from "@/lib/base44Cache";
 
 const labels = {
   en: { title: "Ely", subtitle: "Your campus next-step assistant", placeholder: "What do you need help with?", empty: "Ask about your next deadline, a course, campus help, or where to find the right person.", open: "Open Ely", close: "Close Ely", full: "Open full chat", error: "Ely could not respond. Try again.", suggestions: ["What should I focus on next?", "Find a Calculus study group", "Where can I get official academic help?"] },
@@ -19,6 +19,7 @@ const labels = {
 
 const FLOATING_MESSAGE = "Hi there, I am Ely. Ask me anything. Need help?";
 const RECENT_ACTION_WINDOW_MS = 5000;
+const UPCOMING_CALENDAR_LIMIT = 12;
 
 function actionLabel(path, locale) {
   const key = path.split("?")[0];
@@ -87,7 +88,68 @@ function createdAfter(item, sentAtMs) {
   return Number.isFinite(createdAt) && createdAt >= sentAtMs - RECENT_ACTION_WINDOW_MS;
 }
 
-export function buildElyActionContext({ user, profile, university, locale }) {
+function dateMs(value) {
+  const time = value instanceof Date ? value.getTime() : new Date(value || "").getTime();
+  return Number.isFinite(time) ? time : null;
+}
+
+export function getRelevantUpcomingCalendarItems(items = [], now = new Date(), limit = UPCOMING_CALENDAR_LIMIT) {
+  const nowDate = now instanceof Date ? now : new Date(now);
+  const startOfToday = new Date(nowDate);
+  startOfToday.setHours(0, 0, 0, 0);
+  const earliestMs = dateMs(startOfToday) || 0;
+
+  return (items || [])
+    .filter((item) => {
+      const startsAtMs = dateMs(item?.starts_at);
+      return (
+        item?.id
+        && startsAtMs !== null
+        && startsAtMs >= earliestMs
+        && item.status !== "canceled"
+        && !item.completed
+      );
+    })
+    .sort((a, b) => (dateMs(a.starts_at) || 0) - (dateMs(b.starts_at) || 0))
+    .slice(0, limit);
+}
+
+function compactObject(record) {
+  return Object.fromEntries(Object.entries(record).filter(([, value]) => value !== undefined && value !== null && value !== ""));
+}
+
+export function calendarItemToElyContext(item) {
+  if (!item) return null;
+  return compactObject({
+    id: item.id,
+    title: item.title,
+    course_name: item.course_name,
+    starts_at: item.starts_at,
+    ends_at: item.ends_at,
+    all_day: item.all_day || undefined,
+    priority: item.priority || "normal",
+    kind: item.personal_kind || item.source_type,
+  });
+}
+
+export function formatCalendarItemsForStudentContext(items = []) {
+  return (items || [])
+    .map((item) => {
+      const bits = [
+        item.title,
+        item.course_name ? `course: ${item.course_name}` : "",
+        item.starts_at ? `starts: ${item.starts_at}` : "",
+        item.ends_at ? `ends: ${item.ends_at}` : "",
+        item.priority ? `priority: ${item.priority}` : "",
+        item.personal_kind || item.source_type ? `kind: ${item.personal_kind || item.source_type}` : "",
+      ].filter(Boolean);
+      return bits.length ? `- ${bits.join(" | ")}` : "";
+    })
+    .filter(Boolean)
+    .join("\n");
+}
+
+export function buildElyActionContext({ user, profile, university, locale, upcomingCalendarItems = [] }) {
   return {
     now_iso: new Date().toISOString(),
     locale,
@@ -96,6 +158,16 @@ export function buildElyActionContext({ user, profile, university, locale }) {
     profile_id: profile?.id || null,
     university_id: profile?.university_id || university?.id || null,
     university_name: university?.name || null,
+    upcoming_calendar: getRelevantUpcomingCalendarItems(upcomingCalendarItems).map(calendarItemToElyContext).filter(Boolean),
+    calendar_planning: {
+      mode: "text_first_calendar_planner",
+      create_only_when_user_clearly_asks_to_save: true,
+      can_create_multiple_items_from_one_message: true,
+      partial_save_rule: "Save only calendar items with clear title and date/time; ask a concise follow-up for unclear items.",
+      after_save_response: ["say exactly what was saved", "suggest a priority order", "split work into realistic time blocks", "include breaks and a first next step"],
+      planning_without_save: "When the student only asks for advice, use the visible calendar context to suggest what to do first without creating records.",
+      overload_rule: "If the upcoming calendar looks crowded, mention the conflict or overload and suggest a smaller next block.",
+    },
     writable_actions: [
       {
         action: "create_calendar_item",
@@ -104,6 +176,7 @@ export function buildElyActionContext({ user, profile, university, locale }) {
         fixed_fields: { owner_user_id: user?.id || null, source_type: "personal", status: "active", completed: false },
         allowed_personal_kind: ["homework", "exam", "other"],
         allowed_priority: ["normal", "important", "urgent"],
+        can_create_multiple_from_one_message: true,
       },
       {
         action: "update_profile_courses",
@@ -164,6 +237,7 @@ export default function ElyAssistant({ embedded = false, defaultOpen = false }) 
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [calendarItems, setCalendarItems] = useState([]);
   const bottomRef = useRef(null);
   const messagesRef = useRef([]);
   const syncedCalendarItemIdsRef = useRef(new Set());
@@ -200,7 +274,40 @@ export default function ElyAssistant({ embedded = false, defaultOpen = false }) 
     return () => { active = false; unsubscribe(); };
   }, [open, conversation, user?.id, profile?.university_id, locale, copy.error]);
 
+  useEffect(() => {
+    if (!open || !user?.id) {
+      setCalendarItems([]);
+      return undefined;
+    }
+
+    let active = true;
+    const handleCreatedAction = (event) => {
+      const calendarItem = event?.detail?.calendarItem;
+      if (calendarItem) setCalendarItems((current) => mergeRecordsById(current, [calendarItem]));
+    };
+
+    async function loadCalendarContext() {
+      try {
+        const rows = await base44.entities.CalendarItem.filter({ owner_user_id: user.id });
+        if (active) setCalendarItems(getRelevantUpcomingCalendarItems(rows));
+      } catch (cause) {
+        console.error(cause);
+        if (active) setCalendarItems([]);
+      }
+    }
+
+    window.addEventListener("elysium:create-action-complete", handleCreatedAction);
+    loadCalendarContext();
+    return () => {
+      active = false;
+      window.removeEventListener("elysium:create-action-complete", handleCreatedAction);
+    };
+  }, [open, user?.id]);
+
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, loading]);
+
+  const upcomingCalendarItems = useMemo(() => getRelevantUpcomingCalendarItems(calendarItems), [calendarItems]);
+  const upcomingCalendarSummary = useMemo(() => formatCalendarItemsForStudentContext(upcomingCalendarItems), [upcomingCalendarItems]);
 
   const studentContext = useMemo(() => [
     user?.id ? `User ID: ${user.id}` : "",
@@ -213,10 +320,11 @@ export default function ElyAssistant({ embedded = false, defaultOpen = false }) 
     normalizeCourseRecords(profile).length
       ? `Courses: ${normalizeCourseRecords(profile).map((course) => `${course.name} (${course.status})`).join(", ")}`
       : "",
+    upcomingCalendarSummary ? `Upcoming calendar:\n${upcomingCalendarSummary}` : "Upcoming calendar: no active upcoming items found",
     `Preferred locale: ${locale}`,
-  ].filter(Boolean).join("\n"), [profile, user?.id, user?.full_name, university?.id, university?.name, locale]);
+  ].filter(Boolean).join("\n"), [profile, user?.id, user?.full_name, university?.id, university?.name, upcomingCalendarSummary, locale]);
 
-  const actionContext = useMemo(() => buildElyActionContext({ user, profile, university, locale }), [user, profile, university, locale]);
+  const actionContext = useMemo(() => buildElyActionContext({ user, profile, university, locale, upcomingCalendarItems }), [user, profile, university, locale, upcomingCalendarItems]);
 
   async function waitForAgentReply(conversationId, previousAssistantCount) {
     for (let attempt = 0; attempt < 6; attempt += 1) {
@@ -231,7 +339,7 @@ export default function ElyAssistant({ embedded = false, defaultOpen = false }) 
 
   async function fallbackReply(content) {
     const recent = messagesRef.current.slice(-6).map((message) => `${message.role}: ${typeof message.content === "string" ? message.content : JSON.stringify(message.content)}`).join("\n");
-    const prompt = `You are Ely, Elysium's trilingual campus next-step assistant. Reply in ${locale === "he" ? "Hebrew" : locale === "ar" ? "Arabic" : "English"}. Keep the answer short and use these headings: Now, Next, Help. Never invent university rules, deadlines, contacts, or links. You may suggest these verified internal routes: /calendar, /discover?tab=social, /discover?tab=sessions, /discover?tab=tutors, /discover?tab=helpers, /tools, /profile, /me. Do not complete graded assignments. This fallback channel cannot save calendar items or profile courses, so if the student asked you to add or update something, say you could not confirm the save and ask them to try again or use /calendar or /me.\n\nStudent context:\n${studentContext}\n\nRecent conversation:\n${recent}\n\nStudent question: ${content}`;
+    const prompt = `You are Ely, Elysium's trilingual campus next-step assistant. Reply in ${locale === "he" ? "Hebrew" : locale === "ar" ? "Arabic" : "English"}. Keep the answer short and use these headings: Now, Next, Help. Never invent university rules, deadlines, contacts, or links. You may suggest these verified internal routes: /calendar, /discover?tab=social, /discover?tab=sessions, /discover?tab=tutors, /discover?tab=helpers, /tools, /profile, /me. Do not complete graded assignments. You can give text-first calendar planning advice from the student context: suggest priorities, realistic work blocks, breaks, and the first next step. This fallback channel cannot save calendar items or profile courses, so if the student asked you to add or update something, say you could not confirm the save and ask them to try again or use /calendar or /me.\n\nStudent context:\n${studentContext}\n\nRecent conversation:\n${recent}\n\nStudent question: ${content}`;
     const response = await base44.integrations.Core.InvokeLLM({ prompt });
     const assistantMessage = { id: `ely-fallback-${Date.now()}`, role: "assistant", content: typeof response === "string" ? response : JSON.stringify(response), created_date: new Date().toISOString(), fallback: true };
     setMessages((current) => [...current, assistantMessage]);
@@ -253,7 +361,7 @@ export default function ElyAssistant({ embedded = false, defaultOpen = false }) 
         content,
         custom_context: [
           { type: "student_context", message: "Use this current student context.", data: { summary: studentContext } },
-          { type: "ely_action_context", message: "Use this when the student explicitly asks Ely to save a calendar item or profile course.", data: actionContext },
+          { type: "ely_action_context", message: "Use this for text-first calendar planning, calendar item saves, and profile course updates.", data: actionContext },
         ],
       });
       const replied = await waitForAgentReply(conversation.id, previousAssistantCount);

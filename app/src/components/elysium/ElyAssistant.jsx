@@ -8,6 +8,8 @@ import { useProfile } from "@/lib/useProfile";
 import { cn } from "@/lib/utils";
 import { extractInternalPaths } from "@/lib/productUtils";
 import { normalizeCourseRecords } from "@/lib/profileCourses";
+import { registerCourses } from "@/lib/courseCatalog";
+import { invalidateAppDataCaches, patchCreatedActionCaches } from "@/lib/base44Cache";
 
 const labels = {
   en: { title: "Ely", subtitle: "Your campus next-step assistant", placeholder: "What do you need help with?", empty: "Ask about your next deadline, a course, campus help, or where to find the right person.", open: "Open Ely", close: "Close Ely", full: "Open full chat", error: "Ely could not respond. Try again.", suggestions: ["What should I focus on next?", "Find a Calculus study group", "Where can I get official academic help?"] },
@@ -16,6 +18,7 @@ const labels = {
 };
 
 const FLOATING_MESSAGE = "Hi there, I am Ely. Ask me anything. Need help?";
+const RECENT_ACTION_WINDOW_MS = 5000;
 
 function actionLabel(path, locale) {
   const key = path.split("?")[0];
@@ -24,6 +27,7 @@ function actionLabel(path, locale) {
     he: { "/calendar": "פתיחת היומן", "/discover": "פתיחת הגילוי", "/tools": "פתיחת כלים", "/social": "פתיחת פעילויות", "/groups": "פתיחת לימודים", "/profile": "פתיחת הפרופיל" },
     ar: { "/calendar": "فتح التقويم", "/discover": "فتح الاستكشاف", "/tools": "فتح الأدوات", "/social": "فتح الأنشطة", "/groups": "فتح الدراسة", "/profile": "فتح الملف" },
   };
+  if (key === "/me") return "Open Me";
   return names[locale]?.[key] || names.en[key] || "Open";
 }
 
@@ -72,9 +76,87 @@ function ElyRobotAvatar({ size = 46, className = "" }) {
   );
 }
 
+function courseSignature(profile) {
+  return normalizeCourseRecords(profile)
+    .map((course) => [course.name.toLocaleLowerCase("en"), course.status, course.semester, course.grade || "", course.credits || ""].join("|"))
+    .join(";;");
+}
+
+function createdAfter(item, sentAtMs) {
+  const createdAt = new Date(item?.created_date || item?.updated_date || "").getTime();
+  return Number.isFinite(createdAt) && createdAt >= sentAtMs - RECENT_ACTION_WINDOW_MS;
+}
+
+export function buildElyActionContext({ user, profile, university, locale }) {
+  return {
+    now_iso: new Date().toISOString(),
+    locale,
+    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "local",
+    user_id: user?.id || null,
+    profile_id: profile?.id || null,
+    university_id: profile?.university_id || university?.id || null,
+    university_name: university?.name || null,
+    writable_actions: [
+      {
+        action: "create_calendar_item",
+        entity: "CalendarItem",
+        required_fields: ["owner_user_id", "source_type", "title", "starts_at"],
+        fixed_fields: { owner_user_id: user?.id || null, source_type: "personal", status: "active", completed: false },
+        allowed_personal_kind: ["homework", "exam", "other"],
+        allowed_priority: ["normal", "important", "urgent"],
+      },
+      {
+        action: "update_profile_courses",
+        entity: "StudentProfile",
+        profile_id: profile?.id || null,
+        writable_fields_only: ["courses", "course_records"],
+        default_course_record: { status: "active", semester: "unassigned" },
+      },
+    ],
+  };
+}
+
+export async function syncElyActionSideEffects({ api = base44, user, profile, setProfile, sentAt, syncedCalendarItemIds }) {
+  if (!user?.id) return;
+  const sentAtMs = new Date(sentAt).getTime();
+  const [profiles, recentCalendarItems] = await Promise.all([
+    api.entities.StudentProfile.filter({ user_id: user.id }).catch(() => []),
+    api.entities.CalendarItem.filter({ owner_user_id: user.id }, "-created_date", 8).catch(() => []),
+  ]);
+
+  const latestProfile = profiles?.[0];
+  if (latestProfile?.id) {
+    const previousCourseSignature = courseSignature(profile);
+    const nextCourseSignature = courseSignature(latestProfile);
+    setProfile?.((current) => current ? { ...current, ...latestProfile } : latestProfile);
+    if (nextCourseSignature && nextCourseSignature !== previousCourseSignature) {
+      await registerCourses(api, {
+        universityId: latestProfile.university_id,
+        userId: user.id,
+        courses: normalizeCourseRecords(latestProfile),
+      }).catch(() => []);
+    }
+  }
+
+  const nextItems = (recentCalendarItems || []).filter((item) => (
+    item?.id
+    && item.source_type === "personal"
+    && createdAfter(item, sentAtMs)
+    && !syncedCalendarItemIds?.has(item.id)
+  ));
+
+  nextItems.forEach((calendarItem) => {
+    syncedCalendarItemIds?.add(calendarItem.id);
+    patchCreatedActionCaches({ type: "calendar", calendarItem });
+    window.dispatchEvent(new CustomEvent("elysium:create-action-complete", { detail: { type: "calendar", calendarItem } }));
+  });
+
+  if (latestProfile?.id || nextItems.length) invalidateAppDataCaches();
+}
+
 export default function ElyAssistant({ embedded = false, defaultOpen = false }) {
   const { locale, isRTL } = useLanguage();
-  const { user, profile, university } = useProfile();
+  const { user, profile, university, setProfile } = useProfile();
   const copy = labels[locale] || labels.en;
   const [open, setOpen] = useState(defaultOpen || embedded);
   const [conversation, setConversation] = useState(null);
@@ -84,6 +166,7 @@ export default function ElyAssistant({ embedded = false, defaultOpen = false }) 
   const [error, setError] = useState("");
   const bottomRef = useRef(null);
   const messagesRef = useRef([]);
+  const syncedCalendarItemIdsRef = useRef(new Set());
 
   useEffect(() => { messagesRef.current = messages; }, [messages]);
 
@@ -120,15 +203,20 @@ export default function ElyAssistant({ embedded = false, defaultOpen = false }) 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, loading]);
 
   const studentContext = useMemo(() => [
+    user?.id ? `User ID: ${user.id}` : "",
+    profile?.id ? `Profile ID: ${profile.id}` : "",
     profile?.preferred_name || user?.full_name ? `Student: ${profile?.preferred_name || user?.full_name}` : "",
     university?.name ? `University: ${university.name}` : "",
+    profile?.university_id ? `University ID: ${profile.university_id}` : "",
     profile?.academic_year ? `Academic year: ${profile.academic_year}` : "",
     profile?.field_of_study ? `Field: ${profile.field_of_study}` : "",
     normalizeCourseRecords(profile).length
       ? `Courses: ${normalizeCourseRecords(profile).map((course) => `${course.name} (${course.status})`).join(", ")}`
       : "",
     `Preferred locale: ${locale}`,
-  ].filter(Boolean).join("\n"), [profile, user?.full_name, university?.name, locale]);
+  ].filter(Boolean).join("\n"), [profile, user?.id, user?.full_name, university?.id, university?.name, locale]);
+
+  const actionContext = useMemo(() => buildElyActionContext({ user, profile, university, locale }), [user, profile, university, locale]);
 
   async function waitForAgentReply(conversationId, previousAssistantCount) {
     for (let attempt = 0; attempt < 6; attempt += 1) {
@@ -143,7 +231,7 @@ export default function ElyAssistant({ embedded = false, defaultOpen = false }) 
 
   async function fallbackReply(content) {
     const recent = messagesRef.current.slice(-6).map((message) => `${message.role}: ${typeof message.content === "string" ? message.content : JSON.stringify(message.content)}`).join("\n");
-    const prompt = `You are Ely, Elysium's trilingual campus next-step assistant. Reply in ${locale === "he" ? "Hebrew" : locale === "ar" ? "Arabic" : "English"}. Keep the answer short and use these headings: Now, Next, Help. Never invent university rules, deadlines, contacts, or links. You may suggest these verified internal routes: /calendar, /discover?tab=social, /discover?tab=sessions, /discover?tab=tutors, /discover?tab=helpers, /tools, /profile. Do not complete graded assignments.\n\nStudent context:\n${studentContext}\n\nRecent conversation:\n${recent}\n\nStudent question: ${content}`;
+    const prompt = `You are Ely, Elysium's trilingual campus next-step assistant. Reply in ${locale === "he" ? "Hebrew" : locale === "ar" ? "Arabic" : "English"}. Keep the answer short and use these headings: Now, Next, Help. Never invent university rules, deadlines, contacts, or links. You may suggest these verified internal routes: /calendar, /discover?tab=social, /discover?tab=sessions, /discover?tab=tutors, /discover?tab=helpers, /tools, /profile, /me. Do not complete graded assignments. This fallback channel cannot save calendar items or profile courses, so if the student asked you to add or update something, say you could not confirm the save and ask them to try again or use /calendar or /me.\n\nStudent context:\n${studentContext}\n\nRecent conversation:\n${recent}\n\nStudent question: ${content}`;
     const response = await base44.integrations.Core.InvokeLLM({ prompt });
     const assistantMessage = { id: `ely-fallback-${Date.now()}`, role: "assistant", content: typeof response === "string" ? response : JSON.stringify(response), created_date: new Date().toISOString(), fallback: true };
     setMessages((current) => [...current, assistantMessage]);
@@ -156,16 +244,30 @@ export default function ElyAssistant({ embedded = false, defaultOpen = false }) 
     setError("");
     setLoading(true);
     try {
+      const sentAt = new Date().toISOString();
       const previousAssistantCount = messagesRef.current.filter((item) => item.role === "assistant" && item.content).length;
       const optimistic = { id: `ely-user-${Date.now()}`, role: "user", content, created_date: new Date().toISOString() };
       setMessages((current) => [...current, optimistic]);
       await base44.agents.addMessage(conversation, {
         role: "user",
         content,
-        custom_context: [{ type: "student_context", message: "Use this current student context.", data: { summary: studentContext } }],
+        custom_context: [
+          { type: "student_context", message: "Use this current student context.", data: { summary: studentContext } },
+          { type: "ely_action_context", message: "Use this when the student explicitly asks Ely to save a calendar item or profile course.", data: actionContext },
+        ],
       });
       const replied = await waitForAgentReply(conversation.id, previousAssistantCount);
-      if (!replied) await fallbackReply(content);
+      if (replied) {
+        await syncElyActionSideEffects({
+          user,
+          profile,
+          setProfile,
+          sentAt,
+          syncedCalendarItemIds: syncedCalendarItemIdsRef.current,
+        });
+      } else {
+        await fallbackReply(content);
+      }
     } catch (cause) {
       console.error(cause);
       try {

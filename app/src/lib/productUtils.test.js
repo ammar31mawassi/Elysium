@@ -64,7 +64,7 @@ describe("student planning utilities", () => {
   });
 
   it("extracts unique internal Ely actions", () => {
-    expect(extractInternalPaths("Open /calendar then /discover?tab=tutors and /calendar.")).toEqual(["/calendar", "/discover?tab=tutors"]);
+    expect(extractInternalPaths("Open /calendar then /discover?tab=tutors, /me and /calendar.")).toEqual(["/calendar", "/discover?tab=tutors", "/me"]);
   });
 
   it("validates each onboarding stage", () => {

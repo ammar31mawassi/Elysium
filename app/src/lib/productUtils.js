@@ -87,7 +87,7 @@ export function directionForLocale(locale) {
 }
 
 export function extractInternalPaths(content = "") {
-  const matches = content.match(/\/(?:calendar|discover|tools|social|groups|profile)(?:\?[^\s)\]]+)?/g) || [];
+  const matches = content.match(/\/(?:calendar|discover|tools|social|groups|profile|me)(?:\?[^\s)\]]+)?/g) || [];
   return [...new Set(matches.map((path) => path.replace(/[.,;:]+$/, "")))];
 }
 

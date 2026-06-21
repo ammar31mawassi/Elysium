@@ -11,6 +11,7 @@ export const COURSE_SEMESTERS = [
 ];
 
 const COURSE_SEMESTER_VALUES = new Set(COURSE_SEMESTERS.map((semester) => semester.value));
+const COURSE_LIST_SEPARATOR_PATTERN = /[,;\n\u060C]+/;
 
 export function normalizeCourseSemester(value) {
   return COURSE_SEMESTER_VALUES.has(value) ? value : "unassigned";
@@ -36,6 +37,14 @@ export function normalizeCourseRecords(profile) {
     });
   });
   return [...courses.values()];
+}
+
+export function parseCourseListInput(value = "") {
+  return String(value)
+    .split(COURSE_LIST_SEPARATOR_PATTERN)
+    .map(cleanName)
+    .filter(Boolean)
+    .map((name) => ({ name, status: "active" }));
 }
 
 export function activeCourseNames(profile) {

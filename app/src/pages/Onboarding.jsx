@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import ElysiumLogo from "@/components/elysium/ElysiumLogo";
 import { cn } from "@/lib/utils";
 import { isOnboardingStepValid, localizedField } from "@/lib/productUtils";
-import { courseProfileUpdate } from "@/lib/profileCourses";
+import { courseProfileUpdate, parseCourseListInput } from "@/lib/profileCourses";
 import { registerCourses } from "@/lib/courseCatalog";
 import { withDefaultUniversities } from "@/lib/universities";
 import {
@@ -49,6 +49,7 @@ export default function Onboarding() {
   const [fieldQuery, setFieldQuery] = useState("");
   const [showFieldOptions, setShowFieldOptions] = useState(false);
   const [interestSearch, setInterestSearch] = useState("");
+  const [courseText, setCourseText] = useState("");
   const [showCustomInterest, setShowCustomInterest] = useState(false);
   const [customInterest, setCustomInterest] = useState({ en: "", he: "" });
   const [customInterestMessage, setCustomInterestMessage] = useState("");
@@ -127,6 +128,11 @@ export default function Onboarding() {
     setInterestSearch("");
   };
 
+  const updateCoursesFromText = (value) => {
+    setCourseText(value);
+    setForm((current) => ({ ...current, ...courseProfileUpdate(parseCourseListInput(value)) }));
+  };
+
   const continueOnboarding = () => {
     if (!canContinue) {
       setError(step === 2 ? p("onboarding_field_select") : "Complete the required choices before continuing.");
@@ -201,7 +207,15 @@ export default function Onboarding() {
             </Step>}
 
             {step === 3 && <Step title={p("onboarding_courses_title")} body={p("onboarding_courses_body")}>
-              <Label>{p("onboarding_courses")}</Label><Input value={form.course_records.map((course) => course.name).join(", ")} onChange={(event) => { const courseRecords = event.target.value.split(",").map((item) => item.trim()).filter(Boolean).map((name) => ({ name, status: "active" })); setForm((current) => ({ ...current, ...courseProfileUpdate(courseRecords) })); }} placeholder="Calculus 2, Data Structures" /><p className="mt-1.5 text-xs text-muted-foreground">{p("onboarding_courses_optional")}</p>
+              <Label>{p("onboarding_courses")}</Label>
+              <Input
+                value={courseText}
+                onChange={(event) => updateCoursesFromText(event.target.value)}
+                placeholder="Calculus 2, Data Structures"
+                autoCapitalize="words"
+                inputMode="text"
+              />
+              <p className="mt-1.5 text-xs text-muted-foreground">{p("onboarding_courses_optional")}</p>
               <div className="mt-6"><Label>{p("onboarding_interests")}</Label><div className="relative"><Search className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><Input className="ps-9" value={interestSearch} onChange={(event) => setInterestSearch(event.target.value)} placeholder={p("onboarding_interest_search")} /></div><div className="mt-3 flex max-h-52 flex-wrap gap-2 overflow-y-auto pe-1">{filteredInterests.map((interest) => <Pill key={interest.id} selected={form.interests.includes(interest.en)} onClick={() => toggleListValue("interests", interest.en)}>{localizedOption(interest, locale)}</Pill>)}</div><Button type="button" variant="outline" className="mt-4 min-h-11 gap-2" onClick={() => { setShowCustomInterest((current) => !current); setCustomInterestMessage(""); }}><Plus className="h-4 w-4" />{p("onboarding_add_interest")}</Button>
                 {showCustomInterest && <div className="mt-3 rounded-lg border border-border bg-card p-3"><div className="flex items-center justify-between"><p className="text-sm font-semibold text-foreground">{p("onboarding_add_interest")}</p><button className="flex h-10 w-10 items-center justify-center rounded-md text-muted-foreground hover:bg-muted" onClick={() => setShowCustomInterest(false)} aria-label="Close"><X className="h-4 w-4" /></button></div><div className="mt-2 grid gap-2 sm:grid-cols-2"><Input value={customInterest.en} onChange={(event) => setCustomInterest((current) => ({ ...current, en: event.target.value }))} placeholder={p("onboarding_interest_en")} /><Input dir="rtl" value={customInterest.he} onChange={(event) => setCustomInterest((current) => ({ ...current, he: event.target.value }))} placeholder={p("onboarding_interest_he")} /></div>{customInterestMessage && <p className="mt-2 text-xs text-primary">{customInterestMessage}</p>}<Button type="button" className="mt-3" disabled={!customInterest.en.trim() || !customInterest.he.trim()} onClick={addCustomInterest}>{p("onboarding_interest_save")}</Button></div>}
               </div>
